@@ -2662,6 +2662,11 @@
   font-size: 34px;
   font-weight: 650;
 }
+.detail-heading-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.detail-qr-shortcut { flex: none; display: grid; place-items: center; width: 68px; height: 68px; padding: 5px;
+  border: 1px solid #d8cbed; border-radius: 14px; background: #fff; box-shadow: 0 5px 14px #7053b714; }
+.detail-qr-shortcut img { display: block; width: 58px; height: 58px; image-rendering: pixelated; }
+.detail-qr-shortcut span { color: #7053b7; font-size: 34px; line-height: 1; }
 .detail-header > .status-badge {
   min-height: 32px;
   padding-inline: 12px;

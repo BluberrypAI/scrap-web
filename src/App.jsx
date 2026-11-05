@@ -4,10 +4,16 @@ import { AboutPage } from './pages/about/AboutPage.jsx';
 import { LoginPage } from './pages/auth/LoginPage.jsx';
 import { OnboardingPage } from './pages/auth/OnboardingPage.jsx';
 import { LandingPage } from './pages/landing/LandingPage.jsx';
+import * as React from 'react';
+import { createWasteTracking } from './waste-tracking.jsx';
+
+const { Page: TrackingPage } = createWasteTracking(React);
 
 export function App() {
   let e = currentRoute().path.replace(/\/+$/, '') || '/';
-  return e === '/about' ? (
+  return e.startsWith('/track/') ? (
+    <TrackingPage wasteId={decodeURIComponent(e.slice('/track/'.length))} />
+  ) : e === '/about' ? (
     <AboutPage />
   ) : e === '/login' ? (
     <LoginPage />
