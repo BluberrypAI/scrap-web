@@ -1,6 +1,6 @@
 import { ArrowUpRightIcon, PlayIcon } from '../../components/LandingIcons.jsx';
 import { SiteFooter } from '../../components/SiteFooter.jsx';
-import { navItems } from '../../data/navigation.js';
+import { SiteHeader } from '../../components/SiteHeader.jsx';
 import { LandingArtwork } from './LandingArtwork.jsx';
 
 const partners = [
@@ -15,25 +15,7 @@ const partners = [
 export function LandingPage() {
   return (
     <main className="landing-page" data-layer-name="Landing-Hero" data-theme="light">
-      <header className="landing-header">
-        <a className="landing-wordmark" href="/" data-layer-name="Logo" aria-label="SCRAP 홈">
-          SCRAP<span>.</span>
-        </a>
-        <nav className="landing-nav" aria-label="랜딩 주요 메뉴">
-          {navItems.map((e) => (
-            <a href={e.href} className={undefined} key={e.href}>
-              {e.label}
-            </a>
-          ))}
-        </nav>
-        <div className="landing-header-actions">
-          <button type="button">로그인</button>
-          <a className="landing-button landing-button-primary landing-button-small" href="/login">
-            시작하기
-            <ArrowUpRightIcon />
-          </a>
-        </div>
-      </header>
+      <SiteHeader />
       <section className="landing-hero" aria-labelledby="landing-title">
         <div className="landing-copy">
           <div className="landing-eyebrow">
