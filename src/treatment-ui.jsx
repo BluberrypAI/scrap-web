@@ -12,6 +12,7 @@ const forms = {
 };
 const materialLabels = { PP: 'PP', PE: 'PE', PET: 'PET', aluminium: '알루미늄' };
 const demoOrigin = { latitude: 36.64, longitude: 127.45 };
+const classifiedExamples = new Set(['synthetic-resin', 'aluminium-can-sample']);
 
 function stamp(value) {
   return new Date(value).toLocaleString('ko-KR');
@@ -215,8 +216,8 @@ export function createTreatmentUI(React) {
       </header>
       <Scene active={current} done={Boolean(finished)} pins={pins} />
       <div className="treatment-body">
-        {!value && (waste.id === 'synthetic-resin'
-          ? <Confirm id={waste.id} />
+        {!value && (classifiedExamples.has(waste.id)
+          ? <Confirm id={waste.id} wasteCode={waste.code} />
           : <div className="treatment-status">
             <h3>{waste.status === '분석 대기' ? '분석 결과 확인이 필요해요' : '연결된 처리경로가 없어요'}</h3>
             <p>문진에서 분류번호와 재질·형태를 기록한 건부터 다음 공정을 조회할 수 있어요.</p>
