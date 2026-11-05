@@ -8,14 +8,17 @@ import { MatchPage } from '../pages/match/MatchPage.jsx';
 import { ReportPage } from '../pages/report/ReportPage.jsx';
 import { SurveyPage } from '../pages/survey/SurveyPage.jsx';
 import { WasteDetailPage } from '../pages/waste-detail/WasteDetailPage.jsx';
+import { WasteTrackingPage } from '../pages/waste-detail/WasteTrackingPage.jsx';
 import { WastesPage } from '../pages/wastes/WastesPage.jsx';
 import { TaskPlaceholder } from '../pages/workspace/TaskPlaceholder.jsx';
 
 export function AppShell({ path }) {
   let t = path.match(/^\/wastes\/([^/]+)$/),
+    tracking = path.match(/^\/wastes\/([^/]+)\/tracking$/),
     n = path.match(/^\/map\/([^/]+)$/),
     r = path.match(/^\/wastes\/([^/]+)\/(survey|match|report)$/),
     i = t ? wastes.find((e) => e.id === t[1]) : undefined,
+    trackingWaste = tracking ? wastes.find((e) => e.id === tracking[1]) : undefined,
     a = r
       ? wastes.find((e) => e.id === r[1]) ||
         (r[2] === 'survey' && /^lot-[a-f0-9-]{36}$/.test(r[1])
@@ -41,7 +44,9 @@ export function AppShell({ path }) {
   ) : (
     <div className="app-route-shell" data-theme="light">
       <AppTopNav path={path} />
-      {i || (r?.[2] === 'match' && a) ? (
+      {trackingWaste ? (
+        <WasteTrackingPage waste={trackingWaste} />
+      ) : i || (r?.[2] === 'match' && a) ? (
         <WasteDetailPage waste={i || a} />
       ) : o ? (
         <HandlerDetailPage company={o} />

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { scrapTreatment } from '../../features/treatment/index.js';
 import {
   displayCase,
@@ -11,6 +10,7 @@ import { DetailOverlay } from './DetailOverlay.jsx';
 import { DetailPanel } from './DetailPanel.jsx';
 import { NextActionCard } from './NextActionCard.jsx';
 import { AnalysisResultModal } from '../wastes/AnalysisResultModal.jsx';
+import { WasteQRShortcut } from './WasteQRShortcut.jsx';
 
 const detailTabs = [
   {
@@ -21,12 +21,9 @@ const detailTabs = [
     id: 'classification',
     label: '분류',
   },
-  {
-    id: 'history',
-    label: '기록',
-  },
 ];
 export function WasteDetailPage({ waste }) {
+  const classificationWaste = waste;
   const [, refreshTreatment] = useState(0);
   useEffect(() => {
     const refresh = () => refreshTreatment((revision) => revision + 1);
@@ -40,7 +37,6 @@ export function WasteDetailPage({ waste }) {
     n = {
       분류: 'classification',
       처리경로: 'route',
-      기록: 'history',
     },
     r = t && n[t] ? n[t] : detailTabs.some((e) => e.id === t) ? t : 'route',
     [i, a] = useState(null);
@@ -76,7 +72,9 @@ export function WasteDetailPage({ waste }) {
             {' · 마지막 업데이트 '}
             {waste.updatedAt}
           </span>
-          <h1>{waste.name}</h1>
+          <div className="detail-heading-row">
+            <h1>{waste.name}</h1>
+          </div>
           <div className="detail-code">
             <strong>
               {'분류번호 '}
@@ -89,13 +87,13 @@ export function WasteDetailPage({ waste }) {
             )}
           </div>
         </div>
-        <StatusBadge status={waste.status} />
+        <WasteQRShortcut waste={waste} />
       </header>
-      {routeTreatment ? (
+      {routeTreatment && !routeTreatment.pending ? (
         <scrapTreatment.Summary waste={waste} />
-      ) : (
+      ) : !routeTreatment ? (
         <NextActionCard waste={waste} onOpenOverlay={o} />
-      )}
+      ) : null}
       <nav
         className="detail-tabs"
         data-layer-name="L2-WasteDetail-Tabs"
@@ -114,10 +112,8 @@ export function WasteDetailPage({ waste }) {
       </nav>
       {r === 'route' ? (
         <scrapTreatment.Panel waste={waste} />
-      ) : routeTreatment ? (
-        <scrapTreatment.SavedTab waste={waste} tab={r} />
       ) : (
-        <DetailPanel waste={waste} tab={r} onOpenLegal={() => o('legal')} />
+        <DetailPanel waste={classificationWaste} tab={r} onOpenLegal={() => o('legal')} />
       )}
       {i === 'analysis' ? (
         <AnalysisResultModal waste={waste} onClose={s} />
