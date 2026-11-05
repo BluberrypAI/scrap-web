@@ -6,6 +6,7 @@ export function SiteFooter() {
           SCRAP<span>.</span>
         </strong>
         <p>팀 BluberrypAI</p>
+        <p>대표 윤재상</p>
       </div>
       <nav className="site-footer-links" aria-label="푸터 메뉴">
         <div className="site-footer-legal">

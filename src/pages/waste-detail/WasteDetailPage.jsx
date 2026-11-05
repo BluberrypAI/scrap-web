@@ -82,9 +82,7 @@ export function WasteDetailPage({ waste }) {
               {'분류번호 '}
               {waste.code}
             </strong>
-            {routeTreatment ? (
-              <a href={`/wastes/${waste.id}?tab=classification`}>기록한 분류 보기</a>
-            ) : (
+            {!routeTreatment && (
               <button type="button" onClick={() => o('legal')}>
                 근거 조문 보기
               </button>

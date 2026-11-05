@@ -8,7 +8,6 @@ import { WasteCard } from './WasteCard.jsx';
 
 function WasteList({ variant, onOpenAnalysis, onCreate }) {
   let r = wastes.filter((e) => e.status !== '완료'),
-    i = wastes.length - r.length,
     a = variant === 'list' && wastes.some((e) => e.status === '분석 대기');
   return (
     <div className="home-content" data-layer-name="L1-Home" data-variant={variant}>
@@ -53,16 +52,6 @@ function WasteList({ variant, onOpenAnalysis, onCreate }) {
         </section>
       ) : (
         <EmptyState onCreate={onCreate} />
-      )}
-      {variant === 'list' && i > 0 && (
-        <a className="completed-note" href="/data?tab=history">
-          <Icon name="check" size={16} />
-          <span>
-            {'처리가 끝난 폐기물 '}
-            {i}건은 기업 데이터 관리의 처리 이력에서 보고서와 함께 볼 수 있어요
-          </span>
-          <Icon name="arrow" size={16} />
-        </a>
       )}
     </div>
   );

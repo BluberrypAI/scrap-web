@@ -43,7 +43,7 @@ export function LandingPage() {
           <h1 id="landing-title">
             Connecting Resources,
             <br />
-            <span>Creating Value.</span>
+            <span>Creating Circulation.</span>
           </h1>
           <p>
             폐기물 분류부터 처리업체에 맡기는 시간까지,
