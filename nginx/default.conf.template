@@ -1,0 +1,28 @@
+# nginx 공식 이미지가 시작할 때 환경 변수(${SCRAP_SERVER_URL})를 치환해 default.conf로 만든다.
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # 화면 코드는 같은 출처의 /api 만 호출하므로 서버 API로 그대로 전달
+    location /api/ {
+        proxy_pass ${SCRAP_SERVER_URL};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # 빌드 산출물은 파일명에 해시가 붙어 있어 오래 캐시해도 됨
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # 해시 라우팅이라 index.html 하나로 모든 화면을 연다
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
+    }
+}

@@ -33,6 +33,17 @@ npm run dev -- --port 5178
 
 `npm test`와 `npm run build`로 확인할 수 있습니다.
 
+## Docker
+
+빌드한 정적 파일을 nginx로 서빙합니다. `/api/` 요청은 `SCRAP_SERVER_URL`(기본값 `http://host.docker.internal:8000`)로 그대로 전달합니다.
+
+```bash
+docker build -t scrap-web .
+docker run --rm -p 8080:80 -e SCRAP_SERVER_URL=http://host.docker.internal:8000 scrap-web
+```
+
+`http://localhost:8080`에서 확인합니다. 서버를 같은 Docker 네트워크에서 실행한다면 `SCRAP_SERVER_URL`을 서버 컨테이너 주소(예: `http://backend:8000`)로 바꿉니다.
+
 ## 구조
 
 Vite + React 19 프로젝트입니다. 라우팅은 해시(`#/경로`) 기반이며 [src/lib/router.js](src/lib/router.js)에 있습니다.
