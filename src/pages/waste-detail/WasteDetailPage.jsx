@@ -4,6 +4,8 @@ import {
   displayCase,
   getTreatmentCase,
   loadCase,
+  transportLegId,
+  watchCase,
 } from '../../features/treatment/treatment-state.js';
 import { currentRoute } from '../../lib/router.js';
 import { DetailOverlay } from './DetailOverlay.jsx';
@@ -11,6 +13,10 @@ import { DetailPanel } from './DetailPanel.jsx';
 import { NextActionCard } from './NextActionCard.jsx';
 import { AnalysisResultModal } from '../wastes/AnalysisResultModal.jsx';
 import { WasteQRShortcut } from './WasteQRShortcut.jsx';
+import * as React from 'react';
+import { createWasteTracking } from '../../waste-tracking.jsx';
+
+const { CompanyPanel } = createWasteTracking(React);
 
 const detailTabs = [
   {
@@ -21,22 +27,26 @@ const detailTabs = [
     id: 'classification',
     label: '분류',
   },
+  { id: 'transport', label: '운송' },
+  { id: 'history', label: '기록' },
 ];
 export function WasteDetailPage({ waste }) {
   const classificationWaste = waste;
   const [, refreshTreatment] = useState(0);
   useEffect(() => {
     const refresh = () => refreshTreatment((revision) => revision + 1);
-    window.addEventListener('scrap-treatment-change', refresh);
-    return () => window.removeEventListener('scrap-treatment-change', refresh);
-  }, []);
+    return watchCase(waste.id, refresh);
+  }, [waste.id]);
   const savedTreatment = loadCase(waste.id);
   if (savedTreatment) waste = displayCase(savedTreatment);
   const routeTreatment = savedTreatment || getTreatmentCase(waste);
-  let t = new URLSearchParams(currentRoute().search).get('tab'),
+  const routeParams = new URLSearchParams(currentRoute().search);
+  const processorView = routeParams.get('view') === 'processor';
+  let t = routeParams.get('tab'),
     n = {
       분류: 'classification',
       처리경로: 'route',
+      운송: 'transport',
     },
     r = t && n[t] ? n[t] : detailTabs.some((e) => e.id === t) ? t : 'route',
     [i, a] = useState(null);
@@ -87,13 +97,13 @@ export function WasteDetailPage({ waste }) {
             )}
           </div>
         </div>
-        <WasteQRShortcut waste={waste} />
+        <WasteQRShortcut waste={waste} legId={transportLegId(routeTreatment?.pending)} />
       </header>
-      {routeTreatment && !routeTreatment.pending ? (
-        <scrapTreatment.Summary waste={waste} />
+      {r === 'route' && (routeTreatment && !routeTreatment.pending ? (
+        <scrapTreatment.Summary waste={waste} processorView={processorView} />
       ) : !routeTreatment ? (
         <NextActionCard waste={waste} onOpenOverlay={o} />
-      ) : null}
+      ) : null)}
       <nav
         className="detail-tabs"
         data-layer-name="L2-WasteDetail-Tabs"
@@ -101,7 +111,7 @@ export function WasteDetailPage({ waste }) {
       >
         {detailTabs.map((t) => (
           <a
-            href={`/wastes/${waste.id}?tab=${t.id}`}
+            href={`/wastes/${waste.id}?tab=${t.id}${processorView ? '&view=processor' : ''}`}
             className={r === t.id ? 'is-active' : ''}
             aria-current={r === t.id ? 'page' : undefined}
             key={t.id}
@@ -111,7 +121,11 @@ export function WasteDetailPage({ waste }) {
         ))}
       </nav>
       {r === 'route' ? (
-        <scrapTreatment.Panel waste={waste} />
+        <scrapTreatment.Panel waste={waste} processorView={processorView} />
+      ) : r === 'transport' ? (
+        <CompanyPanel waste={waste} />
+      ) : routeTreatment ? (
+        <scrapTreatment.SavedTab waste={waste} tab={r} />
       ) : (
         <DetailPanel waste={classificationWaste} tab={r} onOpenLegal={() => o('legal')} />
       )}
