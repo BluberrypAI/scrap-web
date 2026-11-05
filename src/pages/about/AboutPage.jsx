@@ -1,8 +1,13 @@
+import berryAvatar from '../../assets/berry.png';
 import { ArrowUpRightIcon } from '../../components/LandingIcons.jsx';
+import BorderGlow from '../../components/reactbits/BorderGlow/BorderGlow.jsx';
+import MicroSlats from '../../components/reactbits/MicroSlats/MicroSlats.jsx';
 import { SiteFooter } from '../../components/SiteFooter.jsx';
 import { navItems } from '../../data/navigation.js';
+import { useInView } from '../../hooks/useInView.js';
 import {
   aboutWhy,
+  berryRoles,
   handlingSteps,
   recycleExamples,
   usageFlow,
@@ -10,6 +15,7 @@ import {
 } from './aboutContent.js';
 
 export function AboutPage() {
+  const [whyRef, whyInView] = useInView();
   return (
     <main className="landing-page about-page" data-layer-name="About-Company" data-theme="light">
       <header className="landing-header">
@@ -53,13 +59,30 @@ export function AboutPage() {
           <p className="about-eyebrow">WHY SCRAP</p>
           <h2 id="about-why">우리가 하는 일</h2>
         </div>
-        <div className="about-grid about-grid-3">
-          {aboutWhy.map(([e, t, n]) => (
-            <article className="about-card" key={e}>
-              <span className="about-num">{e}</span>
-              <h3>{t}</h3>
-              <p>{n}</p>
-            </article>
+        <div className="about-grid about-grid-3" ref={whyRef}>
+          {aboutWhy.map(([num, title, text], index) => (
+            <div
+              className={`reveal-up${whyInView ? ' is-visible' : ''}`}
+              style={{ '--reveal-delay': `${index * 120}ms` }}
+              key={num}
+            >
+              <BorderGlow
+                className="about-glow-card"
+                backgroundColor="#ffffff"
+                borderRadius={8}
+                glowRadius={32}
+                glowColor="258 70 60"
+                glowIntensity={1.25}
+                fillOpacity={0.22}
+                colors={['#7053b7', '#b79cf0', '#a3e75e']}
+              >
+                <article className="about-card">
+                  <span className="about-num">{num}</span>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </article>
+              </BorderGlow>
+            </div>
           ))}
         </div>
       </section>
@@ -67,22 +90,35 @@ export function AboutPage() {
         <div className="about-heading">
           <p className="about-eyebrow">BASICS 01</p>
           <h2 id="about-class">폐기물은 이렇게 나뉩니다</h2>
-          <p>
-            법령상 폐기물은 먼저 배출 주체에 따라 나뉘고, 사업장폐기물은 다시 위험성에 따라
-            구분됩니다. 공식 용어에 ‘등급’은 없고 ‘분류’와 ‘분류번호’로 관리합니다.
-          </p>
+          <p>법령상 폐기물은 배출 주체와 위험성에 따라 구분됩니다.</p>
         </div>
-        <div className="about-grid about-grid-3">
-          {wasteCategories.map((e) => (
-            <article className={`about-card about-category about-category-${e.tone}`} key={e.name}>
-              <h3>{e.name}</h3>
-              <p>{e.desc}</p>
-              <small>
-                {'예) '}
-                {e.example}
-              </small>
-            </article>
-          ))}
+        <div className="about-table-wrap">
+          <table className="about-table">
+            <thead>
+              <tr>
+                <th scope="col">분류</th>
+                <th scope="col">배출 주체</th>
+                <th scope="col">위험성</th>
+                <th scope="col">설명</th>
+                <th scope="col">예시</th>
+              </tr>
+            </thead>
+            <tbody>
+              {wasteCategories.map((category) => (
+                <tr key={category.name}>
+                  <th scope="row">
+                    <span className="about-table-tag">{category.name}</span>
+                  </th>
+                  <td data-label="배출 주체">{category.source}</td>
+                  <td data-label="위험성">{category.hazard}</td>
+                  <td data-label="설명">{category.desc}</td>
+                  <td className="about-table-example" data-label="예시">
+                    {category.example}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
         <div className="about-code">
           <div>
@@ -99,9 +135,8 @@ export function AboutPage() {
               {' 세부 품목: 폐합성수지류 (폐염화비닐수지류는 제외)'}
             </li>
             <li>
-              {'같은 합성수지도 '}
-              <b>고체이면 지정폐기물이 아니고</b>, 액상이나 반고상이면 달라질 수 있어 문진에서 먼저
-              확인합니다.
+              같은 합성수지도 형태 혹은 배출 주체에 따라 사업장일반폐기물이 될 수 있고
+              지정폐기물이 될 수 있습니다.
             </li>
           </ul>
         </div>
@@ -141,6 +176,30 @@ export function AboutPage() {
           </small>
         </div>
       </section>
+      <section className="about-section" aria-labelledby="about-berry">
+        <div className="about-berry">
+          <div className="about-berry-bg" aria-hidden="true">
+            <MicroSlats preset="tide" color="#7053b7" glintColor="#ffffff" backgroundColor="transparent" />
+          </div>
+          <img className="about-berry-avatar" src={berryAvatar} alt="에이전트 베리" />
+          <div>
+            <p className="about-eyebrow">MEET BERRY</p>
+            <h2 id="about-berry">문진을 함께하는 에이전트, 베리</h2>
+            <p className="about-berry-lead">
+              베리는 SCRAP의 문진 에이전트예요. 어떤 폐기물인지 편하게 설명하면 내용을 읽고 정리한
+              뒤, 분류에 꼭 필요한 질문만 골라 물어봐요.
+            </p>
+            <ul className="about-berry-roles">
+              {berryRoles.map(([title, text]) => (
+                <li key={title}>
+                  <strong>{title}</strong>
+                  <span>{text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
       <section className="about-section" aria-labelledby="about-flow">
         <div className="about-heading">
           <p className="about-eyebrow">HOW IT WORKS</p>
@@ -166,10 +225,7 @@ export function AboutPage() {
           <ArrowUpRightIcon />
         </a>
       </section>
-      <p className="about-note">
-        이 페이지는 이해를 돕기 위한 요약입니다. 실제 판단 기준은 폐기물관리법령과 관련 별표를
-        따릅니다.
-      </p>
+      <p className="about-note">SCRAP의 네비게이터는 폐기물관리법령과 관련 별표를 따릅니다.</p>
       <SiteFooter />
     </main>
   );
