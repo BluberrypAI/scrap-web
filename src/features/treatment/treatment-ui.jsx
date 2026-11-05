@@ -1,7 +1,9 @@
+/** @jsxRuntime classic */
 /** @jsx h */
 import { beginStep, completeStep, demoWorkplace, finishCase, getTreatmentCase, loadCase, newCase, storeCase } from './treatment-state.js';
 import { recordEvidence } from './treatment-evidence.js';
 import { createEvidenceUI } from './treatment-evidence-ui.jsx';
+import { navigate } from '../../lib/router.js';
 import './treatment.css';
 
 const forms = {
@@ -42,7 +44,7 @@ async function requestNext(value, signal) {
   return result;
 }
 
-// Use the React runtime already included in the team's exported HTML.
+// React is passed in from ./index.js, which exposes the created components.
 export function createTreatmentUI(React) {
   const { createElement: h, useEffect, useRef, useState } = React;
   const { EvidenceTrail, EvidenceReport } = createEvidenceUI(React);
@@ -86,7 +88,7 @@ export function createTreatmentUI(React) {
             ...input, waste_code: '51-03-01', ...demoWorkplace.routeOrigin,
           }));
         }
-        window.__go(`/wastes/${id}?tab=route`);
+        navigate(`/wastes/${id}?tab=route`);
       } catch {
         setError('브라우저에 저장하지 못했어요. 저장소 설정을 확인해 주세요.');
       }

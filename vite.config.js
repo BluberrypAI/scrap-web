@@ -1,3 +1,4 @@
+import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
@@ -5,6 +6,7 @@ export default defineConfig(({ mode }) => {
   // Local integration only. Browser code always calls the same-origin server API.
   const target = env.SCRAP_SERVER_URL || 'http://127.0.0.1:8017';
   return {
+    plugins: [react()],
     server: {
       proxy: {
         '^/api/treatment/next-step$': {

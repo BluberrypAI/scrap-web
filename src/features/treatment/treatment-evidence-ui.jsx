@@ -1,3 +1,4 @@
+/** @jsxRuntime classic */
 /** @jsx h */
 import { auditStep, evidenceStages, latestEvidence, reportFor } from './treatment-evidence.js';
 
