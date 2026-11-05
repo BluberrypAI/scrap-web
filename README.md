@@ -1,9 +1,9 @@
-# Re_client
+# SCRAP 웹
 
 Re:Source AI의 **frontend** 레포. 화면, 3D 시각화, server API 호출을 담당함.
 
 - 하지 않는 일: DB 직접 접근, ai 직접 호출 (항상 server API를 거침)
-- 팀 공통 규칙: 조직 `.github` 레포의 [CONTRIBUTING.md](https://github.com/resource-ai-team/.github/blob/main/CONTRIBUTING.md)
+- 팀 공통 규칙: 조직 `.github` 레포의 [CONTRIBUTING.md](https://github.com/BluberrypAI/.github/blob/main/CONTRIBUTING.md)
 
 ## 브랜치
 
@@ -11,4 +11,18 @@ Re:Source AI의 **frontend** 레포. 화면, 3D 시각화, server API 호출을 
 
 ## 실행
 
-코드가 추가되면 작성함.
+```bash
+npm ci
+npm run dev -- --port 5178
+```
+
+로컬에서는 같은 워크스페이스에 `scrap-ai`를 두고 처리경로 엔진을 8017에서 실행합니다. Vite 개발 서버가 `/api/treatment/next-step`을 로컬 엔진으로 전달합니다. 실제 서버를 함께 실행할 때는 개발 서버 환경에 `SCRAP_SERVER_URL`을 설정하고, 서버가 해당 경로를 제공하도록 연결합니다. 운영에서는 동일 출처 서버 API가 필요합니다.
+
+1. `/#/wastes`에서 **폐합성수지**를 열거나 새 문진을 시작합니다.
+2. 분류번호와 재질·형태를 기록합니다. 예시는 PP 사출 잔재, 가상 청주 출발지입니다.
+3. 첫 탭인 **처리경로**에서 다음 공정의 작업·업체를 확인합니다. 위치 좌표가 있는 업체는 직선거리순 최대 5곳을 3D 모식도에 표시합니다.
+4. 업체를 선택하고 목록으로 돌아갔다가 다시 열면 결과 대기가 유지됩니다. **완료 확인 기록**을 누르면 다음 공정을 조회합니다.
+
+원본 팀 HTML 내 문진은 폐합성수지 예시이며, 알루미늄 캔은 목록에 분류가 주어진 시연 건으로 포함했습니다. 추적 상태는 브라우저 저장소에 남습니다. 화면의 3D 초원·공장 모델은 기존 Re:Source World 시연에서 사용한 절차적 모델입니다.
+
+`npm test`와 `npm run build`로 확인할 수 있습니다.

@@ -1,0 +1,58 @@
+.treatment-panel { overflow: hidden; }
+.treatment-world {
+  height: clamp(245px, 34vw, 395px);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 30% 115%, #89b34c 0 41%, transparent 42%),
+    radial-gradient(ellipse at 90% 120%, #709c42 0 45%, transparent 46%), #9fcbef;
+}
+.treatment-world-canvas { position: absolute; inset: 0; z-index: -1; }
+.treatment-world-canvas canvas { display: block; width: 100%; height: 100%; }
+.treatment-world-copy {
+  position: absolute; top: 20px; left: 20px; display: grid; gap: 4px; padding: 12px 15px;
+  border: 1px solid #ffffffb8; border-radius: 12px; background: #fffffff0; color: #253c30;
+}
+.treatment-world-copy span { font-size: 10px; letter-spacing: .17em; color: #427255; font-weight: 800; }
+.treatment-world-copy small { font-size: 11px; color: #536857; }
+.treatment-body { display: grid; gap: 16px; padding: clamp(16px, 3vw, 30px); }
+.treatment-flow { display: flex; flex-wrap: wrap; gap: 8px; }
+.treatment-flow span {
+  padding: 7px 11px; border-radius: 999px; background: #f1eef8; color: #513c86; font-size: 13px;
+}
+.treatment-flow .is-done { background: #eaf3ea; color: #24553c; }
+.treatment-status, .treatment-confirm {
+  padding: 18px; border: 1px solid #e8e0f3; border-radius: 12px; background: #fcfaff;
+  display: grid; justify-items: start; gap: 10px;
+}
+.treatment-status span, .treatment-option-head small { color: #624aa4; font-weight: 700; }
+.treatment-status h3, .treatment-option-head h3 { font-size: 20px; margin: 0; }
+.treatment-status p, .treatment-option-head p, .treatment-confirm p, .treatment-process p { margin: 0; }
+.treatment-status small, .treatment-confirm small, .treatment-note { color: #635a71; }
+.treatment-confirm { margin: 0; max-width: 610px; }
+.sv-page .treatment-confirm { margin: 0 auto 20px; }
+.treatment-fields { display: flex; flex-wrap: wrap; gap: 12px; }
+.treatment-fields label { display: grid; gap: 5px; color: #362b4c; font-weight: 650; }
+.treatment-fields select, .treatment-fields input { width: 100%; min-width: 120px; border: 1px solid #cdc1e8; border-radius: 7px; padding: 7px; background: white; }
+.treatment-fields input { max-width: 135px; }
+.treatment-map-key { position: absolute; left: 15px; right: 15px; bottom: 14px; display: flex; flex-wrap: wrap; gap: 5px; margin: 0; padding: 0; }
+.treatment-map-key li { padding: 5px 9px; background: #fffffff0; border-radius: 6px; font-size: 11px; }
+.treatment-map-key b { color: #176fa0; }
+.treatment-operations { margin: 8px 0; padding-left: 19px; list-style: decimal; color: #4d4164; font-size: 13px; }
+.treatment-confirm button:disabled { opacity: .55; cursor: default; }
+.treatment-option-head, .treatment-facility {
+  display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 12px;
+}
+.treatment-option-head > div { display: grid; gap: 5px; }
+.treatment-process { margin: 14px 0 0; padding: 16px; border: 1px solid #e8e0f3; border-radius: 11px; }
+.treatment-process h4 { margin: 0 0 5px; font-size: 17px; }
+.treatment-process details { margin-top: 8px; color: #4d4164; font-size: 13px; }
+.treatment-process summary { cursor: pointer; font-weight: 700; }
+.treatment-process ul { padding-left: 21px; list-style: disc; margin: 7px 0; }
+.treatment-facility { margin-top: 12px; padding: 12px; border-radius: 8px; background: #f7f6fa; }
+.treatment-facility p { color: #5c526e; font-size: 13px; }
+.treatment-source { display: block; text-decoration: underline; color: #5f459f; margin-top: 4px; }
+.treatment-note { display: block; padding-top: 12px; }
+.treatment-history ol, .treatment-history ul { margin: 0; padding: 16px 25px; }
+.treatment-history li { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid #ece6f3; }
+.treatment-history small { color: #635a71; }
