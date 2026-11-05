@@ -32,3 +32,36 @@ npm run dev -- --port 5178
 이 시연은 한 로트가 한 경로를 순서대로 이동하는 경우를 다룹니다. 증빙은 담당자가 참조 번호를 기록하며, 브라우저에 정정 이력과 함께 저장됩니다. 대조는 입력값의 일관성을 확인합니다. 실제 증빙 원본 보관, 업체 서명, 올바로 연계와 기관 심사는 운영 단계에 해당합니다. 시연은 가상 증빙을 사용합니다.
 
 `npm test`와 `npm run build`로 확인할 수 있습니다.
+
+## Docker
+
+빌드한 정적 파일을 nginx로 서빙합니다. `/api/` 요청은 `SCRAP_SERVER_URL`(기본값 `http://host.docker.internal:8000`)로 그대로 전달합니다.
+
+```bash
+docker build -t scrap-web .
+docker run --rm -p 8080:80 -e SCRAP_SERVER_URL=http://host.docker.internal:8000 scrap-web
+```
+
+`http://localhost:8080`에서 확인합니다. 서버를 같은 Docker 네트워크에서 실행한다면 `SCRAP_SERVER_URL`을 서버 컨테이너 주소(예: `http://backend:8000`)로 바꿉니다.
+
+## 구조
+
+Vite + React 19 프로젝트입니다. 라우팅은 해시(`#/경로`) 기반이며 [src/lib/router.js](src/lib/router.js)에 있습니다.
+
+```
+index.html              # <div id="root"> + src/main.jsx
+public/                 # 그대로 서빙되는 정적 파일 (이미지, 파비콘)
+src/
+├─ main.jsx             # 진입점: 라우팅 설치, 전역 CSS, 렌더링
+├─ App.jsx              # 최상위 경로 분기 (/, /about, /login, /onboarding, 앱 화면)
+├─ layouts/AppShell.jsx # 상단 내비게이션이 있는 앱 화면과 작업(L3) 화면 분기
+├─ pages/               # 화면 단위 컴포넌트 (landing, about, auth, wastes, waste-detail, survey, map, data, report …)
+├─ components/          # 여러 화면에서 쓰는 컴포넌트 (Icon, SiteFooter, AppTopNav, WorkBar …)
+├─ hooks/               # 공용 훅
+├─ data/                # 시연용 정적 데이터 (폐기물, 업체, 메뉴)
+├─ features/treatment/  # 처리경로 추적 기능 (상태·증빙 로직, 3D 모식도, 테스트)
+├─ assets/              # import해서 쓰는 이미지
+└─ styles/global.css    # 전역 스타일
+```
+
+화면 문구나 레이아웃은 `src/pages/` 아래 해당 화면 파일을 고치면 됩니다. 스타일은 `src/styles/global.css`의 클래스명을 그대로 사용합니다.
