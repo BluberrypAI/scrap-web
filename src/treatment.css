@@ -57,6 +57,28 @@
 .treatment-registry form { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
 .treatment-registry input { border: 1px solid #cdc1e8; border-radius: 7px; padding: 7px; background: white; }
 .treatment-registry li { margin-top: 8px; }
+.treatment-registry-review form { align-items: start; flex-direction: column; }
+.treatment-registry-review input[type=checkbox] { margin-right: 5px; }
+.treatment-evidence {
+  width: 100%; display: grid; gap: 10px; justify-items: start;
+  padding: 14px; border: 1px solid #e8e0f3; border-radius: 10px; background: #fff;
+}
+.treatment-history .treatment-evidence { width: auto; margin: 12px 24px 24px; }
+.treatment-evidence h3, .treatment-evidence h4, .treatment-evidence p { margin: 0; }
+.treatment-evidence details, .treatment-evidence article { width: 100%; }
+.treatment-evidence summary { cursor: pointer; font-weight: 700; color: #513c86; }
+.treatment-evidence-form, .treatment-evidence-fields {
+  display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+}
+.treatment-evidence-form { margin: 10px 0; }
+.treatment-evidence-fields { grid-column: 1 / -1; }
+.treatment-evidence-form label { display: grid; gap: 4px; font-size: 13px; color: #3c2e55; }
+.treatment-evidence-form :is(input, select) {
+  min-width: 0; width: 100%; border: 1px solid #cdc1e8; border-radius: 7px; padding: 7px; background: white;
+}
+.treatment-evidence button:disabled { opacity: .55; cursor: default; }
+.treatment-audit { width: 100%; padding: 10px; border-radius: 7px; background: #edf4ef; color: #28513a; }
+.treatment-audit.has-difference { background: #fff3e2; color: #703c14; }
 .treatment-history ol, .treatment-history ul { margin: 0; padding: 16px 25px; }
 .treatment-history li { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid #ece6f3; }
 .treatment-history small { color: #635a71; }

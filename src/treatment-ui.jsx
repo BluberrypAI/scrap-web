@@ -1,5 +1,7 @@
 /** @jsx h */
 import { beginStep, completeStep, demoWorkplace, finishCase, getTreatmentCase, loadCase, newCase, storeCase } from './treatment-state.js';
+import { recordEvidence } from './treatment-evidence.js';
+import { createEvidenceUI } from './treatment-evidence-ui.jsx';
 import './treatment.css';
 
 const forms = {
@@ -43,6 +45,7 @@ async function requestNext(value, signal) {
 // Use the React runtime already included in the team's exported HTML.
 export function createTreatmentUI(React) {
   const { createElement: h, useEffect, useRef, useState } = React;
+  const { EvidenceTrail, EvidenceReport } = createEvidenceUI(React);
 
   function SurveyMaterial({ onAnswer }) {
     const [material, setMaterial] = useState('');
@@ -131,7 +134,40 @@ export function createTreatmentUI(React) {
         target="_blank" rel="noreferrer">{publisher} · {locator}</a>);
   }
 
-  function RegistrySearch({ value, transition }) {
+  function RegistryPlan({ entry, onPlan }) {
+    const [error, setError] = useState('');
+    return <details className="treatment-registry-review">
+      <summary>확인한 업체를 예정 경로에 연결</summary>
+      <form onSubmit={(event) => {
+        event.preventDefault();
+        const data = new FormData(event.currentTarget);
+        const reference = String(data.get('reference') || '').trim();
+        if (!reference) {
+          setError('확인한 자료 번호나 식별자를 입력해 주세요.');
+          return;
+        }
+        const [latitude, longitude] = entry.coordinates || [];
+        onPlan({
+          capability_key: entry.listing_id,
+          label: entry.name, address: entry.address,
+          location: Number.isFinite(latitude) && Number.isFinite(longitude) ? { latitude, longitude } : null,
+          straight_line_distance_km: entry.straight_line_distance_km,
+          source: {
+            kind: 'registry', sourceUrl: entry.source_url, asOf: entry.as_of,
+            reviewReference: reference, reviewBasis: 'operator-confirmed',
+          },
+        });
+      }}>
+        <label>확인 자료 번호 또는 식별자 <input name="reference" maxLength={160} required /></label>
+        <label><input type="checkbox" required /> 이 사업장의 공정과 현행 허가 범위를 확인했어요.</label>
+        <label><input type="checkbox" required /> 이 로트의 인수 조건을 확인했어요.</label>
+        {error && <p role="alert">{error}</p>}
+        <button type="submit" className="button button-quiet">예정 업체로 기록</button>
+      </form>
+    </details>;
+  }
+
+  function RegistrySearch({ value, transition, onPlan }) {
     const wasteCode = value.completed.length ? null : value.input.waste_code;
     const [region, setRegion] = useState(
       !value.completed.length && value.input.originType === 'demo'
@@ -196,6 +232,7 @@ export function createTreatmentUI(React) {
             <p>{entry.address || '주소 미확인'} · {entry.business_type}</p>
             <small>{entry.straight_line_distance_km == null ? '거리 미확인'
               : `명부 좌표 직선 ${entry.straight_line_distance_km} km`} · 공정 근거 미확인</small>
+            <RegistryPlan entry={{ ...entry, listing_id }} onPlan={onPlan} />
           </li>)}</ul>
           {result.registry_candidates.length > 0 && <a className="treatment-source"
             href="https://www.data.go.kr/data/15114147/standard.do" target="_blank" rel="noreferrer">전국폐기물처리업소 표준데이터</a>}
@@ -221,6 +258,7 @@ export function createTreatmentUI(React) {
         </li>}
         {value.finished && <li><strong>처리경로 추적 종료</strong><small>{stamp(value.updatedAt)}</small></li>}
       </ol>
+      <EvidenceReport value={value} />
     </section>;
   }
 
@@ -298,13 +336,13 @@ export function createTreatmentUI(React) {
           {value.completed.map((step) => <span key={step.transition_key} className="is-done">✓ {step.process}</span>)}
           <span className="is-current">{pending ? pending.process : trackingLabel}</span>
         </div>}
-        {saveError && <p role="alert">{saveError}</p>}
+        {saveError && !pending && <p role="alert">{saveError}</p>}
         {pending && <div className="treatment-status">
           <span>● 결과 대기 · {stamp(pending.startedAt)}</span>
           <h3>{pending.facility}</h3><p>{pending.process} → {pending.output}</p>
-          <small>배출 기업이 직접 기록하는 상태입니다. 업체의 완료와 산출물 상태를 확인한 뒤 기록해 주세요.</small>
-          <button className="button button-primary" type="button"
-            onClick={() => update(completeStep)}>완료 확인 기록</button>
+          <EvidenceTrail value={value} error={saveError}
+            onRecord={(stage, data) => update((previous) => recordEvidence(previous, stage, data))}
+            onComplete={() => update(completeStep)} />
         </div>}
         {finished && <div className="treatment-status">
           <h3>처리경로 추적을 마쳤어요</h3>
@@ -323,7 +361,7 @@ export function createTreatmentUI(React) {
                 <h3>지금 이어갈 수 있는 공정</h3><p>{lookup.message}</p>
                 {lookup.options.length > 0 && <p>{value.completed.length
                   ? `거리 기준 출발지 · ${value.completed.at(-1).facility}`
-                  : value.input.origin ? `거리 기준 출발지 · ${value.input.originLabel || '배출 공장'}` : '등록된 배출 공장 위치 없음'}
+                  : value.input.origin ? `배출사업장 A · ${value.input.originLabel || '등록된 배출 공장'}` : '등록된 배출 공장 위치 없음'}
                   {' · '}{pins.length > 1 ? `직선거리 순 ${pins.length}곳`
                     : pins.length ? '직선거리 표시 1곳' : '거리 확인 가능한 업체 없음'}</p>}
                 {lookup.options.length > 0 && <small>
@@ -367,7 +405,8 @@ export function createTreatmentUI(React) {
                   이 업체로 추적 시작
                 </button>
               </div>)}
-              <RegistrySearch value={value} transition={process.transition_key} />
+              <RegistrySearch value={value} transition={process.transition_key}
+                onPlan={(facility) => update((previous) => beginStep(previous, process, facility))} />
             </article>)}
             {lookup.options.length > 0 && <small className="treatment-note">허가, 인수 여부와 수용량은 업체 확인이 필요합니다. 이 화면은 연락이나 배차를 실행하지 않습니다.</small>}
           </div>}

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { beginStep, completeStep, demoWorkplace, finishCase, getTreatmentCase, loadCase, newCase, restoreCases, storeCase } from './treatment-state.js';
+import { auditStep, recordEvidence, reportFor } from './treatment-evidence.js';
 
 test('selected process persists through list navigation and advances only on manual completion', () => {
   const data = Object.create(null);
@@ -19,11 +20,29 @@ test('selected process persists through list navigation and advances only on man
   assert.equal(restoreCases([])[0].status, '처리 진행');
   assert.equal(pending.completed.length, 0);
   assert.throws(() => beginStep(pending, process, facility));
-  const completed = storeCase(completeStep(loadCase(value.id)));
+  assert.throws(() => completeStep(pending));
+  const base = { occurredOn: '2026-11-05', actor: '가상 업체', reference: '가상-증빙' };
+  const handed = recordEvidence(loadCase(value.id), 'handover', { ...base, inputLot: 'LOT-A', massKg: 1000 });
+  const wrongReceipt = recordEvidence(handed, 'receipt', {
+    ...base, siteMatches: 'yes', actualAddress: '가상 주소', massKg: 990,
+  });
+  const processed = recordEvidence(wrongReceipt, 'processing', {
+    ...base, processMatches: 'yes', outputMatches: 'yes', actualProcess: '파쇄',
+    actualOutput: '파쇄품', outputLot: 'LOT-B', outputKg: 900, residueKg: 100,
+    residueDestination: '가상 잔재 보관장', addedKg: 0, lossKg: 0,
+  });
+  assert.equal(auditStep(processed.pending).differences.length, 2);
+  assert.throws(() => completeStep(processed));
+  const corrected = recordEvidence(processed, 'receipt', {
+    ...base, siteMatches: 'yes', actualAddress: '가상 주소', massKg: 1000,
+  });
+  const completed = storeCase(completeStep(corrected));
   assert.equal(completed.pending, null);
   assert.equal(completed.completed[0].transition_key, 'pp-prepare');
   assert.deepEqual(completed.completed[0].location, facility.location);
   assert.throws(() => completeStep(completed));
+  assert.equal(reportFor(completed).steps[0].evidence.length, 4);
+  assert.equal(reportFor(completed).steps[0].audit.ready, true);
   storeCase(finishCase(completed));
   assert.equal(restoreCases([])[0].status, '완료');
 });
