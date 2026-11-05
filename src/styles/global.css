@@ -1446,17 +1446,18 @@
   background: var(--color-background);
   min-height: 100vh;
 }
+/* 높이·폭·메뉴 글씨·로고는 홈/기업소개의 .landing-header와 맞춤 */
 .app-topnav {
   z-index: 50;
   background: var(--color-card);
-  height: 72px;
+  height: 92px;
   position: sticky;
   top: 0;
 }
 .app-topnav-inner {
   grid-template-columns: 180px 1fr 260px;
   align-items: center;
-  width: min(100% - 64px, 1280px);
+  width: min(100% - 96px, 1320px);
   height: 100%;
   margin: 0 auto;
   display: grid;
@@ -1471,7 +1472,14 @@
   text-decoration: none;
 }
 .app-wordmark span {
-  color: var(--color-primary);
+  background: var(--color-primary);
+  vertical-align: 3px;
+  border-radius: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: 2px;
+  font-size: 0;
+  display: inline-block;
 }
 .app-route-nav {
   justify-content: center;
@@ -1480,11 +1488,11 @@
   display: flex;
 }
 .app-route-nav a {
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   border-radius: 999px;
-  padding: 11px 17px;
-  font-size: 14px;
-  font-weight: 550;
+  padding: 11px 15px;
+  font-size: 15px;
+  font-weight: 500;
   text-decoration: none;
   transition:
     background-color 0.16s ease-out,
@@ -6847,4 +6855,25 @@
 .about-berry > :not(.about-berry-bg) {
   z-index: 1;
   position: relative;
+}
+/* 앱 상단 헤더의 반응형 폭과 메뉴 크기를 .landing-header 기준에 맞춤 */
+@media (width<=1080px) {
+  .app-topnav-inner {
+    width: min(100% - 48px, 960px);
+  }
+  .app-route-nav a {
+    padding-inline: 11px;
+    font-size: 14px;
+  }
+}
+/* 휴대폰 두 줄 메뉴는 기존 여백 유지 */
+@media (width<=720px) {
+  .app-route-nav a {
+    padding-inline: 8px;
+  }
+}
+@media (width<=560px) {
+  .app-topnav-inner {
+    width: calc(100% - 32px);
+  }
 }
