@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { beginStep, completeStep, finishCase, getTreatmentCase, loadCase, newCase, restoreCases, storeCase } from './treatment-state.js';
+import { beginStep, completeStep, demoWorkplace, finishCase, getTreatmentCase, loadCase, newCase, restoreCases, storeCase } from './treatment-state.js';
 
 test('selected process persists through list navigation and advances only on manual completion', () => {
   const data = Object.create(null);
@@ -44,4 +44,16 @@ test('confirmed cases reuse known material, form and site before any tracking en
   assert.equal(getTreatmentCase({
     ...waste, treatmentInput: { ...waste.treatmentInput, origin: null },
   }).input.origin, null);
+});
+
+test('saved demos pick up the profile location and keep their pending process', () => {
+  const value = newCase('legacy-demo', '이전 데모', {
+    waste_code: '51-29-03', material: 'aluminium', input_form: 'can', originType: 'demo',
+    origin: { latitude: 36.64, longitude: 127.45 },
+  });
+  const pending = { transition_key: 'al-can-sheet', facility: '영주', distance: 106.2 };
+  storeCase({ ...value, pending });
+  const restored = loadCase(value.id);
+  assert.deepEqual(restored.input.origin, demoWorkplace.routeOrigin.origin);
+  assert.deepEqual(restored.pending, { ...pending, distance: null });
 });

@@ -1,5 +1,5 @@
 /** @jsx h */
-import { beginStep, completeStep, demoOrigin, finishCase, getTreatmentCase, loadCase, newCase, storeCase } from './treatment-state.js';
+import { beginStep, completeStep, demoWorkplace, finishCase, getTreatmentCase, loadCase, newCase, storeCase } from './treatment-state.js';
 import './treatment.css';
 
 const forms = {
@@ -76,7 +76,7 @@ export function createTreatmentUI(React) {
           const { material, input_form } = input;
           const formLabel = forms[material].find(([key]) => key === input_form)[1];
           storeCase(newCase(id, `폐${materialLabels[material]} · ${formLabel}`, {
-            ...input, waste_code: '51-03-01', origin: demoOrigin, originType: 'demo',
+            ...input, waste_code: '51-03-01', ...demoWorkplace.routeOrigin,
           }));
         }
         window.__go(`/wastes/${id}?tab=route`);
@@ -195,9 +195,11 @@ export function createTreatmentUI(React) {
     const pending = value?.pending;
     const finished = value?.finished;
     const current = pending?.process || lookup?.current_state?.label || null;
-    const ranked = lookup?.options.flatMap((option) => option.facilities)
+    const facilities = lookup?.options.flatMap((option) => option.facilities) || [];
+    const facilityCount = new Set(facilities.map((facility) => facility.facility_key)).size;
+    const ranked = facilities
       .filter((facility) => facility.distance_rank)
-      .sort((a, b) => a.distance_rank - b.distance_rank) || [];
+      .sort((a, b) => a.distance_rank - b.distance_rank);
     const pins = pending ? [{ facility_key: pending.capability_key, label: pending.facility,
       straight_line_distance_km: pending.distance }] :
       [...new Map(ranked.map((facility) => [facility.facility_key, facility])).values()];
@@ -244,9 +246,15 @@ export function createTreatmentUI(React) {
                 <h3>지금 이어갈 수 있는 공정</h3><p>{lookup.message}</p>
                 {lookup.options.length > 0 && <p>{value.completed.length
                   ? `거리 기준 출발지 · ${value.completed.at(-1).facility}`
-                  : value.input.originType === 'demo' ? '거리 기준 출발지 · 가상 청주 공장'
-                    : value.input.origin ? '거리 기준 출발지 · 배출 공장' : '등록된 배출 공장 위치 없음'}
-                  {' · '}{ranked.length ? `직선거리 순 최대 5곳` : '거리 확인 가능한 업체 없음'}</p>}
+                  : value.input.origin ? `거리 기준 출발지 · ${value.input.originLabel || '배출 공장'}` : '등록된 배출 공장 위치 없음'}
+                  {' · '}{pins.length > 1 ? `직선거리 순 ${pins.length}곳`
+                    : pins.length ? '직선거리 표시 1곳' : '거리 확인 가능한 업체 없음'}</p>}
+                {lookup.options.length > 0 && <small>
+                  공정 KG에 등록된 시설 후보 {facilityCount}곳 · 검색 범위는 공개 공정 사례
+                </small>}
+                {!value.completed.length && value.input.originSource && <SourceLinks sources={[{
+                  publisher: '출발지 좌표', url: value.input.originSource, locator: '데모 지역 기준점',
+                }]} />}
               </div>
               {lookup.can_finish && <button className="button button-quiet" type="button"
                 onClick={() => update(finishCase)}>이 산출물로 추적 마치기</button>}
@@ -266,11 +274,12 @@ export function createTreatmentUI(React) {
                 <div><strong>{facility.label}</strong>
                   <p>{facility.region} · {facility.evidence_basis === 'published_site_process' ?
                     '공개 공정 사례' : '사업장 역할 기반 조사 후보'}</p>
-                  <p>{facility.distance_rank ? `거리 ${facility.distance_rank}위 · ` : ''}
+                  <p>{facilityCount > 1 && facility.distance_rank ? `거리 ${facility.distance_rank}위 · ` : ''}
                     {facility.straight_line_distance_km == null ? '거리 미확인' : `직선 ${facility.straight_line_distance_km} km`}</p>
+                  <SourceLinks sources={facility.sources.slice(0, 1)} />
                   <details><summary>시설 근거와 확인할 조건</summary>
                     <ul>{facility.checks.map((check, i) => <li key={i}>{check}</li>)}</ul>
-                    <SourceLinks sources={facility.sources} />
+                    <SourceLinks sources={facility.sources.slice(1)} />
                     {facility.location_source_url && <SourceLinks sources={[{
                       publisher: '공개 위치', url: facility.location_source_url, locator: '거리 산정 좌표',
                     }]} />}

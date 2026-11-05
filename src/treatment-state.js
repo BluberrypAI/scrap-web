@@ -1,10 +1,24 @@
 const storagePrefix = 'scrap.treatment.v1.';
-export const demoOrigin = { latitude: 36.64, longitude: 127.45 };
+export const demoWorkplace = {
+  region: '경기도 화성시 팔탄면',
+  routeOrigin: {
+    origin: { latitude: 37.16224762, longitude: 126.90491285 },
+    originType: 'demo',
+    originLabel: '화성시 팔탄면 · 행정복지센터 기준점',
+    originSource: 'https://qbn.purpleo.kr/article/45361',
+  },
+};
 
 export function loadCase(id) {
   try {
     const value = JSON.parse(localStorage.getItem(storagePrefix + id));
-    return value?.version === 1 && value.id === id ? value : null;
+    if (value?.version !== 1 || value.id !== id) return null;
+    if (value.input?.originType !== 'demo' || value.input.originLabel) return value;
+    return {
+      ...value,
+      input: { ...value.input, ...demoWorkplace.routeOrigin },
+      pending: value.pending ? { ...value.pending, distance: null } : null,
+    };
   } catch {
     return null;
   }
