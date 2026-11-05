@@ -1,7 +1,7 @@
 /** @jsx h */
-import { beginStep, completeStep, demoWorkplace, finishCase, getTreatmentCase, loadCase, newCase, storeCase } from './treatment-state.js';
-import { recordEvidence } from './treatment-evidence.js';
+import { beginStep, demoWorkplace, finishCase, getTreatmentCase, handoffLabel, issueHandoff, loadCase, newCase, storeCase } from './treatment-state.js';
 import { createEvidenceUI } from './treatment-evidence-ui.jsx';
+import { createHandoffUI } from './treatment-handoff-ui.jsx';
 import './treatment.css';
 
 const forms = {
@@ -46,6 +46,7 @@ async function requestNext(value, signal) {
 export function createTreatmentUI(React) {
   const { createElement: h, useEffect, useRef, useState } = React;
   const { EvidenceTrail, EvidenceReport } = createEvidenceUI(React);
+  const { LotProgress, Receiver, Sticker } = createHandoffUI(React, EvidenceTrail);
 
   function SurveyMaterial({ onAnswer }) {
     const [material, setMaterial] = useState('');
@@ -253,7 +254,7 @@ export function createTreatmentUI(React) {
           <small>{stamp(step.completedAt)} · 산출물 {step.output}</small>
         </li>)}
         {value.pending && <li>
-          <strong>{value.pending.process} 결과 대기 · {value.pending.facility}</strong>
+          <strong>{value.pending.process} · {handoffLabel(value.pending)} · {value.pending.facility}</strong>
           <small>{stamp(value.pending.startedAt)}</small>
         </li>}
         {value.finished && <li><strong>처리경로 추적 종료</strong><small>{stamp(value.updatedAt)}</small></li>}
@@ -269,7 +270,7 @@ export function createTreatmentUI(React) {
       <div className="action-copy">
         <span>다음 행동</span>
         <h2>{value.finished ? '처리경로 추적을 마쳤어요' :
-          value.pending ? '선택한 공정의 결과를 기다리고 있어요' : '다음 공정의 업체를 확인해 주세요'}</h2>
+          value.pending ? handoffLabel(value.pending) : '다음 공정의 업체를 확인해 주세요'}</h2>
         <p>{value.pending ? `${value.pending.facility} · ${value.pending.process}` : `분류번호 ${value.input.waste_code}`}</p>
       </div>
       <a className="button button-primary" href={`/wastes/${waste.id}?tab=route`}>처리경로 보기</a>
@@ -282,6 +283,19 @@ export function createTreatmentUI(React) {
     const [fetchError, setFetchError] = useState('');
     const [saveError, setSaveError] = useState('');
     const [attempt, setAttempt] = useState(0);
+    useEffect(() => {
+      function sync() {
+        const current = loadCase(waste.id);
+        if (!current) return;
+        setValue(current);
+        setLookup(null);
+        setFetchError('');
+        setSaveError('');
+        window.dispatchEvent(new Event('scrap-treatment-change'));
+      }
+      window.addEventListener('storage', sync);
+      return () => window.removeEventListener('storage', sync);
+    }, [waste.id]);
     useEffect(() => {
       if (!value || value.pending || value.finished) return;
       const controller = new AbortController();
@@ -318,7 +332,7 @@ export function createTreatmentUI(React) {
     const pins = pending ? [{ facility_key: pending.capability_key, label: pending.facility,
       straight_line_distance_km: pending.distance }] :
       [...new Map(ranked.map((facility) => [facility.facility_key, facility])).values()];
-    const trackingLabel = finished ? '추적 종료' : pending ? '결과 대기' : '다음 공정 확인';
+    const trackingLabel = finished ? '추적 종료' : pending ? handoffLabel(pending) : '다음 공정 확인';
     return <section className="detail-panel treatment-panel" id="treatment-route">
       <header>
         <div><p>CIRCULAR ROUTE</p><h2>처리경로</h2></div>
@@ -334,15 +348,18 @@ export function createTreatmentUI(React) {
         {value && <div className="treatment-flow" aria-label="처리 진행 상태">
           <span className="is-done">✓ 분류 기록</span>
           {value.completed.map((step) => <span key={step.transition_key} className="is-done">✓ {step.process}</span>)}
+          {pending?.handoff?.status === 'accepted' && <span className="is-done">✓ {pending.facility} 수령</span>}
           <span className="is-current">{pending ? pending.process : trackingLabel}</span>
         </div>}
-        {saveError && !pending && <p role="alert">{saveError}</p>}
+        {saveError && <p role="alert">{saveError}</p>}
         {pending && <div className="treatment-status">
-          <span>● 결과 대기 · {stamp(pending.startedAt)}</span>
+          <span>{trackingLabel}{pending.handoff?.respondedAt && ` · ${stamp(pending.handoff.respondedAt)}`}</span>
           <h3>{pending.facility}</h3><p>{pending.process} → {pending.output}</p>
-          <EvidenceTrail value={value} error={saveError}
-            onRecord={(stage, data) => update((previous) => recordEvidence(previous, stage, data))}
-            onComplete={() => update(completeStep)} />
+          {!pending.handoff ? <button className="button button-primary" type="button"
+            onClick={() => update(issueHandoff)}>수령 QR 발급</button> :
+            pending.handoff.status === 'awaiting' ? <Sticker value={value} /> :
+            pending.handoff.status === 'accepted' ? <p>업체가 QR에서 수령을 확인했어요. 다음은 이 공정의 처리 결과를 기다립니다.</p> :
+            <p>업체가 QR에서 수령 문제를 기록했어요. 해당 인계 건을 확인해 주세요.</p>}
         </div>}
         {finished && <div className="treatment-status">
           <h3>처리경로 추적을 마쳤어요</h3>
@@ -426,5 +443,5 @@ export function createTreatmentUI(React) {
     </section>;
   }
 
-  return { Confirm, Panel, SavedTab, Summary, SurveyMaterial };
+  return { Confirm, LotProgress, Panel, Receiver, SavedTab, Summary, SurveyMaterial };
 }

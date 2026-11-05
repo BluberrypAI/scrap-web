@@ -79,6 +79,29 @@
 .treatment-evidence button:disabled { opacity: .55; cursor: default; }
 .treatment-audit { width: 100%; padding: 10px; border-radius: 7px; background: #edf4ef; color: #28513a; }
 .treatment-audit.has-difference { background: #fff3e2; color: #703c14; }
+.handoff-controls, .handoff-sticker { display: grid; gap: 8px; justify-items: start; }
+.handoff-sticker { background: white; border: 1px dashed #8674af; border-radius: 8px; padding: 12px; }
+.handoff-sticker span, .handoff-receiver header small { font-size: 11px; font-weight: 750; letter-spacing: .08em; color: #624aa4; }
+.handoff-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.handoff-card-progress { display: grid; gap: 4px; margin-top: 8px; color: #513c86; font-size: 12px; }
+.handoff-card-progress[data-status=accepted], .handoff-receipt-status.accepted { color: #27603c; }
+.handoff-card-progress[data-status=rejected], .handoff-receipt-status.rejected { color: #8b4129; }
+.handoff-card-progress progress { width: 100%; height: 8px; accent-color: currentColor; }
+.handoff-receiver { margin: 36px auto; width: min(calc(100% - 28px), 760px); background: white; border: 1px solid #e8e0f3; border-radius: 16px; padding: clamp(16px, 4vw, 32px); }
+.handoff-receiver h1 { margin: 4px 0 15px; font-size: 26px; }
+.handoff-receiver dl { display: grid; gap: 6px; padding: 10px; background: #f7f4fb; border-radius: 8px; }
+.handoff-receiver dl div { display: grid; grid-template-columns: 75px 1fr; gap: 6px; }
+.handoff-receiver dt { font-weight: 700; }
+.handoff-receiver dd { margin: 0; }
+.handoff-processing { margin-top: 16px; }
+.handoff-processing > summary { cursor: pointer; margin-bottom: 8px; }
+@media print {
+  body:has(.handoff-sticker) #root { position: fixed; inset: 0; overflow: hidden; }
+  body:has(.handoff-sticker) * { visibility: hidden; }
+  body:has(.handoff-sticker) .handoff-sticker,
+  body:has(.handoff-sticker) .handoff-sticker * { visibility: visible; }
+  .handoff-sticker { position: absolute; inset: 0 auto auto 0; }
+}
 .treatment-history ol, .treatment-history ul { margin: 0; padding: 16px 25px; }
 .treatment-history li { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid #ece6f3; }
 .treatment-history small { color: #635a71; }

@@ -54,17 +54,20 @@ export function beginStep(value, process, facility) {
     pending: {
       transition_key: process.transition_key, process: process.label,
       output: process.output_state.label, facility: facility.label,
+      from: value.completed.at(-1)?.facility || value.input.originLabel || '배출사업장',
       address: facility.address || facility.region || null,
       capability_key: facility.capability_key, startedAt: time,
       location: facility.location ?? null, distance: facility.straight_line_distance_km ?? null,
       source: facility.source ?? { kind: 'kg', references: facility.sources || [] },
       evidence: [],
+      handoff: { token: crypto.randomUUID(), status: 'awaiting', issuedAt: time },
     },
   };
 }
 
 export function completeStep(value) {
   if (!value.pending) throw new Error('완료할 공정이 없습니다.');
+  if (value.pending.handoff?.status !== 'accepted') throw new Error('업체의 수령 확인을 먼저 기다려 주세요.');
   if (!auditStep(value.pending, value.completed.at(-1)).ready) {
     throw new Error('증빙 누락이나 계획·실적 불일치를 먼저 확인해 주세요.');
   }
@@ -73,6 +76,38 @@ export function completeStep(value) {
     ...value, updatedAt: time, pending: null,
     completed: [...value.completed, { ...value.pending, completedAt: time }],
   };
+}
+
+export function issueHandoff(value) {
+  if (!value.pending || value.pending.handoff) throw new Error('발급할 수령 QR이 없습니다.');
+  const time = new Date().toISOString();
+  return {
+    ...value, updatedAt: time,
+    pending: { ...value.pending, handoff: { token: crypto.randomUUID(), status: 'awaiting', issuedAt: time } },
+  };
+}
+
+export function handoffStep(value, token) {
+  if (value?.pending?.handoff?.token === token) return value.pending;
+  return value?.completed.find((step) => step.handoff?.token === token) ?? null;
+}
+
+export function respondToHandoff(value, token, status) {
+  const step = value?.pending;
+  if (!step?.handoff || step.handoff.token !== token) throw new Error('유효한 수령 QR을 확인해 주세요.');
+  if (!['accepted', 'rejected'].includes(status)) throw new Error('수령 상태를 확인해 주세요.');
+  if (step.handoff.status === status) return value;
+  if (step.handoff.status !== 'awaiting') throw new Error('이 건에는 이미 수령 응답이 기록됐어요.');
+  const time = new Date().toISOString();
+  return {
+    ...value, updatedAt: time,
+    pending: { ...step, handoff: { ...step.handoff, status, respondedAt: time } },
+  };
+}
+
+export function handoffLabel(step) {
+  return { accepted: '업체 수령 확인', rejected: '수령 문제 있음', awaiting: '업체 수령 대기' }[step?.handoff?.status]
+    || '수령 QR 발급 대기';
 }
 
 export function finishCase(value) {

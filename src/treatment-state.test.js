@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { beginStep, completeStep, demoWorkplace, finishCase, getTreatmentCase, loadCase, newCase, restoreCases, storeCase } from './treatment-state.js';
+import { beginStep, completeStep, demoWorkplace, finishCase, getTreatmentCase, handoffStep, loadCase, newCase, respondToHandoff, restoreCases, storeCase } from './treatment-state.js';
 import { auditStep, recordEvidence, reportFor } from './treatment-evidence.js';
 
 test('selected process persists through list navigation and advances only on manual completion', () => {
@@ -22,7 +22,15 @@ test('selected process persists through list navigation and advances only on man
   assert.throws(() => beginStep(pending, process, facility));
   assert.throws(() => completeStep(pending));
   const base = { occurredOn: '2026-11-05', actor: '가상 업체', reference: '가상-증빙' };
-  const handed = recordEvidence(loadCase(value.id), 'handover', { ...base, inputLot: 'LOT-A', massKg: 1000 });
+  const token = pending.pending.handoff.token;
+  assert.equal(handoffStep(pending, token).handoff.status, 'awaiting');
+  assert.equal(handoffStep(pending, 'invalid'), null);
+  assert.throws(() => respondToHandoff(pending, 'invalid', 'accepted'));
+  const rejected = respondToHandoff(pending, token, 'rejected');
+  assert.throws(() => respondToHandoff(rejected, token, 'accepted'));
+  const received = storeCase(respondToHandoff(loadCase(value.id), token, 'accepted'));
+  assert.equal(respondToHandoff(received, token, 'accepted'), received);
+  const handed = recordEvidence(received, 'handover', { ...base, inputLot: 'LOT-A', massKg: 1000 });
   const wrongReceipt = recordEvidence(handed, 'receipt', {
     ...base, siteMatches: 'yes', actualAddress: '가상 주소', massKg: 990,
   });
@@ -43,6 +51,11 @@ test('selected process persists through list navigation and advances only on man
   assert.throws(() => completeStep(completed));
   assert.equal(reportFor(completed).steps[0].evidence.length, 4);
   assert.equal(reportFor(completed).steps[0].audit.ready, true);
+  assert.equal(reportFor(completed).steps[0].handoff.status, 'accepted');
+  assert.equal(reportFor(completed).steps[0].handoff.token, undefined);
+  const next = beginStep(completed, { ...process, transition_key: 'pp-clean' }, facility);
+  assert.equal(next.pending.from, facility.label);
+  assert.notEqual(next.pending.handoff.token, token);
   storeCase(finishCase(completed));
   assert.equal(restoreCases([])[0].status, '완료');
 });

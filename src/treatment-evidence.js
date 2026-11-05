@@ -129,6 +129,12 @@ export function reportFor(value) {
     inputForm: value.input.input_form,
     originLabel: value.input.originLabel ?? null,
     trackingClosed: value.finished,
-    steps: steps.map((step, i) => ({ ...step, audit: auditStep(step, steps[i - 1]) })),
+    steps: steps.map(({ handoff, ...step }, i) => ({
+      ...step,
+      ...(handoff && { handoff: {
+        status: handoff.status, issuedAt: handoff.issuedAt, respondedAt: handoff.respondedAt ?? null,
+      } }),
+      audit: auditStep(step, steps[i - 1]),
+    })),
   };
 }
