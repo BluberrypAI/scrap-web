@@ -580,7 +580,7 @@
   box-shadow: 0 0 0 3px var(--color-surface-lavender);
 }
 .home-content {
-  width: min(100% - 64px, 1120px);
+  width: var(--app-content-width);
   margin: 0 auto;
   padding: 34px 0 54px;
 }
@@ -675,13 +675,13 @@
   letter-spacing: 0.14em;
   margin: 0 0 8px;
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 650;
 }
 .page-header h1 {
   color: var(--color-text-primary);
   letter-spacing: -0.035em;
   margin: 0;
-  font-size: 31px;
+  font-size: 32px;
   font-weight: 650;
 }
 .page-header > div > span {
@@ -1446,17 +1446,18 @@
   background: var(--color-background);
   min-height: 100vh;
 }
+/* 높이·폭·메뉴 글씨·로고는 홈/기업소개의 .landing-header와 맞춤 */
 .app-topnav {
   z-index: 50;
   background: var(--color-card);
-  height: 72px;
+  height: 92px;
   position: sticky;
   top: 0;
 }
 .app-topnav-inner {
   grid-template-columns: 180px 1fr 260px;
   align-items: center;
-  width: min(100% - 64px, 1280px);
+  width: min(100% - 96px, 1320px);
   height: 100%;
   margin: 0 auto;
   display: grid;
@@ -1471,7 +1472,14 @@
   text-decoration: none;
 }
 .app-wordmark span {
-  color: var(--color-primary);
+  background: var(--color-primary);
+  vertical-align: 3px;
+  border-radius: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: 2px;
+  font-size: 0;
+  display: inline-block;
 }
 .app-route-nav {
   justify-content: center;
@@ -1480,11 +1488,11 @@
   display: flex;
 }
 .app-route-nav a {
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   border-radius: 999px;
-  padding: 11px 17px;
-  font-size: 14px;
-  font-weight: 550;
+  padding: 11px 15px;
+  font-size: 15px;
+  font-weight: 500;
   text-decoration: none;
   transition:
     background-color 0.16s ease-out,
@@ -1571,11 +1579,12 @@
   color: var(--color-primary);
 }
 .route-content {
-  width: min(100% - 64px, 1200px);
+  width: var(--app-content-width);
   margin: 0 auto;
   padding: 46px 0 60px;
 }
-.route-heading > p {
+.route-heading > p,
+.route-heading > div > p {
   color: var(--color-primary);
   font-family: var(--font-latin);
   letter-spacing: 0.14em;
@@ -2188,7 +2197,7 @@
   }
 }
 .handler-detail-page {
-  width: min(100% - 64px, 1100px);
+  width: var(--app-content-width);
   margin: 0 auto;
   padding: 25px 0 64px;
 }
@@ -2623,7 +2632,7 @@
   }
 }
 .waste-detail {
-  width: min(100% - 64px, 1100px);
+  width: var(--app-content-width);
   margin: 0 auto;
   padding: 25px 0 64px;
 }
@@ -6847,4 +6856,54 @@
 .about-berry > :not(.about-berry-bg) {
   z-index: 1;
   position: relative;
+}
+/* 앱 상단 헤더의 반응형 폭과 메뉴 크기를 .landing-header 기준에 맞춤 */
+@media (width<=1080px) {
+  .app-topnav-inner {
+    width: min(100% - 48px, 960px);
+  }
+  .app-route-nav a {
+    padding-inline: 11px;
+    font-size: 14px;
+  }
+}
+/* 휴대폰 두 줄 메뉴는 기존 여백 유지 */
+@media (width<=720px) {
+  .app-route-nav a {
+    padding-inline: 8px;
+  }
+}
+@media (width<=560px) {
+  .app-topnav-inner {
+    width: calc(100% - 32px);
+  }
+}
+/* 앱 화면 본문 폭을 상단 헤더(.app-topnav-inner, .landing-header)와 같은 폭으로 통일.
+   휴대폰 폭에서는 각 화면의 calc(100% - 32px) 규칙이 이어서 적용됨 */
+:root {
+  --app-content-width: min(100% - 96px, 1320px);
+}
+@media (width<=1080px) {
+  :root {
+    --app-content-width: min(100% - 48px, 960px);
+  }
+}
+/* 스크롤바가 생기고 없어질 때 화면 폭이 바뀌어 헤더·본문이 좌우로 밀리지 않도록 자리를 항상 비워 둠 */
+html {
+  scrollbar-gutter: stable;
+}
+/* 홈·기업소개 헤더(SiteHeader)는 .app-topnav 구조를 그대로 씀.
+   .landing-page의 overflow: hidden은 sticky 헤더를 막아서, 가로 넘침만 잘라내는 clip으로 바꿈 */
+.landing-page {
+  overflow: clip;
+}
+@media (width<=560px) {
+  .site-topnav .landing-header-actions > button,
+  .site-topnav .landing-button-small svg {
+    display: none;
+  }
+}
+/* 기업소개의 word-break: keep-all이 헤더 메뉴 줄바꿈에 영향을 주지 않도록 앱 헤더와 같은 값으로 되돌림 */
+.site-topnav {
+  word-break: normal;
 }
