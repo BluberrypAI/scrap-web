@@ -3,7 +3,7 @@ import { ArrowUpRightIcon } from '../../components/LandingIcons.jsx';
 import BorderGlow from '../../components/reactbits/BorderGlow/BorderGlow.jsx';
 import MicroSlats from '../../components/reactbits/MicroSlats/MicroSlats.jsx';
 import { SiteFooter } from '../../components/SiteFooter.jsx';
-import { navItems } from '../../data/navigation.js';
+import { SiteHeader } from '../../components/SiteHeader.jsx';
 import { useInView } from '../../hooks/useInView.js';
 import {
   aboutWhy,
@@ -18,30 +18,7 @@ export function AboutPage() {
   const [whyRef, whyInView] = useInView();
   return (
     <main className="landing-page about-page" data-layer-name="About-Company" data-theme="light">
-      <header className="landing-header">
-        <a className="landing-wordmark" href="/" data-layer-name="Logo" aria-label="SCRAP 홈">
-          SCRAP<span>.</span>
-        </a>
-        <nav className="landing-nav" aria-label="주요 메뉴">
-          {navItems.map((e) => (
-            <a
-              href={e.href}
-              className={e.href === '/about' ? 'is-active' : undefined}
-              aria-current={e.href === '/about' ? 'page' : undefined}
-              key={e.href}
-            >
-              {e.label}
-            </a>
-          ))}
-        </nav>
-        <div className="landing-header-actions">
-          <button type="button">로그인</button>
-          <a className="landing-button landing-button-primary landing-button-small" href="/login">
-            시작하기
-            <ArrowUpRightIcon />
-          </a>
-        </div>
-      </header>
+      <SiteHeader activeHref="/about" />
       <section className="about-hero" aria-labelledby="about-title">
         <p className="about-eyebrow">ABOUT SCRAP</p>
         <h1 id="about-title">

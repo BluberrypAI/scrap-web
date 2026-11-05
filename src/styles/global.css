@@ -580,7 +580,7 @@
   box-shadow: 0 0 0 3px var(--color-surface-lavender);
 }
 .home-content {
-  width: min(100% - 64px, 1120px);
+  width: var(--app-content-width);
   margin: 0 auto;
   padding: 34px 0 54px;
 }
@@ -675,13 +675,13 @@
   letter-spacing: 0.14em;
   margin: 0 0 8px;
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 650;
 }
 .page-header h1 {
   color: var(--color-text-primary);
   letter-spacing: -0.035em;
   margin: 0;
-  font-size: 31px;
+  font-size: 32px;
   font-weight: 650;
 }
 .page-header > div > span {
@@ -1579,11 +1579,12 @@
   color: var(--color-primary);
 }
 .route-content {
-  width: min(100% - 64px, 1200px);
+  width: var(--app-content-width);
   margin: 0 auto;
   padding: 46px 0 60px;
 }
-.route-heading > p {
+.route-heading > p,
+.route-heading > div > p {
   color: var(--color-primary);
   font-family: var(--font-latin);
   letter-spacing: 0.14em;
@@ -2196,7 +2197,7 @@
   }
 }
 .handler-detail-page {
-  width: min(100% - 64px, 1100px);
+  width: var(--app-content-width);
   margin: 0 auto;
   padding: 25px 0 64px;
 }
@@ -2631,7 +2632,7 @@
   }
 }
 .waste-detail {
-  width: min(100% - 64px, 1100px);
+  width: var(--app-content-width);
   margin: 0 auto;
   padding: 25px 0 64px;
 }
@@ -6876,4 +6877,33 @@
   .app-topnav-inner {
     width: calc(100% - 32px);
   }
+}
+/* 앱 화면 본문 폭을 상단 헤더(.app-topnav-inner, .landing-header)와 같은 폭으로 통일.
+   휴대폰 폭에서는 각 화면의 calc(100% - 32px) 규칙이 이어서 적용됨 */
+:root {
+  --app-content-width: min(100% - 96px, 1320px);
+}
+@media (width<=1080px) {
+  :root {
+    --app-content-width: min(100% - 48px, 960px);
+  }
+}
+/* 스크롤바가 생기고 없어질 때 화면 폭이 바뀌어 헤더·본문이 좌우로 밀리지 않도록 자리를 항상 비워 둠 */
+html {
+  scrollbar-gutter: stable;
+}
+/* 홈·기업소개 헤더(SiteHeader)는 .app-topnav 구조를 그대로 씀.
+   .landing-page의 overflow: hidden은 sticky 헤더를 막아서, 가로 넘침만 잘라내는 clip으로 바꿈 */
+.landing-page {
+  overflow: clip;
+}
+@media (width<=560px) {
+  .site-topnav .landing-header-actions > button,
+  .site-topnav .landing-button-small svg {
+    display: none;
+  }
+}
+/* 기업소개의 word-break: keep-all이 헤더 메뉴 줄바꿈에 영향을 주지 않도록 앱 헤더와 같은 값으로 되돌림 */
+.site-topnav {
+  word-break: normal;
 }
