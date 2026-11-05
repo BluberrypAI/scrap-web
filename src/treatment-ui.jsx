@@ -16,6 +16,10 @@ function stamp(value) {
   return new Date(value).toLocaleString('ko-KR');
 }
 
+function routeOrigin(value) {
+  return value.completed.length ? value.completed.at(-1).location : value.input.origin;
+}
+
 async function requestNext(value, signal) {
   const response = await fetch('/api/treatment/next-step', {
     method: 'POST',
@@ -25,7 +29,7 @@ async function requestNext(value, signal) {
       waste_code: value.input.waste_code,
       material: value.input.material,
       input_form: value.input.input_form,
-      origin: value.completed.length ? value.completed.at(-1).location : value.input.origin,
+      origin: routeOrigin(value),
       completed_transitions: value.completed.map((step) => step.transition_key),
     }),
   });
@@ -125,6 +129,79 @@ export function createTreatmentUI(React) {
     return sources.map(({ publisher, url, locator }, index) =>
       <a className="treatment-source" href={url} key={`${url}-${index}`}
         target="_blank" rel="noreferrer">{publisher} · {locator}</a>);
+  }
+
+  function RegistrySearch({ value, transition }) {
+    const wasteCode = value.completed.length ? null : value.input.waste_code;
+    const [region, setRegion] = useState(
+      !value.completed.length && value.input.originType === 'demo'
+        ? demoWorkplace.region.split(' ')[0] : '',
+    );
+    const [result, setResult] = useState(null);
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const controller = useRef(null);
+    useEffect(() => () => controller.current?.abort(), []);
+
+    async function search(event) {
+      event.preventDefault();
+      if (loading) return;
+      const request = new AbortController();
+      controller.current = request;
+      setLoading(true);
+      setResult(null);
+      setError('');
+      const point = routeOrigin(value);
+      try {
+        const response = await fetch('/api/treatment/facility-candidates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: request.signal,
+          body: JSON.stringify({
+            transition_key: transition,
+            waste_code: wasteCode,
+            region: region.trim() || null,
+            origin_latitude: point?.latitude ?? null,
+            origin_longitude: point?.longitude ?? null,
+            page_size: 5,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.search_scope) throw new Error('시설 명부를 조회하지 못했어요.');
+        if (!request.signal.aborted) setResult(data);
+      } catch {
+        if (!request.signal.aborted) setError('시설 명부를 조회하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+      } finally {
+        if (!request.signal.aborted) setLoading(false);
+      }
+    }
+
+    return <section className="treatment-registry" aria-label="시설 명부 조사">
+      <h5>시설 명부에서 추가 업체 조사</h5>
+      <p>{wasteCode ? '분류번호가 일치하는 명부 단서예요.' : '현재 공정의 소재로 조회한 명부 단서예요.'}
+        {' '}업체별 공정, 현행 허가와 인수 조건을 확인해야 해요.</p>
+      <form onSubmit={search}>
+        <label>검색 지역 <input value={region} maxLength={160} placeholder="비우면 전국 검색"
+          disabled={loading} onChange={(event) => { setRegion(event.target.value); setResult(null); setError(''); }} /></label>
+        <button className="button button-quiet" type="submit" disabled={loading}>
+          {loading ? '명부 조회 중…' : '명부 검색'}
+        </button>
+      </form>
+      {error && <p role="alert">{error}</p>}
+      {result && (result.search_scope.registry_imported
+        ? <div>
+          <p role="status">명부 단서 {result.pagination.total_registry_candidates}건 · 표시 {result.registry_candidates.length}건</p>
+          <ul>{result.registry_candidates.map(({ listing_id, research_packet: entry }) => entry && <li key={listing_id}>
+            <strong>{entry.name}</strong>
+            <p>{entry.address || '주소 미확인'} · {entry.business_type}</p>
+            <small>{entry.straight_line_distance_km == null ? '거리 미확인'
+              : `명부 좌표 직선 ${entry.straight_line_distance_km} km`} · 공정 근거 미확인</small>
+          </li>)}</ul>
+          {result.registry_candidates.length > 0 && <a className="treatment-source"
+            href="https://www.data.go.kr/data/15114147/standard.do" target="_blank" rel="noreferrer">전국폐기물처리업소 표준데이터</a>}
+        </div>
+        : <p role="status">시설 명부가 이 서버에 적재되면 검색할 수 있어요.</p>)}
+    </section>;
   }
 
   function History({ value }) {
@@ -290,6 +367,7 @@ export function createTreatmentUI(React) {
                   이 업체로 추적 시작
                 </button>
               </div>)}
+              <RegistrySearch value={value} transition={process.transition_key} />
             </article>)}
             {lookup.options.length > 0 && <small className="treatment-note">허가, 인수 여부와 수용량은 업체 확인이 필요합니다. 이 화면은 연락이나 배차를 실행하지 않습니다.</small>}
           </div>}

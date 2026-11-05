@@ -12,6 +12,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: env.SCRAP_SERVER_URL ? undefined : () => '/kg/next-step',
         },
+        '^/api/treatment/facility-candidates$': {
+          target,
+          changeOrigin: true,
+          rewrite: env.SCRAP_SERVER_URL ? undefined : () => '/kg/facility-candidates',
+        },
       },
     },
   };

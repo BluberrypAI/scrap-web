@@ -52,6 +52,11 @@
 .treatment-facility p { color: #5c526e; font-size: 13px; }
 .treatment-source { display: block; text-decoration: underline; color: #5f459f; margin-top: 4px; }
 .treatment-note { display: block; padding-top: 12px; }
+.treatment-registry { border-top: 1px solid #e8e0f3; margin-top: 16px; padding-top: 12px; }
+.treatment-registry h5 { margin: 0 0 5px; font-size: 15px; }
+.treatment-registry form { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.treatment-registry input { border: 1px solid #cdc1e8; border-radius: 7px; padding: 7px; background: white; }
+.treatment-registry li { margin-top: 8px; }
 .treatment-history ol, .treatment-history ul { margin: 0; padding: 16px 25px; }
 .treatment-history li { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid #ece6f3; }
 .treatment-history small { color: #635a71; }
