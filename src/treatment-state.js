@@ -1,3 +1,5 @@
+import { auditStep } from './treatment-evidence.js';
+
 const storagePrefix = 'scrap.treatment.v1.';
 export const demoWorkplace = {
   region: '경기도 화성시 팔탄면',
@@ -52,14 +54,20 @@ export function beginStep(value, process, facility) {
     pending: {
       transition_key: process.transition_key, process: process.label,
       output: process.output_state.label, facility: facility.label,
+      address: facility.address || facility.region || null,
       capability_key: facility.capability_key, startedAt: time,
-      location: facility.location, distance: facility.straight_line_distance_km,
+      location: facility.location ?? null, distance: facility.straight_line_distance_km ?? null,
+      source: facility.source ?? { kind: 'kg', references: facility.sources || [] },
+      evidence: [],
     },
   };
 }
 
 export function completeStep(value) {
   if (!value.pending) throw new Error('완료할 공정이 없습니다.');
+  if (!auditStep(value.pending, value.completed.at(-1)).ready) {
+    throw new Error('증빙 누락이나 계획·실적 불일치를 먼저 확인해 주세요.');
+  }
   const time = new Date().toISOString();
   return {
     ...value, updatedAt: time, pending: null,
@@ -68,6 +76,7 @@ export function completeStep(value) {
 }
 
 export function finishCase(value) {
+  if (value.pending || !value.completed.length) throw new Error('공정 완료 기록을 먼저 확인해 주세요.');
   return { ...value, finished: true, updatedAt: new Date().toISOString() };
 }
 
