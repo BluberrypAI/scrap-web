@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { beginStep, completeStep, finishCase, loadCase, newCase, restoreCases, storeCase } from './treatment-state.js';
+import { beginStep, completeStep, finishCase, getTreatmentCase, loadCase, newCase, restoreCases, storeCase } from './treatment-state.js';
 
 test('selected process persists through list navigation and advances only on manual completion', () => {
   const data = Object.create(null);
@@ -26,4 +26,22 @@ test('selected process persists through list navigation and advances only on man
   assert.throws(() => completeStep(completed));
   storeCase(finishCase(completed));
   assert.equal(restoreCases([])[0].status, '완료');
+});
+
+test('confirmed cases reuse known material, form and site before any tracking entry exists', () => {
+  const origin = { latitude: 36.64, longitude: 127.45 };
+  const waste = {
+    id: 'aluminium-can-sample', name: '알루미늄 캔 예시', status: '확정', code: '51-29-03',
+    classifiedAt: '2026-11-04T00:00:00Z',
+    treatmentInput: { material: 'aluminium', input_form: 'can', origin },
+  };
+  assert.deepEqual(getTreatmentCase(waste).input, {
+    waste_code: '51-29-03', material: 'aluminium', input_form: 'can', origin,
+  });
+  assert.equal(loadCase(waste.id), null);
+  assert.equal(getTreatmentCase({ ...waste, status: '후보' }), null);
+  assert.equal(getTreatmentCase({ ...waste, treatmentInput: undefined }), null);
+  assert.equal(getTreatmentCase({
+    ...waste, treatmentInput: { ...waste.treatmentInput, origin: null },
+  }).input.origin, null);
 });

@@ -1,5 +1,5 @@
 /** @jsx h */
-import { beginStep, completeStep, finishCase, loadCase, newCase, storeCase } from './treatment-state.js';
+import { beginStep, completeStep, demoOrigin, finishCase, getTreatmentCase, loadCase, newCase, storeCase } from './treatment-state.js';
 import './treatment.css';
 
 const forms = {
@@ -11,8 +11,6 @@ const forms = {
   aluminium: [['can', '사용 후 알루미늄 캔']],
 };
 const materialLabels = { PP: 'PP', PE: 'PE', PET: 'PET', aluminium: '알루미늄' };
-const demoOrigin = { latitude: 36.64, longitude: 127.45 };
-const classifiedExamples = new Set(['synthetic-resin', 'aluminium-can-sample']);
 
 function stamp(value) {
   return new Date(value).toLocaleString('ko-KR');
@@ -42,62 +40,55 @@ async function requestNext(value, signal) {
 export function createTreatmentUI(React) {
   const { createElement: h, useEffect, useRef, useState } = React;
 
-  function Confirm({ id, wasteCode = '51-03-01', demoSurvey = false }) {
+  function SurveyMaterial({ onAnswer }) {
     const [material, setMaterial] = useState('');
     const [form, setForm] = useState('');
-    const [error, setError] = useState('');
-    const [originType, setOriginType] = useState('demo');
-    const [latitude, setLatitude] = useState('');
-    const [longitude, setLongitude] = useState('');
-    const materials = wasteCode === '51-29-03' ? ['aluminium'] : ['PP', 'PE', 'PET'];
-
-    function submit(event) {
+    return <form className="treatment-confirm" onSubmit={(event) => {
       event.preventDefault();
-      if (!material || !form) return;
-      const origin = originType === 'demo' ? demoOrigin : originType === 'manual' ? {
-        latitude: Number(latitude), longitude: Number(longitude),
-      } : null;
-      try {
-        storeCase(newCase(id, `폐${materialLabels[material]} · ${forms[material].find(([key]) => key === form)[1]}`,
-          { waste_code: wasteCode, material, input_form: form, origin, originType }));
-        window.__go(`/wastes/${id}?tab=route`);
-      } catch {
-        setError('브라우저에 저장하지 못했어요. 저장소 설정을 확인해 주세요.');
-      }
-    }
-
-    return <form className="treatment-confirm" onSubmit={submit}>
-      <p><b>{wasteCode}</b> · 이 번호로 재질과 현재 형태를 함께 기록해요.</p>
-      {demoSurvey && <small>기존 문진은 합성수지 예시입니다. 등록된 문진 결과와 공정 탐색을 연결하는 데모예요.</small>}
+      onAnswer({ material, input_form: form });
+    }}>
+      <h2>어떤 수지이고 어떤 형태인가요?</h2>
+      <p>같은 폐합성수지 분류 안에서도 재질과 형태에 따라 이어지는 공정이 달라요.</p>
       <div className="treatment-fields">
         <label>재질<select required value={material} onChange={(e) => {
           setMaterial(e.target.value);
           setForm('');
         }}>
           <option value="">선택</option>
-          {materials.map((key) => <option key={key} value={key}>{materialLabels[key]}</option>)}
+          {['PP', 'PE', 'PET'].map((key) => <option key={key} value={key}>{materialLabels[key]}</option>)}
         </select></label>
         <label>현재 형태<select required value={form} disabled={!material} onChange={(e) => setForm(e.target.value)}>
           <option value="">선택</option>
           {(forms[material] || []).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
         </select></label>
       </div>
-      <div className="treatment-fields">
-        <label>배출 공장 위치<select value={originType} onChange={(e) => setOriginType(e.target.value)}>
-          <option value="demo">가상 출발지 · 청주 인근</option>
-          <option value="manual">좌표 직접 입력</option>
-          <option value="none">위치 미입력</option>
-        </select></label>
-        {originType === 'manual' && <label>위도<input required type="number" step="any" min="-90" max="90"
-          value={latitude} onChange={(e) => setLatitude(e.target.value)} /></label>}
-        {originType === 'manual' && <label>경도<input required type="number" step="any" min="-180" max="180"
-          value={longitude} onChange={(e) => setLongitude(e.target.value)} /></label>}
-      </div>
-      {error && <p role="alert">{error}</p>}
       <button className="button button-primary" type="submit" disabled={!material || !form}>
-        저장하고 처리경로 열기
+        분류 결과 보기
       </button>
     </form>;
+  }
+
+  function Confirm({ id, input }) {
+    const [error, setError] = useState('');
+    function save() {
+      try {
+        if (!loadCase(id)) {
+          const { material, input_form } = input;
+          const formLabel = forms[material].find(([key]) => key === input_form)[1];
+          storeCase(newCase(id, `폐${materialLabels[material]} · ${formLabel}`, {
+            ...input, waste_code: '51-03-01', origin: demoOrigin, originType: 'demo',
+          }));
+        }
+        window.__go(`/wastes/${id}?tab=route`);
+      } catch {
+        setError('브라우저에 저장하지 못했어요. 저장소 설정을 확인해 주세요.');
+      }
+    }
+    return <div className="treatment-confirm">
+      <p>{materialLabels[input.material]} · {forms[input.material].find(([key]) => key === input.input_form)[1]}</p>
+      {error && <p role="alert">{error}</p>}
+      <button className="button button-primary" type="button" onClick={save}>저장하고 처리경로 열기</button>
+    </div>;
   }
 
   function Scene({ active, done, pins }) {
@@ -140,7 +131,9 @@ export function createTreatmentUI(React) {
     return <section className="detail-panel treatment-history">
       <header><div><p>TRACKING LOG</p><h2>처리 기록</h2></div></header>
       <ol>
-        <li><strong>분류번호 {value.input.waste_code} 기록</strong><small>{stamp(value.createdAt)}</small></li>
+        <li><strong>분류번호 {value.input.waste_code} 기록</strong>
+          {value.createdAt && <small>{stamp(value.createdAt)}</small>}
+        </li>
         {value.completed.map((step) => <li key={step.transition_key}>
           <strong>{step.process} 완료 기록 · {step.facility}</strong>
           <small>{stamp(step.completedAt)} · 산출물 {step.output}</small>
@@ -154,8 +147,8 @@ export function createTreatmentUI(React) {
     </section>;
   }
 
-  function Summary({ id }) {
-    const value = loadCase(id);
+  function Summary({ waste }) {
+    const value = getTreatmentCase(waste);
     if (!value) return null;
     return <section className="next-action-card">
       <div className="action-copy">
@@ -164,12 +157,12 @@ export function createTreatmentUI(React) {
           value.pending ? '선택한 공정의 결과를 기다리고 있어요' : '다음 공정의 업체를 확인해 주세요'}</h2>
         <p>{value.pending ? `${value.pending.facility} · ${value.pending.process}` : `분류번호 ${value.input.waste_code}`}</p>
       </div>
-      <a className="button button-primary" href={`/wastes/${id}?tab=route`}>처리경로 보기</a>
+      <a className="button button-primary" href={`/wastes/${waste.id}?tab=route`}>처리경로 보기</a>
     </section>;
   }
 
   function Panel({ waste }) {
-    const [value, setValue] = useState(() => loadCase(waste.id));
+    const [value, setValue] = useState(() => getTreatmentCase(waste));
     const [lookup, setLookup] = useState(null);
     const [fetchError, setFetchError] = useState('');
     const [saveError, setSaveError] = useState('');
@@ -185,7 +178,7 @@ export function createTreatmentUI(React) {
 
     function update(change) {
       try {
-        const stored = loadCase(value.id);
+        const stored = getTreatmentCase(waste);
         if (!stored || JSON.stringify(stored) !== JSON.stringify(value)) {
           throw new Error('다른 탭에서 상태가 바뀌었어요. 이 페이지를 다시 열어 주세요.');
         }
@@ -216,13 +209,11 @@ export function createTreatmentUI(React) {
       </header>
       <Scene active={current} done={Boolean(finished)} pins={pins} />
       <div className="treatment-body">
-        {!value && (classifiedExamples.has(waste.id)
-          ? <Confirm id={waste.id} wasteCode={waste.code} />
-          : <div className="treatment-status">
+        {!value && <div className="treatment-status">
             <h3>{waste.status === '분석 대기' ? '분석 결과 확인이 필요해요' : '연결된 처리경로가 없어요'}</h3>
             <p>문진에서 분류번호와 재질·형태를 기록한 건부터 다음 공정을 조회할 수 있어요.</p>
             <a className="button button-primary" href="/wastes">내 폐기물로 돌아가기</a>
-          </div>)}
+          </div>}
         {value && <div className="treatment-flow" aria-label="처리 진행 상태">
           <span className="is-done">✓ 분류 기록</span>
           {value.completed.map((step) => <span key={step.transition_key} className="is-done">✓ {step.process}</span>)}
@@ -253,7 +244,8 @@ export function createTreatmentUI(React) {
                 <h3>지금 이어갈 수 있는 공정</h3><p>{lookup.message}</p>
                 {lookup.options.length > 0 && <p>{value.completed.length
                   ? `거리 기준 출발지 · ${value.completed.at(-1).facility}`
-                  : value.input.originType === 'demo' ? '거리 기준 출발지 · 가상 청주 공장' : '거리 기준 출발지 · 배출 공장'}
+                  : value.input.originType === 'demo' ? '거리 기준 출발지 · 가상 청주 공장'
+                    : value.input.origin ? '거리 기준 출발지 · 배출 공장' : '등록된 배출 공장 위치 없음'}
                   {' · '}{ranked.length ? `직선거리 순 최대 5곳` : '거리 확인 가능한 업체 없음'}</p>}
               </div>
               {lookup.can_finish && <button className="button button-quiet" type="button"
@@ -297,8 +289,8 @@ export function createTreatmentUI(React) {
     </section>;
   }
 
-  function SavedTab({ id, tab }) {
-    const value = loadCase(id);
+  function SavedTab({ waste, tab }) {
+    const value = getTreatmentCase(waste);
     if (!value) return null;
     if (tab === 'history') return <History value={value} />;
     return <section className="detail-panel treatment-history">
@@ -308,5 +300,5 @@ export function createTreatmentUI(React) {
     </section>;
   }
 
-  return { Confirm, Panel, SavedTab, Summary };
+  return { Confirm, Panel, SavedTab, Summary, SurveyMaterial };
 }

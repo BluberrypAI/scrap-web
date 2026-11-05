@@ -33,8 +33,7 @@
 .sv-page .treatment-confirm { margin: 0 auto 20px; }
 .treatment-fields { display: flex; flex-wrap: wrap; gap: 12px; }
 .treatment-fields label { display: grid; gap: 5px; color: #362b4c; font-weight: 650; }
-.treatment-fields select, .treatment-fields input { width: 100%; min-width: 120px; border: 1px solid #cdc1e8; border-radius: 7px; padding: 7px; background: white; }
-.treatment-fields input { max-width: 135px; }
+.treatment-fields select { width: 100%; min-width: 120px; border: 1px solid #cdc1e8; border-radius: 7px; padding: 7px; background: white; }
 .treatment-map-key { position: absolute; left: 15px; right: 15px; bottom: 14px; display: flex; flex-wrap: wrap; gap: 5px; margin: 0; padding: 0; }
 .treatment-map-key li { padding: 5px 9px; background: #fffffff0; border-radius: 6px; font-size: 11px; }
 .treatment-map-key b { color: #176fa0; }

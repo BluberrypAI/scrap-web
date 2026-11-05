@@ -1,4 +1,5 @@
 const storagePrefix = 'scrap.treatment.v1.';
+export const demoOrigin = { latitude: 36.64, longitude: 127.45 };
 
 export function loadCase(id) {
   try {
@@ -15,10 +16,18 @@ export function storeCase(value) {
   return value;
 }
 
-export function newCase(id, name, input) {
-  const time = new Date().toISOString();
+export function newCase(id, name, input, time = new Date().toISOString()) {
   return { version: 1, id, name, input, completed: [], pending: null, finished: false,
     createdAt: time, updatedAt: time };
+}
+
+export function getTreatmentCase(waste) {
+  const saved = loadCase(waste.id);
+  if (saved) return saved;
+  if (waste.status !== '확정' || !waste.treatmentInput) return null;
+  const { material, input_form } = waste.treatmentInput;
+  if (!waste.code || !material || !input_form) return null;
+  return newCase(waste.id, waste.name, { ...waste.treatmentInput, waste_code: waste.code }, waste.classifiedAt ?? null);
 }
 
 export function beginStep(value, process, facility) {
