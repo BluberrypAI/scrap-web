@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
 import { demoWorkplace } from '../../features/treatment/treatment-state.js';
 import { currentRoute } from '../../lib/router.js';
@@ -27,10 +26,8 @@ const workplaceSummary = [
 ];
 
 export function CompanyDataPage() {
-  let [e, t] = useState(() => {
-    let e = new URLSearchParams(currentRoute().search).get('tab');
-    return e === 'history' || e === 'analysis' ? e : 'workplace';
-  });
+  const requestedTab = new URLSearchParams(currentRoute().search).get('tab');
+  const activeTab = dataTabs.some((tab) => tab.id === requestedTab) ? requestedTab : 'workplace';
   return (
     <main className="route-content data-page" data-layer-name="L1-CompanyData">
       <header className="route-heading data-heading">
@@ -39,25 +36,25 @@ export function CompanyDataPage() {
           <h1>기업 데이터 관리</h1>
           <span>사업장 정보와 폐기물 분석·처리 기록을 한곳에서 관리합니다.</span>
         </div>
-        {e === 'workplace' && (
+        {activeTab === 'workplace' && (
           <button className="button button-primary" type="button">
             정보 수정
           </button>
         )}
       </header>
       <nav className="data-tabs" aria-label="기업 데이터 메뉴">
-        {dataTabs.map((n) => (
-          <button
-            type="button"
-            className={e === n.id ? 'is-active' : ''}
-            onClick={() => t(n.id)}
-            key={n.id}
+        {dataTabs.map((tab) => (
+          <a
+            href={`/data?tab=${tab.id}`}
+            className={activeTab === tab.id ? 'is-active' : ''}
+            aria-current={activeTab === tab.id ? 'page' : undefined}
+            key={tab.id}
           >
-            {n.label}
-          </button>
+            {tab.label}
+          </a>
         ))}
       </nav>
-      {e === 'workplace' ? (
+      {activeTab === 'workplace' ? (
         <section className="workplace-panel">
           <header>
             <div className="workplace-mark">
@@ -87,7 +84,7 @@ export function CompanyDataPage() {
           </div>
         </section>
       ) : (
-        <DataTable type={e} />
+        <DataTable type={activeTab} />
       )}
     </main>
   );

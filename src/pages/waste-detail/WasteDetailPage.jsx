@@ -72,9 +72,7 @@ export function WasteDetailPage({ waste }) {
             {' · 마지막 업데이트 '}
             {waste.updatedAt}
           </span>
-          <div className="detail-heading-row">
-            <h1>{waste.name}</h1>
-          </div>
+          <h1>{waste.name}</h1>
           <div className="detail-code">
             <strong>
               {'분류번호 '}

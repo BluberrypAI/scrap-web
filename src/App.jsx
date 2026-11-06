@@ -4,6 +4,7 @@ import { AboutPage } from './pages/about/AboutPage.jsx';
 import { LoginPage } from './pages/auth/LoginPage.jsx';
 import { OnboardingPage } from './pages/auth/OnboardingPage.jsx';
 import { LandingPage } from './pages/landing/LandingPage.jsx';
+import { BerrySiteTour } from './components/BerrySiteTour.jsx';
 import * as React from 'react';
 import { createWasteTracking } from './waste-tracking.jsx';
 
@@ -11,7 +12,7 @@ const { Page: TrackingPage } = createWasteTracking(React);
 
 export function App() {
   let e = currentRoute().path.replace(/\/+$/, '') || '/';
-  return e.startsWith('/track/') ? (
+  const page = e.startsWith('/track/') ? (
     <TrackingPage wasteId={decodeURIComponent(e.slice('/track/'.length))} />
   ) : e === '/about' ? (
     <AboutPage />
@@ -26,4 +27,5 @@ export function App() {
   ) : (
     <LandingPage />
   );
+  return <>{page}<BerrySiteTour path={e} /></>;
 }

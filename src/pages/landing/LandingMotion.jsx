@@ -28,7 +28,7 @@ export function AnimatedContent({ as: Element = 'div', children, className = '',
   return <Element ref={elementRef} className={className}>{children}</Element>;
 }
 
-export function MagnetLink({ children, className, href }) {
+export function MagnetLink({ children, className, href, radius = 130, maxX = 12, maxY = 10, ...linkProps }) {
   const zoneRef = useRef(null);
   const linkRef = useRef(null);
 
@@ -45,9 +45,9 @@ export function MagnetLink({ children, className, href }) {
       const bounds = zone.getBoundingClientRect();
       const deltaX = event.clientX - (bounds.left + bounds.width / 2);
       const deltaY = event.clientY - (bounds.top + bounds.height / 2);
-      const nearby = Math.hypot(deltaX, deltaY) < 130;
-      const x = nearby ? Math.max(-12, Math.min(12, deltaX * 0.12)) : 0;
-      const y = nearby ? Math.max(-10, Math.min(10, deltaY * 0.12)) : 0;
+      const nearby = Math.hypot(deltaX, deltaY) < radius;
+      const x = nearby ? Math.max(-maxX, Math.min(maxX, deltaX * 0.12)) : 0;
+      const y = nearby ? Math.max(-maxY, Math.min(maxY, deltaY * 0.12)) : 0;
 
       link.style.setProperty('--magnet-x', `${x}px`);
       link.style.setProperty('--magnet-y', `${y}px`);
@@ -55,11 +55,11 @@ export function MagnetLink({ children, className, href }) {
 
     window.addEventListener('pointermove', updatePosition, { passive: true });
     return () => window.removeEventListener('pointermove', updatePosition);
-  }, []);
+  }, [radius, maxX, maxY]);
 
   return (
     <span className="landing-magnet-zone" ref={zoneRef}>
-      <a className={`${className} landing-magnet`} href={href} ref={linkRef}>
+      <a className={`${className} landing-magnet`} href={href} ref={linkRef} {...linkProps}>
         {children}
       </a>
     </span>
