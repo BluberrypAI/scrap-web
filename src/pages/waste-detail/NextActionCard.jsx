@@ -48,7 +48,6 @@ export function NextActionCard({ waste, onOpenOverlay }) {
         <span>다음 행동</span>
         <h2>분류가 확정되었어요</h2>
         <div className="confirmed-meta">
-          <strong>{waste.code}</strong>
           <span>R3 · 유기물질의 재생·회수</span>
         </div>
         <p>확정된 분류와 R유형을 기준으로 처리 경로를 선택해 주세요.</p>

@@ -32,13 +32,14 @@ function WasteList({ variant, onOpenAnalysis, onCreate }) {
       <header className="page-header">
         <div>
           <p>RECYCLING ROUTE</p>
-          <h1>내 폐기물</h1>
-          {variant === 'list' && (
-            <span>
-              {'진행 중 '}
-              {r.length}개
-            </span>
-          )}
+          <div className="page-title-row">
+            <h1>내 폐기물</h1>
+            {variant === 'list' && <span>진행 중 {r.length}개</span>}
+          </div>
+          <a className="completed-history-link" href="/data?tab=history">
+            처리 완료 이력 보기
+            <Icon name="arrow" size={15} />
+          </a>
         </div>
         <button className="button button-primary create-button" type="button" onClick={onCreate}>
           <Icon name="plus" size={18} />새 폐기물 문진

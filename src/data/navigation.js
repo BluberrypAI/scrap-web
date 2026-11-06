@@ -11,8 +11,4 @@ export const navItems = [
     label: '순환자원지도',
     href: '/map',
   },
-  {
-    label: '기업 데이터 관리',
-    href: '/data',
-  },
 ];

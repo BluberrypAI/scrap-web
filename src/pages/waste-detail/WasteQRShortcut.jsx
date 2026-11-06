@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { MagnetLink } from '../landing/LandingMotion.jsx';
 
 export function WasteQRShortcut({ waste }) {
   const [image, setImage] = useState('');
@@ -16,8 +17,9 @@ export function WasteQRShortcut({ waste }) {
     prepare();
     return () => { active = false; };
   }, [waste.id]);
-  return <a className="detail-qr-shortcut" href={`/wastes/${waste.id}/tracking`}
-    aria-label={`${waste.name} QR 및 운송 현황 열기`} title="QR · 운송 현황">
+  return <MagnetLink className="detail-qr-shortcut" href={`/wastes/${waste.id}/tracking`}
+    aria-label={`${waste.name} QR 및 운송 현황 열기`} title="QR · 운송 현황"
+    radius={100} maxX={6} maxY={6}>
     {image ? <img src={image} alt="" width="58" height="58" /> : <span aria-hidden="true">▦</span>}
-  </a>;
+  </MagnetLink>;
 }

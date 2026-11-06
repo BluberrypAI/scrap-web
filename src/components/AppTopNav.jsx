@@ -51,7 +51,7 @@ export function AppTopNav({ path }) {
                 <strong>김수현</strong>
                 <span>사업장 관리자</span>
               </div>
-              <a href="/data#account">
+              <a href="/data?tab=workplace">
                 <Icon name="settings" size={17} />
                 계정 설정
               </a>

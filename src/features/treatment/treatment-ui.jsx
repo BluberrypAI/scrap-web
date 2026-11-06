@@ -272,7 +272,7 @@ export function createTreatmentUI(React) {
         <span>다음 행동</span>
         <h2>{value.finished ? '처리경로 추적을 마쳤어요' :
           value.pending ? '선택한 공정의 결과를 기다리고 있어요' : '다음 공정의 업체를 확인해 주세요'}</h2>
-        <p>{value.pending ? `${value.pending.facility} · ${value.pending.process}` : `분류번호 ${value.input.waste_code}`}</p>
+        {value.pending && <p>{value.pending.facility} · {value.pending.process}</p>}
       </div>
       <a className="button button-primary" href={`/wastes/${waste.id}?tab=route`}>처리경로 보기</a>
     </section>;
