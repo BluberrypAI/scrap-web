@@ -35,6 +35,3 @@
   .wt-qr img { align-self: center; }
   .wt-public .transport-card { padding: 22px; }
 }
-.waste-card-entry { display: flex; flex-direction: column; }
-.waste-card-entry > .waste-card { flex: 1; }
-.waste-card-transport { align-self: flex-end; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; color: #6246a5; font-size: 13px; }

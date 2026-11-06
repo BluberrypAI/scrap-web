@@ -4,7 +4,7 @@ import { createLandscape } from './landscape.js';
 
 const slots = [[4, -3], [-1, -12], [12, 1], [7, -16], [18, -8]];
 
-export function mountScene(host, { count, done, routeLength }) {
+export function mountScene(host, { count, done }) {
   let renderer;
   try {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -55,11 +55,10 @@ export function mountScene(host, { count, done, routeLength }) {
     marker.position.set(0, 5.1, 0);
     marker.scale.set(1.7, 1.7, 1.7);
     destination.add(marker);
-    const [fromX, fromZ] = index > 0 && index < routeLength ? slots[index - 1] : [-10, 3];
     const path = new THREE.CatmullRomCurve3(Array.from({ length: 9 }, (_, i) => {
       const t = i / 8;
-      const x = fromX + (targetX - fromX) * t;
-      const z = fromZ + (targetZ - fromZ) * t + Math.sin(Math.PI * t) * 1.8;
+      const x = -10 + (targetX + 10) * t;
+      const z = 3 + (targetZ - 3) * t + Math.sin(Math.PI * t) * 1.8;
       return new THREE.Vector3(x, meadow.heightAt(x, z) + 0.04, z);
     }));
     const road = new THREE.Mesh(new THREE.TubeGeometry(path, 32, 0.16, 6),
