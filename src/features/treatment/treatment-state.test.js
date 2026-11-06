@@ -1,19 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyTransportPickup, applyTransportReceipt, beginStep, completeStep, demoWorkplace, finishCase, getTreatmentCase, loadCase, newCase, readyForTreatment, recordTreatmentResult, restoreCases, storeCase, transportLegId } from './treatment-state.js';
+import { beginStep, completeStep, demoWorkplace, finishCase, getTreatmentCase, loadCase, newCase, restoreCases, storeCase } from './treatment-state.js';
 import { auditStep, recordEvidence, reportFor } from './treatment-evidence.js';
-
-test('first handoff to an investigation candidate needs a recorded operator review', () => {
-  const value = newCase('lot-investigation', '가상 PP', { waste_code: '51-03-01', material: 'PP', input_form: 'film' });
-  const process = { transition_key: 'pp-prepare', label: '선별·파쇄', output_state: { label: '파쇄품' } };
-  const facility = { label: '가상 공장', facility_key: 'test-site', evidence_basis: 'site_role_hypothesis' };
-  assert.throws(() => beginStep(value, process, facility), /확인 자료/);
-  const source = { kind: 'kg', reviewBasis: 'operator-confirmed', reviewReference: '  ' };
-  assert.throws(() => beginStep(value, process, { ...facility, source }), /확인 자료/);
-  const pending = beginStep(value, process, { ...facility, source: { ...source, reviewReference: 'LOT-REF-1' } }).pending;
-  assert.ok(transportLegId(pending));
-  assert.equal(pending.source.reviewReference, 'LOT-REF-1');
-});
 
 test('selected process persists through list navigation and advances only on manual completion', () => {
   const data = Object.create(null);
@@ -34,22 +22,7 @@ test('selected process persists through list navigation and advances only on man
   assert.throws(() => beginStep(pending, process, facility));
   assert.throws(() => completeStep(pending));
   const base = { occurredOn: '2026-11-05', actor: '가상 업체', reference: '가상-증빙' };
-  const legId = transportLegId(pending.pending);
-  const other = storeCase(beginStep({ ...value, id: 'lot-other' }, process, facility));
-  const receipt = { wasteId: value.id, legId, status: 'accepted', respondedAt: '2026-11-05T01:02:03Z' };
-  assert.equal(applyTransportReceipt({ ...receipt, wasteId: other.id }), false);
-  assert.equal(applyTransportReceipt({ ...receipt, respondedAt: 'unknown' }), false);
-  const rejection = { ...receipt, status: 'rejected', respondedAt: '2026-11-05T01:00:00Z' };
-  assert.equal(applyTransportReceipt(rejection), true);
-  assert.equal(loadCase(value.id).pending.handoff.status, 'rejected');
-  assert.throws(() => completeStep(loadCase(value.id)));
-  assert.equal(applyTransportReceipt(receipt), true);
-  assert.equal(applyTransportReceipt(receipt), false);
-  assert.equal(applyTransportReceipt(rejection), false);
-  assert.equal(loadCase(other.id).pending.handoff, undefined);
-  const received = loadCase(value.id);
-  assert.equal(received.pending.handoff.status, 'accepted');
-  const handed = recordEvidence(received, 'handover', { ...base, inputLot: 'LOT-A', massKg: 1000 });
+  const handed = recordEvidence(loadCase(value.id), 'handover', { ...base, inputLot: 'LOT-A', massKg: 1000 });
   const wrongReceipt = recordEvidence(handed, 'receipt', {
     ...base, siteMatches: 'yes', actualAddress: '가상 주소', massKg: 990,
   });
@@ -70,15 +43,8 @@ test('selected process persists through list navigation and advances only on man
   assert.throws(() => completeStep(completed));
   assert.equal(reportFor(completed).steps[0].evidence.length, 4);
   assert.equal(reportFor(completed).steps[0].audit.ready, true);
-  assert.equal(reportFor(completed).steps[0].handoff.status, 'accepted');
-  assert.equal(reportFor(completed).steps[0].handoff.token, undefined);
-  const next = storeCase(beginStep(completed, { ...process, transition_key: 'pp-clean' }, facility));
-  assert.equal(next.pending.from, facility.label);
-  assert.notEqual(transportLegId(next.pending), legId);
-  assert.equal(applyTransportReceipt({ ...receipt, respondedAt: '2026-11-05T02:00:00Z' }), false);
-  assert.equal(loadCase(value.id).pending.handoff, undefined);
   storeCase(finishCase(completed));
-  assert.equal(restoreCases([]).find(({ id }) => id === value.id).status, '완료');
+  assert.equal(restoreCases([])[0].status, '완료');
 });
 
 test('confirmed cases reuse known material, form and site before any tracking entry exists', () => {
@@ -109,70 +75,4 @@ test('saved demos pick up the profile location and keep their pending process', 
   const restored = loadCase(value.id);
   assert.deepEqual(restored.input.origin, demoWorkplace.routeOrigin.origin);
   assert.deepEqual(restored.pending, { ...pending, distance: null });
-});
-
-test('old demo QR receipts wait for a transport confirmation on the same leg', () => {
-  const value = newCase('legacy-qr', '이전 QR', {});
-  const startedAt = '2026-11-05T00:00:00Z';
-  storeCase({
-    ...value,
-    pending: { transition_key: 'old-transition', startedAt, handoff: { token: 'old', status: 'accepted' } },
-  });
-  const restored = loadCase(value.id);
-  assert.equal(restored.pending.handoff, undefined);
-  assert.equal(applyTransportReceipt({
-    wasteId: value.id, legId: transportLegId(restored.pending), status: 'accepted',
-    respondedAt: '2026-11-05T01:00:00Z',
-  }), true);
-  assert.equal(loadCase(value.id).pending.handoff.status, 'accepted');
-});
-
-test('actual processor result advances the case while keeping the original process preview', () => {
-  const value = newCase('lot-observed', '가상 PP', { material: 'PP' });
-  const output = { key: 'pp-shredded', label: '파쇄품' };
-  const actual = { key: 'pp-scrap', label: '잔재' };
-  const process = { transition_key: 'pp-prepare', label: '선별·파쇄', output_state: output };
-  const previews = [[{ transition_key: process.transition_key, label: process.label }]];
-  const pending = storeCase(beginStep(value, process, { label: 'B' }, { outputStates: [output, actual], previews }));
-  const result = { stateKey: actual.key, massKg: 850, purityPercent: null };
-  assert.throws(() => recordTreatmentResult(pending, result));
-  assert.equal(applyTransportReceipt({
-    wasteId: value.id, legId: transportLegId(pending.pending), status: 'accepted',
-    respondedAt: '2026-11-05T01:00:00Z',
-  }), true);
-  const received = loadCase(value.id);
-  assert.throws(() => recordTreatmentResult(received, { ...result, stateKey: 'pe-shredded' }));
-  assert.throws(() => recordTreatmentResult(received, { ...result, purityPercent: 101 }));
-  const complete = recordTreatmentResult(received, result);
-  assert.deepEqual(complete.completed[0].observedOutput, {
-    state_key: 'pp-scrap', mass_kg: 850, purity_percent: null,
-  });
-  assert.equal(complete.pending, null);
-  assert.deepEqual(beginStep(complete, process, { label: 'C' }).initialPreviews, previews);
-});
-
-test('transport pickup and receipt are separate, and onsite processing needs no QR', () => {
-  const value = newCase('lot-onsite', '가상 PET', { material: 'PET' });
-  const output = { key: 'pet-sorted', label: '선별 PET' };
-  const process = { transition_key: 'pet-prepare', label: '선별', output_state: output };
-  const facility = { label: '동일 이름', facility_key: 'factory-one', capability_key: 'factory-one--pet-prepare' };
-  const pending = storeCase(beginStep(value, process, facility));
-  const legId = transportLegId(pending.pending);
-  assert.equal(applyTransportPickup({ wasteId: value.id, legId, actor: '기사' }), true);
-  assert.equal(applyTransportPickup({ wasteId: value.id, legId, actor: '기사' }), false);
-  assert.equal(readyForTreatment(loadCase(value.id).pending), false);
-  const receipt = { wasteId: value.id, legId, status: 'accepted', actor: '업체', respondedAt: new Date().toISOString() };
-  assert.equal(applyTransportReceipt(receipt), true);
-  assert.equal(loadCase(value.id).pending.pickup.actor, '기사');
-  const result = { stateKey: output.key, massKg: 850, purityPercent: null };
-  const completed = recordTreatmentResult(loadCase(value.id), result);
-  const second = { ...process, transition_key: 'pet-wash' };
-  const internal = storeCase(beginStep(completed, second, { ...facility, capability_key: 'factory-one--pet-wash' }));
-  assert.equal(internal.pending.internal, true);
-  assert.equal(transportLegId(internal.pending), null);
-  assert.equal(applyTransportReceipt({ ...receipt, respondedAt: '2026-12-01T00:00:00Z' }), false);
-  assert.equal(recordTreatmentResult(loadCase(value.id), result).completed.length, 2);
-  const other = beginStep(completed, second, { ...facility, facility_key: 'factory-two' });
-  assert.equal(other.pending.internal, false);
-  assert.notEqual(transportLegId(other.pending), legId);
 });

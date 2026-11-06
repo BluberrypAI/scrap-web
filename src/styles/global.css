@@ -711,12 +711,6 @@
   display: inline-flex;
   transition: background-color 0.18s ease-out, transform 0.18s ease-out;
 }
-/* 내 폐기물 헤더: 처리 완료 이력 · 공유 인계함 링크를 나란히 둔다 */
-.page-header-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
 .completed-history-link:hover {
   background: var(--color-card);
   transform: translateY(-1px);

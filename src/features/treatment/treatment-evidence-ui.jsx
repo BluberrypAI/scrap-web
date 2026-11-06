@@ -76,7 +76,7 @@ export function createEvidenceUI(React) {
       <h3>예정 경로와 실제 처리 대조</h3>
       <p>예정 업체 {pending.facility} · 예정 공정 {pending.process}</p>
       {pending.address && <p>예정 입고 주소 · {pending.address}</p>}
-      {pending.source?.reviewReference && <p>담당자 확인 자료 · {pending.source.reviewReference}</p>}
+      {pending.source?.kind === 'registry' && <p>담당자 확인 자료 · {pending.source.reviewReference}</p>}
       <Audit audit={audit} />
       {error && <p role="alert">{error}</p>}
       {evidenceStages.map(([stage, label], i) => {
