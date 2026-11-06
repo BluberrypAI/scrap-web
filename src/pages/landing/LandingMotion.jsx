@@ -1,38 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
-export function Reveal({ as: Element = 'div', children, className = '', delay = 0 }) {
+export function AnimatedContent({ as: Element = 'div', children, className = '', delay = 0 }) {
   const elementRef = useRef(null);
-  const [visible, setVisible] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = elementRef.current;
-    if (!element) return undefined;
-
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
-      setVisible(true);
+    if (!element || !element.animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return undefined;
     }
 
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setVisible(true);
-        observer.disconnect();
-      }
-    }, { threshold: 0.08 });
+    const duration = 650;
+    const animation = element.animate(
+      [
+        { opacity: 0, transform: 'translateY(18px)' },
+        { opacity: 1, transform: 'translateY(0)' },
+      ],
+      { duration, delay, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'both' },
+    );
+    const fallback = window.setTimeout(() => animation.cancel(), delay + duration + 100);
 
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
+    return () => {
+      window.clearTimeout(fallback);
+      animation.cancel();
+    };
+  }, [delay]);
 
-  return (
-    <Element
-      ref={elementRef}
-      className={`landing-reveal${visible ? ' is-visible' : ''}${className ? ` ${className}` : ''}`}
-      style={{ '--reveal-delay': `${delay}ms` }}
-    >
-      {children}
-    </Element>
-  );
+  return <Element ref={elementRef} className={className}>{children}</Element>;
 }
 
 export function MagnetLink({ children, className, href }) {

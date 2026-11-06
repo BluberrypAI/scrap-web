@@ -2,7 +2,7 @@ import { ArrowUpRightIcon, PlayIcon } from '../../components/LandingIcons.jsx';
 import { SiteFooter } from '../../components/SiteFooter.jsx';
 import { SiteHeader } from '../../components/SiteHeader.jsx';
 import { LandingArtwork } from './LandingArtwork.jsx';
-import { MagnetLink, Reveal } from './LandingMotion.jsx';
+import { AnimatedContent, MagnetLink } from './LandingMotion.jsx';
 
 const partners = [
   { id: 'moel', name: '고용노동부', image: '/images/partner-moel.svg' },
@@ -10,11 +10,6 @@ const partners = [
   { id: 'kosa', name: '한국인공지능·소프트웨어산업협회', image: '/images/partner-kosa.png' },
   { id: 'microsoft', name: 'Microsoft', image: '/images/partner-microsoft.svg' },
   { id: 'gachon', name: '가천대학교', image: '/images/partner-gachon.png' },
-];
-
-const headlineLines = [
-  { words: ['Connecting', 'Resources,'], delay: 80 },
-  { words: ['Creating', 'Circulation.'], delay: 420, accent: true },
 ];
 
 function PartnerLogos() {
@@ -34,23 +29,17 @@ export function LandingPage() {
       <SiteHeader />
       <section className="landing-hero" aria-labelledby="landing-title">
         <div className="landing-copy">
-          <h1 id="landing-title" aria-label="Connecting Resources, Creating Circulation.">
-            {headlineLines.map(({ words, delay, accent }) => (
-              <span className={`landing-headline-line${accent ? ' landing-headline-accent' : ''}`} aria-hidden="true" key={delay}>
-                {words.map((word, index) => (
-                  <span className="landing-word" style={{ '--word-delay': `${delay + index * 110}ms` }} key={word}>
-                    {word}
-                  </span>
-                ))}
-              </span>
-            ))}
+          <h1 id="landing-title">
+            Connecting Resources,
+            <br />
+            <span className="landing-headline-accent">Creating Circulation.</span>
           </h1>
-          <Reveal as="p" delay={740}>
+          <AnimatedContent as="p" delay={180}>
             폐기물 분류부터 처리업체에 맡기는 시간까지,
             <br />
             SCRAP이 더 빠르고 투명한 자원순환을 시작합니다.
-          </Reveal>
-          <Reveal className="landing-actions" delay={900}>
+          </AnimatedContent>
+          <AnimatedContent className="landing-actions" delay={380}>
             <MagnetLink className="landing-button landing-button-primary landing-button-large" href="/login">
               시작하기
               <ArrowUpRightIcon />
@@ -64,11 +53,11 @@ export function LandingPage() {
               </span>
               데모 보기
             </button>
-          </Reveal>
+          </AnimatedContent>
         </div>
-        <Reveal className="landing-visual" delay={1040}>
+        <AnimatedContent className="landing-visual" delay={580}>
           <LandingArtwork />
-        </Reveal>
+        </AnimatedContent>
       </section>
       <SiteFooter />
       <section className="landing-partners" aria-label="함께하는 파트너">
