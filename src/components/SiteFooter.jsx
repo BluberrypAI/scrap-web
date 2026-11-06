@@ -2,9 +2,7 @@ export function SiteFooter() {
   return (
     <footer className="site-footer" data-layer-name="Footer">
       <div className="site-footer-brand">
-        <strong>
-          SCRAP<span>.</span>
-        </strong>
+        <img className="site-footer-logo" src="/images/scrap-logo-3d.png" alt="SCRAP" />
         <p>팀 BluberrypAI</p>
         <p>대표 윤재상</p>
       </div>

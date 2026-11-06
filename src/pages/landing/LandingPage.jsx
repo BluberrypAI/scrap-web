@@ -2,15 +2,31 @@ import { ArrowUpRightIcon, PlayIcon } from '../../components/LandingIcons.jsx';
 import { SiteFooter } from '../../components/SiteFooter.jsx';
 import { SiteHeader } from '../../components/SiteHeader.jsx';
 import { LandingArtwork } from './LandingArtwork.jsx';
+import { MagnetLink, Reveal } from './LandingMotion.jsx';
 
 const partners = [
-  ['ER', 'ECOROUND'],
-  ['CL', 'CIRCULAR LAB'],
-  ['RS', 'RE:SOURCE'],
-  ['GF', 'GREENFLOW'],
-  ['ML', 'MATERIAL LOOP'],
-  ['ZW', 'ZERO WASTE'],
+  { id: 'moel', name: '고용노동부', image: '/images/partner-moel.svg' },
+  { id: 'kiat', name: '한국산업기술진흥원', image: '/images/partner-kiat.jpg' },
+  { id: 'kosa', name: '한국인공지능·소프트웨어산업협회', image: '/images/partner-kosa.png' },
+  { id: 'microsoft', name: 'Microsoft', image: '/images/partner-microsoft.svg' },
+  { id: 'gachon', name: '가천대학교', image: '/images/partner-gachon.png' },
 ];
+
+const headlineLines = [
+  { words: ['Connecting', 'Resources,'], delay: 80 },
+  { words: ['Creating', 'Circulation.'], delay: 420, accent: true },
+];
+
+function PartnerLogos() {
+  return partners.map(({ id, name, image }) => (
+    <div className={`landing-partner-logo landing-partner-${id}`} key={id}>
+      <span className="landing-partner-emblem" aria-hidden="true">
+        <img src={image} alt="" loading="lazy" />
+      </span>
+      <span className="landing-partner-name">{name}</span>
+    </div>
+  ));
+}
 
 export function LandingPage() {
   return (
@@ -18,25 +34,27 @@ export function LandingPage() {
       <SiteHeader />
       <section className="landing-hero" aria-labelledby="landing-title">
         <div className="landing-copy">
-          <div className="landing-eyebrow">
-            <span />
-            산업폐기물 순환 AI 에이전트
-          </div>
-          <h1 id="landing-title">
-            Connecting Resources,
-            <br />
-            <span>Creating Circulation.</span>
+          <h1 id="landing-title" aria-label="Connecting Resources, Creating Circulation.">
+            {headlineLines.map(({ words, delay, accent }) => (
+              <span className={`landing-headline-line${accent ? ' landing-headline-accent' : ''}`} aria-hidden="true" key={delay}>
+                {words.map((word, index) => (
+                  <span className="landing-word" style={{ '--word-delay': `${delay + index * 110}ms` }} key={word}>
+                    {word}
+                  </span>
+                ))}
+              </span>
+            ))}
           </h1>
-          <p>
+          <Reveal as="p" delay={740}>
             폐기물 분류부터 처리업체에 맡기는 시간까지,
             <br />
             SCRAP이 더 빠르고 투명한 자원순환을 시작합니다.
-          </p>
-          <div className="landing-actions">
-            <a className="landing-button landing-button-primary landing-button-large" href="/login">
+          </Reveal>
+          <Reveal className="landing-actions" delay={900}>
+            <MagnetLink className="landing-button landing-button-primary landing-button-large" href="/login">
               시작하기
               <ArrowUpRightIcon />
-            </a>
+            </MagnetLink>
             <button
               className="landing-button landing-button-secondary landing-button-large"
               type="button"
@@ -46,24 +64,21 @@ export function LandingPage() {
               </span>
               데모 보기
             </button>
-          </div>
+          </Reveal>
         </div>
-        <div className="landing-visual">
+        <Reveal className="landing-visual" delay={1040}>
           <LandingArtwork />
-        </div>
-      </section>
-      <section className="landing-partners" aria-label="함께하는 파트너">
-        <p>순환 경제를 함께 만드는 파트너</p>
-        <div>
-          {partners.map(([e, t]) => (
-            <span className="landing-partner-logo" key={t}>
-              <i>{e}</i>
-              <strong>{t}</strong>
-            </span>
-          ))}
-        </div>
+        </Reveal>
       </section>
       <SiteFooter />
+      <section className="landing-partners" aria-label="함께하는 파트너">
+        <div className="landing-partner-window">
+          <div className="landing-partner-track">
+            <div className="landing-partner-group"><PartnerLogos /></div>
+            <div className="landing-partner-group" aria-hidden="true"><PartnerLogos /></div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

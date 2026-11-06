@@ -1,48 +1,78 @@
+import { useRef, useState } from 'react';
+
+const clamp = (value, limit) => Math.max(-limit, Math.min(limit, value));
+
 export function LandingArtwork() {
+  const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const drag = useRef(null);
+
+  const handlePointerMove = (event) => {
+    if (drag.current) {
+      setRotation({
+        x: clamp(drag.current.x - (event.clientY - drag.current.pointerY) * 0.25, 30),
+        y: clamp(drag.current.y + (event.clientX - drag.current.pointerX) * 0.25, 30),
+      });
+      return;
+    }
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+    setRotation({
+      x: clamp(((bounds.top + bounds.height / 2 - event.clientY) / bounds.height) * 24, 12),
+      y: clamp(((event.clientX - bounds.left - bounds.width / 2) / bounds.width) * 24, 12),
+    });
+  };
+
+  const handlePointerDown = (event) => {
+    drag.current = {
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      x: rotation.x,
+      y: rotation.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerUp = (event) => {
+    drag.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
   return (
-    <div
-      className="landing-artwork"
-      data-layer-name="3D-Placeholder"
-      aria-label="순환 자원을 표현한 3D 오브젝트"
-    >
-      <div className="landing-core" aria-hidden="true">
-        <span className="landing-core-disc" />
-        <span className="landing-ring landing-ring-back" />
-        <span className="landing-cube">
-          <i className="landing-cube-front">S</i>
-          <i className="landing-cube-side" />
-          <i className="landing-cube-top" />
-        </span>
-        <span className="landing-ring landing-ring-front" />
-      </div>
-      <span className="landing-lime-dot landing-lime-dot-one" aria-hidden="true" />
-      <span className="landing-lime-dot landing-lime-dot-two" aria-hidden="true" />
-      <div className="landing-chip landing-chip-one">
-        <span className="landing-chip-icon">01</span>
-        <span>
-          <small>분석 대상</small>
-          <strong>폐수 슬러지</strong>
-        </span>
-      </div>
-      <div className="landing-chip landing-chip-two">
-        <span className="landing-chip-dot" />
-        <span>
-          <small>순환 자원</small>
-          <strong>폐유</strong>
-        </span>
-      </div>
-      <div className="landing-chip landing-chip-three">
-        <span>
-          <small>재활용률</small>
-          <strong className="landing-chip-value">92%</strong>
-        </span>
-      </div>
-      <div className="landing-chip landing-chip-four">
-        <span className="landing-chip-status" />
-        <span>
-          <small>AI 매칭 완료</small>
-          <strong>처리업체 8곳</strong>
-        </span>
+    <div className="landing-artwork" data-layer-name="SCRAP-Compass">
+      <div
+        className="landing-compass"
+        role="img"
+        tabIndex={0}
+        aria-label="SCRAP 나침반 로고. 마우스로 드래그하거나 방향키로 기울일 수 있습니다."
+        onPointerMove={handlePointerMove}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onPointerLeave={() => {
+          if (!drag.current) setRotation({ x: 0, y: 0 });
+        }}
+        onKeyDown={(event) => {
+          const movement = {
+            ArrowUp: { x: 5, y: 0 },
+            ArrowDown: { x: -5, y: 0 },
+            ArrowLeft: { x: 0, y: -5 },
+            ArrowRight: { x: 0, y: 5 },
+          }[event.key];
+          if (movement) {
+            event.preventDefault();
+            setRotation((current) => ({
+              x: clamp(current.x + movement.x, 30),
+              y: clamp(current.y + movement.y, 30),
+            }));
+          } else if (event.key === 'Escape') {
+            setRotation({ x: 0, y: 0 });
+          }
+        }}
+        style={{ transform: `perspective(900px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)` }}
+      >
+        <img src="/images/scrap-compass-3d.png" alt="" draggable="false" />
       </div>
     </div>
   );
