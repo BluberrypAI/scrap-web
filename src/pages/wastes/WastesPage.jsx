@@ -78,9 +78,8 @@ function WasteList({ variant, onCreate }) {
           <p>RECYCLING ROUTE</p>
           <div className="page-title-row">
             <h1>내 폐기물</h1>
-            {variant === 'list' && <span>진행 중 {ongoing.length}개</span>}
           </div>
-          <span className="page-lead">단계별로 현재 상태를 확인해 보세요.</span>
+          <span className="page-lead">분류부터 처리까지, 폐기물마다 어디까지 진행됐는지 한눈에 확인하세요.</span>
           <a className="completed-history-link" href="/data?tab=history">
             처리 완료 이력 보기
             <Icon name="arrow" size={15} />

@@ -285,3 +285,86 @@
     padding: 16px;
   }
 }
+
+/* 기업소개와 같은 큰 타이포그래피를 사용하되, 작업 목록은 차분하게 유지한다. */
+.home-content .page-header {
+  position: relative;
+  isolation: isolate;
+  min-height: 270px;
+  overflow: hidden;
+  align-items: flex-end;
+  gap: 24px;
+  margin: 0 0 43px;
+  border-radius: 14px;
+  background: linear-gradient(115deg, #21192e 0%, #37244f 59%, #6b518e 100%);
+  padding: 42px 48px;
+  color: white;
+}
+.home-content .page-header::before,
+.home-content .page-header::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  border: 1px solid #ffffff30;
+  border-radius: 50%;
+}
+.home-content .page-header::before {
+  width: 430px;
+  height: 430px;
+  top: -260px;
+  right: -38px;
+  box-shadow: 0 0 0 70px #ffffff08, 0 0 0 140px #ffffff07;
+}
+.home-content .page-header::after {
+  width: 200px;
+  height: 200px;
+  right: 24%;
+  bottom: -166px;
+}
+.home-content .page-header p {
+  color: #d8f59d;
+  font-size: 11px;
+  font-weight: 700;
+}
+.home-content .page-header h1 {
+  color: white;
+  font-size: clamp(38px, 5vw, 58px);
+  line-height: 1.08;
+}
+.home-content .page-lead {
+  max-width: 560px;
+  margin-top: 16px;
+  color: #ede7f2;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.home-content .completed-history-link {
+  min-height: 38px;
+  margin-top: 24px;
+  border-color: #ffffff5c;
+  background: #ffffff16;
+  color: white;
+  padding: 0 15px;
+  font-size: 12px;
+}
+.home-content .completed-history-link:hover { background: #ffffff2c; }
+.home-content .create-button {
+  flex: none;
+  min-height: 50px;
+  border-radius: 999px;
+  background: #d7f690;
+  box-shadow: 0 12px 30px #150b2133;
+  color: #243119;
+  padding-inline: 21px;
+}
+.home-content .create-button:hover { background: #e5ffa9; }
+@media (width<=800px) {
+  .home-content .page-header { align-items: flex-start; flex-direction: column; padding: 34px; }
+}
+@media (width<=640px) {
+  .home-content .page-header { min-height: 0; margin-bottom: 34px; padding: 29px 24px; }
+  .home-content .page-header h1 { font-size: 38px; }
+  .home-content .page-lead { font-size: 13px; }
+  .home-content .create-button { width: 100%; }
+}

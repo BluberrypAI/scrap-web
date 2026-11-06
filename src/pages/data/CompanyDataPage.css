@@ -7,7 +7,11 @@
 
 .data-page .data-heading h1 {
   margin-bottom: 7px;
+  font-size: clamp(32px, 4vw, 46px);
 }
+
+.data-page .data-heading > div > p { font-size: 10px; font-weight: 700; }
+.data-page .data-heading > div > span { font-size: 14px; }
 
 .data-layout {
   display: grid;
@@ -145,6 +149,67 @@
   border-radius: 14px;
 }
 
+.workplace-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workplace-edit-button {
+  min-height: 34px;
+  border: 1px solid #d8cbe9;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-primary-deep);
+  cursor: pointer;
+  padding: 0 13px;
+  font-size: 11px;
+  font-weight: 650;
+}
+.workplace-edit-button:hover { background: #f4eefb; }
+
+.workplace-edit-form { padding: 24px; }
+.workplace-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.workplace-edit-grid label { display: grid; gap: 8px; }
+.workplace-edit-grid label > span {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+}
+.workplace-edit-grid input {
+  min-width: 0;
+  height: 44px;
+  border: 1px solid #ded5e9;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--color-text-primary);
+  padding: 0 13px;
+  font: inherit;
+  font-size: 13px;
+}
+.workplace-edit-grid input:focus-visible {
+  border-color: var(--color-primary);
+  outline: 2px solid #d8c8ed;
+  outline-offset: 1px;
+}
+.workplace-edit-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 21px;
+}
+.workplace-edit-footer > span {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+.workplace-edit-footer .button { border-radius: 999px; }
+.workplace-save-error { margin: 12px 0 0; color: #a02940; font-size: 11px; }
+
 .data-page .workplace-info-grid article {
   min-height: 122px;
 }
@@ -195,6 +260,7 @@
   .data-page .data-tabs small {
     display: none;
   }
+  .workplace-header-actions { flex-direction: column; align-items: flex-end; }
 }
 
 @media (width<=480px) {
@@ -205,8 +271,13 @@
     width: 44px;
     height: 44px;
   }
-  .data-page .verified-badge {
+  .data-page .workplace-header-actions {
     grid-column: 2;
-    width: fit-content;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
   }
+  .workplace-edit-grid { grid-template-columns: 1fr; }
+  .workplace-edit-footer { align-items: stretch; flex-direction: column; }
 }
