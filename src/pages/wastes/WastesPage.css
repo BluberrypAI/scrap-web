@@ -239,11 +239,6 @@
   line-height: 1.45;
 }
 
-.card-status-line .handoff-card-progress {
-  flex: 1;
-  margin-top: 0;
-}
-
 .home-content .card-footer {
   min-height: 42px;
   padding-inline: 20px;
