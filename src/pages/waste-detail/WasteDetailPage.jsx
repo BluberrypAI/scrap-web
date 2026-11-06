@@ -6,6 +6,7 @@ import {
   loadCase,
 } from '../../features/treatment/treatment-state.js';
 import { currentRoute } from '../../lib/router.js';
+import { hasConfirmedCode } from '../../data/wastes.js';
 import { DetailOverlay } from './DetailOverlay.jsx';
 import { DetailPanel } from './DetailPanel.jsx';
 import { NextActionCard } from './NextActionCard.jsx';
@@ -76,9 +77,9 @@ export function WasteDetailPage({ waste }) {
           <div className="detail-code">
             <strong>
               {'분류번호 '}
-              {waste.code}
+              {hasConfirmedCode(waste) ? waste.code : '미정'}
             </strong>
-            {!routeTreatment && (
+            {hasConfirmedCode(waste) && !routeTreatment && (
               <button type="button" onClick={() => o('legal')}>
                 근거 조문 보기
               </button>

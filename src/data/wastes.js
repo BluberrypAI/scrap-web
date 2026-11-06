@@ -78,7 +78,7 @@ export const wastes = restoreCases([
 export const statusMessages = {
   '문진 중': '문진 5/8 · 수분 함량 질문에서 멈췄어요',
   후보: '분류 후보 중 하나를 확정해 주세요',
-  확정: '분류 확정 · 처리 경로를 선택해 주세요',
+  확정: '처리 경로를 선택해 주세요',
   '분석 대기': '분석 결과 입력을 기다리고 있어요',
   '처리 진행': '처리업체에서 처리 중이에요',
   완료: '처리가 완료됐어요',
@@ -113,6 +113,10 @@ export const analysisFields = [
 ];
 
 export const progressSteps = ['폐기물 등록', '분류 확정', '업체 선정', '처리 진행', '완료'];
+
+export function hasConfirmedCode(waste) {
+  return ['확정', '처리 진행', '완료'].includes(waste.status);
+}
 
 export function stageIndex(e) {
   return {

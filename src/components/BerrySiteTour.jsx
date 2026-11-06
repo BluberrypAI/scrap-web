@@ -27,8 +27,8 @@ const steps = [
   },
   {
     path: '/data',
-    title: '계정 설정',
-    description: '사업장 정보와 분석 결과 기록, 처리 이력을 확인할 수 있어요.',
+    title: '기업 데이터 관리',
+    description: '사업장 정보를 확인하고, 분석 결과와 처리 이력을 볼 수 있어요.',
   },
 ];
 

@@ -13,7 +13,7 @@ export function DataTable({ type }) {
     <section className="data-table-panel">
       <header>
         <div>
-          <h2>{t ? '분석 결과 기록' : '처리 이력'}</h2>
+          <h2>{t ? '분석 결과' : '처리 이력'}</h2>
           <p>
             {t ? '최근 등록된 성상 분석 결과입니다.' : '처리가 완료된 폐기물과 처리 보고서입니다.'}
           </p>

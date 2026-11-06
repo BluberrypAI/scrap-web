@@ -5133,6 +5133,7 @@
 .landing-partner-window {
   overflow: hidden;
   mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
 }
 .landing-partner-track,
 .landing-partner-group {
@@ -5140,7 +5141,9 @@
   display: flex;
 }
 .landing-partner-group {
-  flex: 0 0 auto;
+  flex: 0 0 1460px;
+  width: 1460px;
+  min-width: 1460px;
 }
 .landing-partner-track {
   animation: landing-logo-loop 42s linear infinite;
@@ -5157,6 +5160,7 @@
   .landing-partner-window {
     overflow-x: auto;
     mask-image: none;
+    -webkit-mask-image: none;
   }
   .landing-partner-track {
     animation: none;
@@ -5166,16 +5170,22 @@
   }
 }
 .landing-partner-logo {
-  flex: 0 0 260px;
-  min-width: 0;
+  box-sizing: border-box;
+  flex: 0 0 280px;
+  width: 280px;
+  min-width: 280px;
   height: 24px;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   gap: 8px;
+  overflow: hidden;
+  padding: 0 26px;
   display: flex;
 }
 .landing-partner-kosa {
   flex-basis: 340px;
+  width: 340px;
+  min-width: 340px;
 }
 .landing-partner-emblem {
   display: block;
@@ -5192,6 +5202,9 @@
   object-position: left center;
 }
 .landing-partner-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: #4e4a57;
   font-size: 11px;
   font-weight: 600;

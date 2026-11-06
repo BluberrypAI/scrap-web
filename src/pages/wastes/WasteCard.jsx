@@ -1,9 +1,8 @@
 import { Icon } from '../../components/Icon.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
-import { progressSteps, stageIndex, statusMessages } from '../../data/wastes.js';
+import { hasConfirmedCode, statusMessages } from '../../data/wastes.js';
 
 export function WasteCard({ waste }) {
-  let t = stageIndex(waste.status);
   return (
     <a className="waste-card" href={`/wastes/${waste.id}`}>
       <div className="card-topline">
@@ -14,18 +13,11 @@ export function WasteCard({ waste }) {
         <h3>{waste.name}</h3>
         <p>
           {'분류번호 '}
-          {waste.code}
+          {hasConfirmedCode(waste) ? waste.code : '미정'}
         </p>
       </div>
-      <div className="card-progress" aria-label={`진행 단계 ${t + 1}/${progressSteps.length}`}>
-        <ol>
-          {progressSteps.map((e, n) => (
-            <li className={n < t ? 'is-done' : n === t ? 'is-current' : ''} key={e}>
-              <span />
-              <small>{e}</small>
-            </li>
-          ))}
-        </ol>
+      <div className="card-status-line">
+        <span aria-hidden="true" />
         <p>{statusMessages[waste.status]}</p>
       </div>
       <footer className="card-footer">

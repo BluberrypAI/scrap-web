@@ -52,8 +52,8 @@ export function AppTopNav({ path }) {
                 <span>사업장 관리자</span>
               </div>
               <a href="/data?tab=workplace">
-                <Icon name="settings" size={17} />
-                계정 설정
+                <Icon name="building" size={17} />
+                기업 데이터 관리
               </a>
               <a href="/">
                 <Icon name="logout" size={17} />
