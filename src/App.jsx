@@ -12,8 +12,10 @@ const { Page: TrackingPage } = createWasteTracking(React);
 
 export function App() {
   let e = currentRoute().path.replace(/\/+$/, '') || '/';
-  const page = e.startsWith('/track/') ? (
-    <TrackingPage wasteId={decodeURIComponent(e.slice('/track/'.length))} />
+  const tracking = e.match(/^\/track\/([^/]+)(?:\/([^/]+))?$/);
+  const page = tracking ? (
+    <TrackingPage wasteId={decodeURIComponent(tracking[1])}
+      legId={tracking[2] ? decodeURIComponent(tracking[2]) : null} />
   ) : e === '/about' ? (
     <AboutPage />
   ) : e === '/login' ? (

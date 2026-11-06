@@ -1,10 +1,12 @@
 import { Icon } from '../../components/Icon.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
 import { progressSteps, stageIndex, statusMessages } from '../../data/wastes.js';
+import { scrapTreatment } from '../../features/treatment/index.js';
 
 export function WasteCard({ waste }) {
   let t = stageIndex(waste.status);
   return (
+    <article className="waste-card-entry">
     <a className="waste-card" href={`/wastes/${waste.id}`}>
       <div className="card-topline">
         <span className="waste-category">{waste.category}</span>
@@ -26,7 +28,7 @@ export function WasteCard({ waste }) {
             </li>
           ))}
         </ol>
-        <p>{statusMessages[waste.status]}</p>
+        <scrapTreatment.LotProgress id={waste.id} fallback={statusMessages[waste.status]} />
       </div>
       <footer className="card-footer">
         <span>마지막 업데이트</span>
@@ -34,5 +36,8 @@ export function WasteCard({ waste }) {
         <Icon name="arrow" size={17} />
       </footer>
     </a>
+    <a className="waste-card-transport" href={`/wastes/${waste.id}?tab=transport`}
+      aria-label={`${waste.name} 운송 탭`}>운송 · QR <Icon name="arrow" size={15} /></a>
+    </article>
   );
 }
