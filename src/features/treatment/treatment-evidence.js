@@ -91,8 +91,7 @@ export function auditStep(step, previous) {
   const handover = latestEvidence(step, 'handover');
   const receipt = latestEvidence(step, 'receipt');
   const processing = latestEvidence(step, 'processing');
-  const required = step.internal ? evidenceStages.filter(([key]) => key === 'processing') : evidenceStages;
-  const missing = required.filter(([key]) => !latestEvidence(step, key)).map(([, label]) => label);
+  const missing = evidenceStages.filter(([key]) => !latestEvidence(step, key)).map(([, label]) => label);
   const differences = [];
   const priorOutput = previous && latestEvidence(previous, 'processing');
 
@@ -130,13 +129,6 @@ export function reportFor(value) {
     inputForm: value.input.input_form,
     originLabel: value.input.originLabel ?? null,
     trackingClosed: value.finished,
-    steps: steps.map(({ handoff, ...step }, i) => ({
-      ...step,
-      ...(handoff && { handoff: {
-        status: handoff.status, respondedAt: handoff.respondedAt ?? null,
-        ...(handoff.actor && { actor: handoff.actor }),
-      } }),
-      audit: auditStep(step, steps[i - 1]),
-    })),
+    steps: steps.map((step, i) => ({ ...step, audit: auditStep(step, steps[i - 1]) })),
   };
 }

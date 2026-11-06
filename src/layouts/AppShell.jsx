@@ -10,7 +10,6 @@ import { SurveyPage } from '../pages/survey/SurveyPage.jsx';
 import { WasteDetailPage } from '../pages/waste-detail/WasteDetailPage.jsx';
 import { WasteTrackingPage } from '../pages/waste-detail/WasteTrackingPage.jsx';
 import { WastesPage } from '../pages/wastes/WastesPage.jsx';
-import { TransportInbox } from '../pages/wastes/TransportInbox.jsx';
 import { TaskPlaceholder } from '../pages/workspace/TaskPlaceholder.jsx';
 
 export function AppShell({ path }) {
@@ -45,9 +44,7 @@ export function AppShell({ path }) {
   ) : (
     <div className="app-route-shell" data-theme="light">
       <AppTopNav path={path} />
-      {path === '/wastes/inbox' ? (
-        <TransportInbox />
-      ) : trackingWaste ? (
+      {trackingWaste ? (
         <WasteTrackingPage waste={trackingWaste} />
       ) : i || (r?.[2] === 'match' && a) ? (
         <WasteDetailPage waste={i || a} />

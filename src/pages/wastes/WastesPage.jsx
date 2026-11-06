@@ -33,7 +33,6 @@ function WasteList({ variant, onOpenAnalysis, onCreate }) {
         <div>
           <p>RECYCLING ROUTE</p>
           <h1>내 폐기물</h1>
-          <a href="/wastes/inbox">공유 인계함</a>
           {variant === 'list' && (
             <span>
               {'진행 중 '}
