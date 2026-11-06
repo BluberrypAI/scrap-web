@@ -1,0 +1,57 @@
+.waste-detail.is-route-map { padding-top: 12px; }
+.waste-detail.is-route-map .detail-header { min-height: 0; padding: 14px 2px 11px; }
+.waste-detail.is-route-map .detail-tabs { margin: 12px 0 14px; }
+.route-map-panel { overflow: hidden; border: 1px solid #e7e1ef; border-radius: 18px; background: #fff; }
+.route-map-world { position: relative; isolation: isolate; height: clamp(350px, 37vw, 540px); background: #79b8f0; }
+.route-map-canvas { position: absolute; inset: 0; z-index: -1; }
+.route-map-canvas canvas { display: block; width: 100%; height: 100%; }
+.route-status-panel {
+  position: relative; padding: 23px clamp(18px, 2.5vw, 30px);
+  border-bottom: 1px solid #ede8f2; background: #fff;
+}
+.route-status-panel::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(360px circle at var(--spot-x, 50%) var(--spot-y, 50%), #c6b0ee1b, transparent 75%);
+  transition: opacity .22s;
+}
+.route-status-panel:hover::before { opacity: 1; }
+.route-status-route { position: relative; }
+.route-status-route { display: grid; gap: 14px; }
+.route-status-label { color: #827887; font-size: 12px; font-weight: 400; }
+.route-status-journey { display: flex; align-items: stretch; overflow-x: auto; padding-bottom: 4px; }
+.route-journey-item { display: flex; align-items: center; flex: 1; min-width: 0; }
+.route-journey-arrow { flex: none; width: 26px; text-align: center; color: #a28cbe; font-size: 16px; }
+.route-journey-step {
+  display: flex; flex: 1; flex-direction: column; align-items: flex-start; gap: 4px;
+  min-width: 0; padding: 10px 13px;
+  border: 1px solid #e9e3ef; border-radius: 12px; background: #fff;
+  color: #352e3e;
+}
+.route-journey-step strong { font-size: 13px; font-weight: 400; }
+.route-journey-step > span { color: #696172; font-size: 11px; line-height: 1.35; }
+.route-journey-step[data-state='active'] {
+  border-color: #6538ac; background: #6538ac; color: #fff;
+  box-shadow: 0 8px 20px #6538ac3d;
+}
+.route-journey-step[data-state='active'] > span { color: #f1eaff; }
+.route-journey-step[data-state='done'] { border-color: #d9c9ea; }
+.route-status-description {
+  display: flex; align-items: center; gap: 11px;
+  margin: 2px 0 0; border-radius: 10px; background: #f5f0fb;
+  color: #4f3979; padding: 13px 16px; font-size: 14px; font-weight: 400; line-height: 1.6;
+}
+.route-status-description::before {
+  content: ''; flex: none; width: 8px; height: 8px;
+  border-radius: 50%; background: #7654b7;
+}
+.route-map-empty { padding: 20px 0; }
+.route-map-empty .route-status-description { margin: 0 clamp(18px, 2.5vw, 28px); }
+@media (max-width: 700px) {
+  .route-map-world { height: 390px; }
+  .route-status-journey > .route-journey-step { flex: 0 0 145px; }
+  .route-journey-item { flex: 0 0 auto; }
+  .route-journey-item .route-journey-step { flex: 0 0 145px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-status-panel::before { display: none; }
+}

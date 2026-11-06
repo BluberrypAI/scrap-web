@@ -40,10 +40,12 @@ export function newCase(id, name, input, time = new Date().toISOString()) {
 export function getTreatmentCase(waste) {
   const saved = loadCase(waste.id);
   if (saved) return saved;
-  if (waste.status !== '확정' || !waste.treatmentInput) return null;
+  if (!waste.treatmentInput || (waste.status !== '확정'
+    && !(waste.status === '처리 진행' && waste.treatmentInput.originType === 'demo'))) return null;
   const { material, input_form } = waste.treatmentInput;
   if (!waste.code || !material || !input_form) return null;
-  return newCase(waste.id, waste.name, { ...waste.treatmentInput, waste_code: waste.code }, waste.classifiedAt ?? null);
+  return newCase(waste.id, waste.name,
+    { ...waste.treatmentInput, waste_code: waste.code }, waste.classifiedAt ?? null);
 }
 
 export function beginStep(value, process, facility) {

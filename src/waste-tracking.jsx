@@ -2,6 +2,7 @@
 /** @jsx h */
 import QRCode from 'qrcode';
 import { wastes } from './data/wastes.js';
+import { fieldCheckEvent, readFieldChecks, saveFieldCheck } from './features/tracking/field-checks.js';
 import './waste-tracking.css';
 
 export function createWasteTracking(React) {
@@ -36,10 +37,23 @@ export function createWasteTracking(React) {
   }
 
   function CompanyPanel({ waste }) {
+    const [checks, setChecks] = useState(() => readFieldChecks(waste.id));
+    useEffect(() => {
+      const refresh = () => setChecks(readFieldChecks(waste.id));
+      window.addEventListener(fieldCheckEvent, refresh);
+      window.addEventListener('storage', refresh);
+      return () => {
+        window.removeEventListener(fieldCheckEvent, refresh);
+        window.removeEventListener('storage', refresh);
+      };
+    }, [waste.id]);
     return <section className="wt-company" aria-label="폐기물 현장 확인 QR">
       <header><div><small>FIELD CHECK</small><h3>QR · 운송 현황</h3></div></header>
       <QR wasteId={waste.id} />
-      <p className="wt-notice">화면 시연용 QR입니다. 현장 확인 내용은 저장되지 않습니다.</p>
+      <div className="wt-checks">
+        <span>운송기사 인수 {checks.driver ? `완료 · ${checks.driver.actor}` : '대기'}</span>
+        <span>처리업체 입고 {checks.recipient ? `완료 · ${checks.recipient.actor}` : '대기'}</span>
+      </div>
     </section>;
   }
 
@@ -48,6 +62,7 @@ export function createWasteTracking(React) {
     const [role, setRole] = useState('driver');
     const [actor, setActor] = useState('');
     const [confirmed, setConfirmed] = useState(null);
+    const [error, setError] = useState('');
     const label = role === 'driver' ? '폐기물 인수 완료' : '업체 입고 확인';
     return <main className="transport-page wt-public">
       <header className="wt-public-header"><strong>SCRAP<span>.</span></strong><span>현장 확인</span></header>
@@ -64,9 +79,18 @@ export function createWasteTracking(React) {
             onChange={(event) => { setActor(event.target.value); setConfirmed(null); }}
             placeholder="이름을 입력해 주세요" autoComplete="name" /></label>
           <button className="button button-primary" type="button" disabled={!actor.trim()}
-            onClick={() => setConfirmed({ role, actor: actor.trim() })}>{label}</button>
+            onClick={() => {
+              try {
+                saveFieldCheck(wasteId, role, actor);
+                setConfirmed({ role, actor: actor.trim() });
+                setError('');
+              } catch {
+                setError('확인 내용을 저장하지 못했어요. 브라우저 저장소를 확인해 주세요.');
+              }
+            }}>{label}</button>
           {confirmed && <p role="status">{confirmed.actor} · {confirmed.role === 'driver' ? '인수' : '입고'} 확인 화면입니다.</p>}
-          <small>화면 시연용입니다. 확인 내용은 저장되지 않습니다.</small>
+          {error && <p role="alert">{error}</p>}
+          <small>확인 기록은 현재 사용 중인 브라우저에 저장됩니다.</small>
         </section>
       </div>
     </main>;

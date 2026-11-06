@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { scrapTreatment } from '../../features/treatment/index.js';
 import {
   displayCase,
   getTreatmentCase,
@@ -12,6 +11,7 @@ import { DetailPanel } from './DetailPanel.jsx';
 import { NextActionCard } from './NextActionCard.jsx';
 import { AnalysisResultModal } from '../wastes/AnalysisResultModal.jsx';
 import { WasteQRShortcut } from './WasteQRShortcut.jsx';
+import { RouteMapPanel } from './RouteMapPanel.jsx';
 
 const detailTabs = [
   {
@@ -32,7 +32,7 @@ export function WasteDetailPage({ waste }) {
     return () => window.removeEventListener('scrap-treatment-change', refresh);
   }, []);
   const savedTreatment = loadCase(waste.id);
-  if (savedTreatment) waste = displayCase(savedTreatment);
+  if (savedTreatment) waste = { ...waste, ...displayCase(savedTreatment) };
   const routeTreatment = savedTreatment || getTreatmentCase(waste);
   let t = new URLSearchParams(currentRoute().search).get('tab'),
     n = {
@@ -61,7 +61,8 @@ export function WasteDetailPage({ waste }) {
       window.history.state?.overlay ? window.history.back() : a(null);
     };
   return (
-    <main className="waste-detail" data-layer-name="L2-WasteDetail" data-variant={waste.status}>
+    <main className="waste-detail is-route-map"
+      data-layer-name="L2-WasteDetail" data-variant={waste.status}>
       <a className="detail-back" href="/wastes">
         <span>←</span>
         {' 내 폐기물'}
@@ -88,9 +89,7 @@ export function WasteDetailPage({ waste }) {
         </div>
         <WasteQRShortcut waste={waste} />
       </header>
-      {routeTreatment && !routeTreatment.pending ? (
-        <scrapTreatment.Summary waste={waste} />
-      ) : !routeTreatment ? (
+      {!routeTreatment ? (
         <NextActionCard waste={waste} onOpenOverlay={o} />
       ) : null}
       <nav
@@ -110,7 +109,7 @@ export function WasteDetailPage({ waste }) {
         ))}
       </nav>
       {r === 'route' ? (
-        <scrapTreatment.Panel waste={waste} />
+        <RouteMapPanel waste={waste} />
       ) : (
         <DetailPanel waste={classificationWaste} tab={r} onOpenLegal={() => o('legal')} />
       )}

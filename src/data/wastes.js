@@ -1,4 +1,5 @@
 import { demoWorkplace, restoreCases } from '../features/treatment/treatment-state.js';
+import { demoRouteStops } from '../features/treatment/treatment-demo.js';
 
 const baseWastes = [
   {
@@ -32,6 +33,22 @@ const baseWastes = [
     status: '처리 진행',
     updatedAt: '2026. 10. 29',
     category: '화학',
+    classifiedAt: '2026-10-29T00:00:00Z',
+    treatmentInput: { material: 'alkali', input_form: 'liquid', ...demoWorkplace.routeOrigin },
+    routePhase: 'processing',
+    routeStopIndex: 1,
+  },
+  {
+    id: 'plastic-film',
+    name: '폐플라스틱 필름',
+    code: '51-03-01',
+    status: '처리 진행',
+    updatedAt: '2026. 11. 07',
+    category: '합성수지',
+    classifiedAt: '2026-11-07T00:00:00Z',
+    treatmentInput: { material: 'PE', input_form: 'film', ...demoWorkplace.routeOrigin },
+    routePhase: 'transporting',
+    routeLegIndex: 0,
   },
   {
     id: 'slag',
@@ -55,7 +72,7 @@ const baseWastes = [
 export const wastes = restoreCases([
   {
     id: 'aluminium-can-sample',
-    name: '사용 후 알루미늄 캔 · 예시',
+    name: '사용 후 알루미늄 캔',
     code: '51-29-03',
     status: '확정',
     updatedAt: '2026. 11. 04',
@@ -67,7 +84,7 @@ export const wastes = restoreCases([
     waste.id === 'synthetic-resin'
       ? {
           ...waste,
-          name: '폐합성수지 · PP 사출 잔재 예시',
+          name: '폐합성수지 · PP 사출 잔재',
           classifiedAt: '2026-11-01T00:00:00Z',
           treatmentInput: { material: 'PP', input_form: 'scrap', ...demoWorkplace.routeOrigin },
         }
@@ -78,11 +95,22 @@ export const wastes = restoreCases([
 export const statusMessages = {
   '문진 중': '문진 5/8 · 수분 함량 질문에서 멈췄어요',
   후보: '분류 후보 중 하나를 확정해 주세요',
-  확정: '처리 경로를 선택해 주세요',
+  확정: '처리 경로를 확인해 주세요',
   '분석 대기': '분석 결과 입력을 기다리고 있어요',
   '처리 진행': '처리업체에서 처리 중이에요',
   완료: '처리가 완료됐어요',
 };
+
+export function wasteStatusMessage(waste) {
+  if (waste.status !== '처리 진행' || !waste.routePhase) return statusMessages[waste.status];
+  const stops = demoRouteStops(waste.treatmentInput?.material);
+  if (waste.routePhase === 'transporting') {
+    const destination = stops[waste.routeLegIndex || 0]?.label || '다음 처리업체';
+    return `${destination}로 운송 중이에요`;
+  }
+  const stop = stops[waste.routeStopIndex || 0];
+  return stop ? `${stop.label}에서 ${stop.process} 중이에요` : statusMessages[waste.status];
+}
 
 export const analysisFields = [
   {
