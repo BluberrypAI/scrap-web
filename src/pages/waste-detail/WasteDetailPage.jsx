@@ -34,6 +34,13 @@ export function WasteDetailPage({ waste }) {
   const savedTreatment = loadCase(waste.id);
   if (savedTreatment) waste = { ...waste, ...displayCase(savedTreatment) };
   const routeTreatment = savedTreatment || getTreatmentCase(waste);
+  const detailStage = ['문진 중', '후보', '분석 대기'].includes(waste.status)
+    ? 'STEP 01 · 분류 확인'
+    : waste.status === '확정'
+      ? 'STEP 02 · 경로 준비'
+      : waste.status === '처리 진행'
+        ? 'STEP 03 · 처리 진행'
+        : '처리 완료';
   let t = new URLSearchParams(currentRoute().search).get('tab'),
     n = {
       분류: 'classification',
@@ -69,12 +76,9 @@ export function WasteDetailPage({ waste }) {
       </a>
       <header className="detail-header">
         <div>
-          <span>
-            {waste.category}
-            {' · 마지막 업데이트 '}
-            {waste.updatedAt}
-          </span>
+          <span className="detail-stage">{detailStage}</span>
           <h1>{waste.name}</h1>
+          <p className="detail-meta">{waste.category} · 마지막 업데이트 {waste.updatedAt}</p>
           <div className="detail-code">
             <strong>
               {'분류번호 '}

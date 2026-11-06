@@ -2693,12 +2693,23 @@
   color: var(--color-text-secondary);
   font-size: 10px;
 }
+.detail-header > div > .detail-stage {
+  color: var(--color-primary);
+  font-family: var(--font-latin);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
 .detail-header h1 {
   color: var(--color-text-primary);
   letter-spacing: -0.04em;
   margin: 7px 0 9px;
   font-size: 34px;
   font-weight: 650;
+}
+.detail-meta {
+  margin: -3px 0 9px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
 }
 .detail-qr-shortcut { flex: none; display: grid; place-items: center; width: 68px; height: 68px; padding: 5px;
   border: 1px solid #d8cbed; border-radius: 14px; background: #fff; box-shadow: 0 5px 14px #7053b714; }
@@ -5865,6 +5876,25 @@
   padding: 40px 32px 72px;
   display: grid;
 }
+.sv-result-title > span {
+  color: var(--color-primary);
+  font-family: var(--font-latin);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+.sv-result-title h1 {
+  margin: 7px 0 5px;
+  color: var(--color-text-primary);
+  font-size: 30px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+.sv-result-title p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
 .sv-result-head {
   background: var(--color-surface-dark);
   color: #fff;
@@ -5890,7 +5920,8 @@
   margin: 0;
   font-size: 12px;
 }
-.sv-result-head h1 {
+.sv-result-code {
+  display: block;
   letter-spacing: -0.01em;
   margin: 2px 0 4px;
   font-family:
@@ -6027,9 +6058,25 @@
   line-height: 1.6;
 }
 .sv-result-actions {
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   display: flex;
+}
+.sv-result-actions > .treatment-confirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+.sv-result-actions > .treatment-confirm p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
 }
 @media (width<=820px) {
   .sv-shell {
@@ -6049,6 +6096,21 @@
   }
   .sv-result {
     padding: 24px 16px 48px;
+  }
+}
+@media (width<=620px) {
+  .sv-result-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+  .sv-result-actions > .button,
+  .sv-result-actions > .treatment-confirm,
+  .sv-result-actions > .treatment-confirm .button {
+    width: 100%;
+  }
+  .sv-result-actions > .treatment-confirm {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 .sv-wait {

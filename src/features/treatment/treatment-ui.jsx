@@ -84,11 +84,14 @@ export function createTreatmentUI(React) {
         if (!loadCase(id)) {
           const { material, input_form } = input;
           const formLabel = forms[material].find(([key]) => key === input_form)[1];
-          storeCase(newCase(id, `폐${materialLabels[material]} · ${formLabel}`, {
+          const caseName = material === 'aluminium'
+            ? formLabel
+            : `폐합성수지 · ${materialLabels[material]} ${formLabel}`;
+          storeCase(newCase(id, caseName, {
             ...input, waste_code: '51-03-01', ...demoWorkplace.routeOrigin,
           }));
         }
-        navigate(`/wastes/${id}?tab=route`);
+        navigate(`/wastes?created=${encodeURIComponent(id)}`);
       } catch {
         setError('브라우저에 저장하지 못했어요. 저장소 설정을 확인해 주세요.');
       }
@@ -96,7 +99,7 @@ export function createTreatmentUI(React) {
     return <div className="treatment-confirm">
       <p>{materialLabels[input.material]} · {forms[input.material].find(([key]) => key === input.input_form)[1]}</p>
       {error && <p role="alert">{error}</p>}
-      <button className="button button-primary" type="button" onClick={save}>저장하고 처리경로 열기</button>
+      <button className="button button-primary" type="button" onClick={save}>저장하고 진행 카드 보기</button>
     </div>;
   }
 

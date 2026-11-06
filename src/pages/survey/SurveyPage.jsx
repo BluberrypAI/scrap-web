@@ -299,13 +299,18 @@ export function SurveyPage({ waste }) {
       )}
       {s === 'result' && (
         <main className="sv-result">
+          <div className="sv-result-title">
+            <span>STEP 01 · 분류 확인 완료</span>
+            <h1>폐기물 분류가 확정됐어요</h1>
+            <p>결과를 저장하면 내 폐기물에 Step 02 진행 카드가 생성됩니다.</p>
+          </div>
           <header className="sv-result-head">
             <div className="sv-badges">
               <span>사업장일반폐기물</span>
               <span>배출시설 운영 사업장</span>
             </div>
             <p className="sv-result-label">분류번호</p>
-            <h1>51-03-01</h1>
+            <strong className="sv-result-code">51-03-01</strong>
             <p className="sv-result-name">폐합성수지류 (폐염화비닐수지류는 제외한다)</p>
             <AgentNote
               mode="lookup"
