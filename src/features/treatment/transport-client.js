@@ -108,7 +108,8 @@ export function useServerTransport(wasteId, pending) {
         const { status, value } = await transportRequest(legId, registered ? {
           signal: controller.signal,
         } : { method: 'PUT', signal: controller.signal, data: { lot: wasteId, origin, destination,
-          ...(first && { destination_key: pending.facility_key,
+          destination_key: pending.facility_key,
+          ...(first && {
             case_update: { revision: 0, snapshot: sharedSnapshot(snapshot) } }),
         } });
         if (controller.signal.aborted) return;

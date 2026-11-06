@@ -220,19 +220,6 @@ export function createTreatmentUI(React) {
     </details>;
   }
 
-  function RegistryPlan({ entry, onPlan }) {
-    const [latitude, longitude] = entry.coordinates || [];
-    return <FacilityReviewForm onConfirm={(reference) => onPlan({
-      capability_key: entry.listing_id, label: entry.name, address: entry.address,
-      location: Number.isFinite(latitude) && Number.isFinite(longitude) ? { latitude, longitude } : null,
-      straight_line_distance_km: entry.straight_line_distance_km,
-      source: {
-        kind: 'registry', sourceUrl: entry.source_url, asOf: entry.as_of,
-        reviewReference: reference, reviewBasis: 'operator-confirmed',
-      },
-    })} />;
-  }
-
   function IntakeAgent({ input, capabilityKey }) {
     const [result, setResult] = useState(null);
     const [busy, setBusy] = useState(false);
@@ -265,7 +252,7 @@ export function createTreatmentUI(React) {
       {result && <div role="status">
         {result.status === 'reviewed' ? <>
           <p>{result.finding === 'restriction_mentioned' ? '반입 제한 관련 단서' : '반입 형태 관련 단서'}</p>
-          <p>등록 자료 발췌 · {result.quote}</p>
+          <p>공개 자료 요약 중 발췌 · {result.quote}</p>
           {result.source && <SourceLinks sources={[result.source]} />}
         </> : <p>{labels[result.status]}</p>}
         {result.next_check && <p>{result.next_check}</p>}
@@ -275,7 +262,10 @@ export function createTreatmentUI(React) {
 
   function FacilityCard({ facility, firstHandoff, input, lastStep, facilityCount, onPlan }) {
     const direct = facility.evidence_basis === 'published_site_process';
-    const review = firstHandoff ? facility.intake_review : null;
+    const review = facility.intake_review;
+    const verification = facility.handoff_verification;
+    const internal = sameFacility(lastStep, facility);
+    const simulation = verification?.simulation_available;
     const evidenceText = {
       site_example: '같은 반입 형태의 공개 사례 있음',
       form_not_documented: '이 형태의 반입 근거 확인 필요',
@@ -297,18 +287,25 @@ export function createTreatmentUI(React) {
             publisher: '공개 위치', url: facility.location_source_url, locator: '거리 산정 좌표',
           }]} />}
         </details>
-        {review && <IntakeAgent input={input} capabilityKey={facility.capability_key} />}
+        {review?.input_form && <IntakeAgent input={{ ...input, input_form: review.input_form }}
+          capabilityKey={facility.capability_key} />}
+        {!internal && <div className="treatment-intake-check" aria-label="인계 근거 확인">
+          <p><strong>실제 인계 보류</strong> · 현행 허가, 상세 반입 규격, 이번 로트 인수 미확인</p>
+          <p>공정 {verification?.process === 'public_evidence' ? '공개 근거 있음' : '미확인'}
+            {' · '}반입 형태 {verification?.intake_form === 'public_example' ? '공개 사례 있음' : '미확인'}</p>
+          {simulation && <small>아래 선택은 대회 시연 계정에만 적용돼요.</small>}
+        </div>}
       </div>
-      {firstHandoff && !direct ? <FacilityReviewForm onConfirm={(reference) => onPlan({
+      {(internal || simulation) && (firstHandoff && !direct ? <FacilityReviewForm onConfirm={(reference) => onPlan({
         ...facility, source: { kind: 'kg', references: facility.sources,
           reviewReference: reference, reviewBasis: 'operator-confirmed' },
       })} /> : <button className="button button-primary" type="button" onClick={() => onPlan(facility)}>
-        {sameFacility(lastStep, facility) ? '사업장 내부 공정 이어가기' : '다음 인계 업체로 선택'}
-      </button>}
+        {internal ? '사업장 내부 공정 이어가기' : '다음 인계 업체로 선택'}
+      </button>)}
     </div>;
   }
 
-  function RegistrySearch({ value, wasteCode: classifiedCode, transition, onPlan }) {
+  function RegistrySearch({ value, wasteCode: classifiedCode, transition }) {
     const wasteCode = classifiedCode ?? (value?.completed.length ? null : value?.input.waste_code);
     const [region, setRegion] = useState('');
     const [query, setQuery] = useState(() => wasteCode ? { region: '', cursor: null } : null);
@@ -389,7 +386,7 @@ export function createTreatmentUI(React) {
             <small>{entry.straight_line_distance_km == null ? '거리 미확인'
               : `명부 좌표 직선 ${entry.straight_line_distance_km} km`} · 공정 근거 미확인</small>
             {entry.equipment_mentions?.length > 0 && <p>명부 설비 표기 · {entry.equipment_mentions.join(' · ')}</p>}
-            {onPlan && <RegistryPlan entry={{ ...entry, listing_id }} onPlan={onPlan} />}
+            <p>현행 허가·반입 규격·이번 로트 인수 미확인 · 인계 보류</p>
           </li>)}</ul>
           {result.pagination.has_more && <button className="button button-quiet" type="button" disabled={loading}
             onClick={() => setQuery({ region: query.region, cursor: result.pagination.next_cursor })}>
@@ -531,7 +528,7 @@ export function createTreatmentUI(React) {
     return <section className="detail-panel treatment-panel" id="treatment-route">
       <header>
         <div><p>CIRCULAR ROUTE</p><h2>처리경로</h2></div>
-        <span>{value ? trackingLabel : waste.status}</span>
+        <span>{value?.sharedCaseId ? `대회 시연 · ${trackingLabel}` : value ? trackingLabel : waste.status}</span>
       </header>
       <Scene active={current} done={Boolean(finished)} pins={pins}
         routeLength={showCandidates ? 0 : pins.length}
@@ -662,10 +659,7 @@ export function createTreatmentUI(React) {
                     outputStates: lookup.output_states, previews: lookup.process_previews,
                   }))} />)}
                 </section>)}
-              <RegistrySearch value={value} transition={process.transition_key}
-                onPlan={(facility) => update((previous) => beginStep(previous, process, facility, {
-                  outputStates: lookup.output_states, previews: lookup.process_previews,
-                }))} />
+              <RegistrySearch value={value} transition={process.transition_key} />
             </article>)}
             {lookup.options.length > 0 && <small className="treatment-note">허가, 인수 여부와 수용량은 업체 확인이 필요합니다. 이 화면은 연락이나 배차를 실행하지 않습니다.</small>}
           </div>}
