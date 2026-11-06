@@ -114,6 +114,10 @@ export const analysisFields = [
 
 export const progressSteps = ['폐기물 등록', '분류 확정', '업체 선정', '처리 진행', '완료'];
 
+export function hasConfirmedCode(waste) {
+  return ['확정', '처리 진행', '완료'].includes(waste.status);
+}
+
 export function stageIndex(e) {
   return {
     '문진 중': 0,

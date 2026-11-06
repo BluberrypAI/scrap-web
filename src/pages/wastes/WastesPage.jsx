@@ -1,41 +1,86 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
 import { wastes } from '../../data/wastes.js';
 import { currentRoute, navigate } from '../../lib/router.js';
-import { AnalysisResultModal } from './AnalysisResultModal.jsx';
+import './WastesPage.css';
 import { EmptyState } from './EmptyState.jsx';
 import { WasteCard } from './WasteCard.jsx';
 
-function WasteList({ variant, onOpenAnalysis, onCreate }) {
-  let r = wastes.filter((e) => e.status !== '완료'),
-    a = variant === 'list' && wastes.some((e) => e.status === '분석 대기');
+const stages = [
+  {
+    id: 'classification',
+    number: '01',
+    label: '분류 확인',
+    description: '문진과 분석을 거쳐 폐기물의 분류를 확인해요.',
+    statuses: ['문진 중', '후보', '분석 대기'],
+  },
+  {
+    id: 'route',
+    number: '02',
+    label: '경로 준비',
+    description: '분류가 확정된 폐기물의 처리경로를 살펴봐요.',
+    statuses: ['확정'],
+  },
+  {
+    id: 'treatment',
+    number: '03',
+    label: '처리 진행',
+    description: '인계된 폐기물의 현재 처리 상태를 확인해요.',
+    statuses: ['처리 진행'],
+  },
+];
+
+function WasteList({ variant, onCreate }) {
+  const [activeStage, setActiveStage] = useState(stages[0].id);
+  const ongoing = wastes.filter((waste) => waste.status !== '완료');
+  useEffect(() => {
+    if (variant !== 'list') return undefined;
+    let frame;
+    const updateCurrentStage = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const marker = window.innerWidth <= 720 ? 185 : 155;
+        let current = stages[0].id;
+        for (const stage of stages) {
+          if (document.getElementById(`waste-stage-${stage.id}`)?.getBoundingClientRect().top <= marker) {
+            current = stage.id;
+          }
+        }
+        if (document.documentElement.scrollHeight > window.innerHeight + 50 &&
+            window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 8) {
+          current = stages[stages.length - 1].id;
+        }
+        setActiveStage(current);
+      });
+    };
+    updateCurrentStage();
+    window.addEventListener('scroll', updateCurrentStage, { passive: true });
+    window.addEventListener('resize', updateCurrentStage);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', updateCurrentStage);
+      window.removeEventListener('resize', updateCurrentStage);
+    };
+  }, [variant]);
+
+  const jumpToStage = (id) => {
+    setActiveStage(id);
+    document.getElementById(`waste-stage-${id}`)?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  };
+
   return (
     <div className="home-content" data-layer-name="L1-Home" data-variant={variant}>
-      {a && (
-        <section className="continue-banner">
-          <div className="continue-message">
-            <span className="lime-status" />
-            <div>
-              <span>이어서 하기</span>
-              <p>
-                <strong>폐유</strong>
-                {' 분석결과 입력을 대기중입니다.'}
-              </p>
-            </div>
-          </div>
-          <a className="button banner-button" href="/wastes/waste-oil">
-            이어서 진행
-            <Icon name="arrow" size={17} />
-          </a>
-        </section>
-      )}
       <header className="page-header">
         <div>
           <p>RECYCLING ROUTE</p>
           <div className="page-title-row">
             <h1>내 폐기물</h1>
-            {variant === 'list' && <span>진행 중 {r.length}개</span>}
+            {variant === 'list' && <span>진행 중 {ongoing.length}개</span>}
           </div>
+          <span className="page-lead">단계별로 현재 상태를 확인해 보세요.</span>
           <a className="completed-history-link" href="/data?tab=history">
             처리 완료 이력 보기
             <Icon name="arrow" size={15} />
@@ -46,80 +91,69 @@ function WasteList({ variant, onOpenAnalysis, onCreate }) {
         </button>
       </header>
       {variant === 'list' ? (
-        <section className="waste-grid" aria-label="폐기물 목록">
-          {r.map((e) => (
-            <WasteCard waste={e} key={e.id} />
-          ))}
-        </section>
+        <>
+          <div className="waste-stage-heading">
+            <span>PROCESS OVERVIEW</span>
+            <h2>진행 단계</h2>
+          </div>
+          <nav className="waste-stage-tabs" aria-label="폐기물 진행 단계로 이동">
+            {stages.map((stage) => {
+              const count = ongoing.filter((waste) => stage.statuses.includes(waste.status)).length;
+              return (
+                <button
+                  key={stage.id}
+                  type="button"
+                  aria-current={activeStage === stage.id ? 'location' : undefined}
+                  className={activeStage === stage.id ? 'is-active' : ''}
+                  onClick={() => jumpToStage(stage.id)}
+                >
+                  <span className="waste-stage-number">{stage.number}</span>
+                  <span className="waste-stage-caption">
+                    <span className="waste-stage-name">{stage.label}</span>
+                    <span className="waste-stage-count">{count}건</span>
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+          <div className="waste-stage-content">
+            {stages.map((stage) => {
+              const stageWastes = ongoing.filter((waste) => stage.statuses.includes(waste.status));
+              return (
+                <section
+                  className="waste-stage-section"
+                  id={`waste-stage-${stage.id}`}
+                  key={stage.id}
+                  aria-labelledby={`waste-stage-heading-${stage.id}`}
+                >
+                  <div className="waste-stage-panel-heading">
+                    <div>
+                      <span>STEP {stage.number}</span>
+                      <h2 id={`waste-stage-heading-${stage.id}`}>{stage.label}</h2>
+                      <p>{stage.description}</p>
+                    </div>
+                    <strong>{stageWastes.length}건</strong>
+                  </div>
+                  {stageWastes.length ? (
+                    <div className="waste-grid" aria-label={`${stage.label} 폐기물 목록`}>
+                      {stageWastes.map((waste) => <WasteCard waste={waste} key={waste.id} />)}
+                    </div>
+                  ) : (
+                    <p className="waste-stage-empty">이 단계에 있는 폐기물이 없어요.</p>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </>
       ) : (
         <EmptyState onCreate={onCreate} />
       )}
     </div>
   );
 }
+
 export function WastesPage() {
-  let [e, t] = useState(false),
-    [n, r] = useState(false),
-    i = useMemo(
-      () =>
-        new URLSearchParams(currentRoute().search).get('variant') === 'empty' ? 'empty' : 'list',
-      [],
-    );
-  return (
-    useEffect(() => {
-      let e = () => t(false);
-      return (
-        window.addEventListener('popstate', e),
-        () => window.removeEventListener('popstate', e)
-      );
-    }, []),
-    useEffect(() => {
-      if (!e) return;
-      let t = (e) => {
-        e.key === 'Escape' && window.history.back();
-      };
-      return (
-        window.addEventListener('keydown', t),
-        () => window.removeEventListener('keydown', t)
-      );
-    }, [e]),
-    (
-      <>
-        <WasteList
-          variant={i}
-          onOpenAnalysis={() => {
-            (window.history.pushState(
-              {
-                overlay: 'analysis-result',
-              },
-              '',
-            ),
-              t(true));
-          }}
-          onCreate={() => {
-            navigate(`/wastes/lot-${crypto.randomUUID()}/survey`);
-          }}
-        />
-        {e && (
-          <AnalysisResultModal
-            waste={wastes[1]}
-            onClose={() => {
-              window.history.state?.overlay === 'analysis-result'
-                ? window.history.back()
-                : t(false);
-            }}
-          />
-        )}
-        {n && (
-          <div className="toast" role="status">
-            <Icon name="spark" size={18} />
-            <span>새 폐기물 문진 화면으로 연결됩니다.</span>
-            <button type="button" onClick={() => r(false)} aria-label="알림 닫기">
-              <Icon name="close" size={16} />
-            </button>
-          </div>
-        )}
-      </>
-    )
-  );
+  const variant = new URLSearchParams(currentRoute().search).get('variant') === 'empty' ? 'empty' : 'list';
+  return <WasteList variant={variant} onCreate={() => navigate(`/wastes/lot-${crypto.randomUUID()}/survey`)} />;
 }

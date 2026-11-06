@@ -1,14 +1,17 @@
 import { Icon } from '../../components/Icon.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
-import { progressSteps, stageIndex } from '../../data/wastes.js';
+import { hasConfirmedCode, progressSteps, stageIndex } from '../../data/wastes.js';
 
 export function DetailPanel({ waste, tab, onOpenLegal }) {
   if (tab === 'classification') {
+    const confirmed = hasConfirmedCode(waste);
     let t =
       waste.status === '문진 중'
         ? '문진 완료 후 산출'
         : waste.status === '후보'
           ? '최고 후보 74%'
+          : waste.status === '분석 대기'
+            ? '분석 결과 대기'
           : '확정 신뢰도 96%';
     return (
       <section className="detail-panel classification-panel">
@@ -22,8 +25,8 @@ export function DetailPanel({ waste, tab, onOpenLegal }) {
         <div className="classification-grid">
           <article>
             <span>분류번호</span>
-            <strong>{waste.status === '문진 중' ? '분류 중' : waste.code}</strong>
-            {waste.status !== '문진 중' && (
+            <strong>{confirmed ? waste.code : '미정'}</strong>
+            {confirmed && (
               <button type="button" onClick={onOpenLegal}>
                 근거 조문 보기
               </button>
@@ -41,11 +44,9 @@ export function DetailPanel({ waste, tab, onOpenLegal }) {
           </article>
           <article>
             <span>권장 R유형</span>
-            <strong>{waste.status === '완료' ? 'R1' : 'R3'}</strong>
+            <strong>{confirmed ? (waste.status === '완료' ? 'R1' : 'R3') : '검토 중'}</strong>
             <small>재생·회수 우선 검토</small>
-            <button type="button" onClick={onOpenLegal}>
-              R코드 근거 보기
-            </button>
+            {confirmed && <button type="button" onClick={onOpenLegal}>R코드 근거 보기</button>}
           </article>
         </div>
         <div className="classification-note">

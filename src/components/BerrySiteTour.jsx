@@ -28,7 +28,7 @@ const steps = [
   {
     path: '/data',
     title: '계정 설정',
-    description: '사업장 정보와 분석 결과 기록, 처리 이력을 확인할 수 있어요.',
+    description: '사업장 정보와 분석 결과, 처리 이력을 확인할 수 있어요.',
   },
 ];
 
