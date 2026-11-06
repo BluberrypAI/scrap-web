@@ -80,10 +80,16 @@ function WasteList({ variant, onCreate }) {
             <h1>내 폐기물</h1>
           </div>
           <span className="page-lead">분류부터 처리까지, 폐기물마다 어디까지 진행됐는지 한눈에 확인하세요.</span>
-          <a className="completed-history-link" href="/data?tab=history">
-            처리 완료 이력 보기
-            <Icon name="arrow" size={15} />
-          </a>
+          <div className="page-header-links">
+            <a className="completed-history-link" href="/data?tab=history">
+              처리 완료 이력 보기
+              <Icon name="arrow" size={15} />
+            </a>
+            <a className="completed-history-link" href="/wastes/inbox">
+              공유 인계함
+              <Icon name="arrow" size={15} />
+            </a>
+          </div>
         </div>
         <button className="button button-primary create-button" type="button" onClick={onCreate}>
           <Icon name="plus" size={18} />새 폐기물 문진

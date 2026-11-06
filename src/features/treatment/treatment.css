@@ -30,6 +30,13 @@
 .treatment-status p, .treatment-option-head p, .treatment-confirm p, .treatment-process p { margin: 0; }
 .treatment-status small, .treatment-confirm small, .treatment-note { color: #635a71; }
 .treatment-confirm { margin: 0; max-width: 610px; }
+.treatment-result { width: 100%; }
+.treatment-result h4 { margin: 0; }
+.treatment-result label { display: grid; gap: 4px; width: 100%; font-size: 13px; }
+.treatment-result :is(input, select) { min-width: 0; width: 100%; border: 1px solid #cdc1e8; border-radius: 7px; padding: 7px; background: white; }
+.treatment-preview ul { margin: 0; padding-left: 20px; }
+.treatment-view { margin: 0; color: #635a71; }
+.treatment-view a { color: #5f459f; text-decoration: underline; }
 .sv-page .treatment-confirm { margin: 0 auto 20px; }
 .treatment-fields { display: flex; flex-wrap: wrap; gap: 12px; }
 .treatment-fields label { display: grid; gap: 5px; color: #362b4c; font-weight: 650; }
@@ -50,6 +57,10 @@
 .treatment-process ul { padding-left: 21px; list-style: disc; margin: 7px 0; }
 .treatment-facility { margin-top: 12px; padding: 12px; border-radius: 8px; background: #f7f6fa; }
 .treatment-facility p { color: #5c526e; font-size: 13px; }
+.treatment-facility-group > h5 { margin: 16px 0 0; color: #4d4164; font-size: 13px; }
+.treatment-facility p.treatment-intake-check { margin-top: 6px; }
+.treatment-intake-agent { margin-top: 8px; }
+.treatment-intake-agent [role="status"] { margin-top: 6px; }
 .treatment-source { display: block; text-decoration: underline; color: #5f459f; margin-top: 4px; }
 .treatment-note { display: block; padding-top: 12px; }
 .treatment-registry { border-top: 1px solid #e8e0f3; margin-top: 16px; padding-top: 12px; }
@@ -79,6 +90,12 @@
 .treatment-evidence button:disabled { opacity: .55; cursor: default; }
 .treatment-audit { width: 100%; padding: 10px; border-radius: 7px; background: #edf4ef; color: #28513a; }
 .treatment-audit.has-difference { background: #fff3e2; color: #703c14; }
+.handoff-card-progress { display: grid; gap: 4px; margin-top: 8px; color: #513c86; font-size: 12px; }
+.handoff-card-progress[data-status=accepted] { color: #27603c; }
+.handoff-card-progress[data-status=rejected] { color: #8b4129; }
+.treatment-map-key .handoff-map-receipt.accepted { color: #27603c; font-weight: 700; }
+.treatment-map-key .handoff-map-receipt.rejected { color: #8b4129; font-weight: 700; }
+.handoff-card-progress progress { width: 100%; height: 8px; accent-color: currentColor; }
 .treatment-history ol, .treatment-history ul { margin: 0; padding: 16px 25px; }
 .treatment-history li { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid #ece6f3; }
 .treatment-history small { color: #635a71; }
