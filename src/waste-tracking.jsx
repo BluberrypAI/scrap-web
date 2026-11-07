@@ -2,7 +2,7 @@
 /** @jsx h */
 import QRCode from 'qrcode';
 import { wastes } from './data/wastes.js';
-import { fieldCheckEvent, readFieldChecks, saveFieldCheck } from './features/tracking/field-checks.js';
+import { saveFieldCheck } from './features/tracking/field-checks.js';
 import './waste-tracking.css';
 
 export function createWasteTracking(React) {
@@ -30,30 +30,14 @@ export function createWasteTracking(React) {
           <button className="button button-quiet" type="button" onClick={copy}>링크 복사</button></div>
         <input aria-label="현장 확인 주소" readOnly value={url} onFocus={(event) => event.target.select()} />
         <small role="status">{message}</small>
-        {['localhost', '127.0.0.1', '::1'].includes(location.hostname) &&
-          <p className="wt-notice">휴대폰에서 열려면 같은 Wi-Fi의 PC 주소로 접속해 이 QR을 표시해 주세요.</p>}
       </div>
     </div>;
   }
 
   function CompanyPanel({ waste }) {
-    const [checks, setChecks] = useState(() => readFieldChecks(waste.id));
-    useEffect(() => {
-      const refresh = () => setChecks(readFieldChecks(waste.id));
-      window.addEventListener(fieldCheckEvent, refresh);
-      window.addEventListener('storage', refresh);
-      return () => {
-        window.removeEventListener(fieldCheckEvent, refresh);
-        window.removeEventListener('storage', refresh);
-      };
-    }, [waste.id]);
     return <section className="wt-company" aria-label="폐기물 현장 확인 QR">
       <header><div><small>FIELD CHECK</small><h3>QR · 운송 현황</h3></div></header>
       <QR wasteId={waste.id} />
-      <div className="wt-checks">
-        <span>운송기사 인수 {checks.driver ? `완료 · ${checks.driver.actor}` : '대기'}</span>
-        <span>처리업체 입고 {checks.recipient ? `완료 · ${checks.recipient.actor}` : '대기'}</span>
-      </div>
     </section>;
   }
 

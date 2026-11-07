@@ -10,9 +10,6 @@
 .wt-qr p { margin: 0 0 16px; font-size: 14px; }
 .wt-qr input { width: 100%; margin: 14px 0 5px; padding: 10px; border: 1px solid #d9d1ec; border-radius: 9px; font-size: 12px; }
 .wt-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
-.wt-notice { padding: 12px 14px; border-radius: 12px; background: #f0eafa; color: #655775; font-size: 13px; }
-.wt-checks { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 8px; }
-.wt-checks span { padding: 10px 14px; border-radius: 999px; background: #f2eef9; color: #5b4c76; font-size: 13px; font-weight: 700; }
 .wt-public.transport-page { min-height: 100vh; background: #f7f6f2; color: #282332; }
 .wt-public-header { display: flex; justify-content: space-between; align-items: center; padding: 22px max(20px, calc((100% - 680px) / 2)); background: #fff; }
 .wt-public-header strong { color: #7053b7; font-size: 25px; letter-spacing: -.04em; }
