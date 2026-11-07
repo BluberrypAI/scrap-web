@@ -30,8 +30,10 @@ const stages = [
   },
 ];
 
-function WasteList({ variant, onCreate }) {
-  const [activeStage, setActiveStage] = useState(stages[0].id);
+function WasteList({ variant, onCreate, createdWasteId }) {
+  const createdWaste = wastes.find((waste) => waste.id === createdWasteId);
+  const createdStage = stages.find((stage) => stage.statuses.includes(createdWaste?.status));
+  const [activeStage, setActiveStage] = useState(createdStage?.id || stages[0].id);
   const ongoing = wastes.filter((waste) => waste.status !== '완료');
   useEffect(() => {
     if (variant !== 'list') return undefined;
@@ -39,7 +41,7 @@ function WasteList({ variant, onCreate }) {
     const updateCurrentStage = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
-        const marker = window.innerWidth <= 720 ? 185 : 155;
+        const marker = window.innerHeight / 2;
         let current = stages[0].id;
         for (const stage of stages) {
           if (document.getElementById(`waste-stage-${stage.id}`)?.getBoundingClientRect().top <= marker) {
@@ -62,6 +64,17 @@ function WasteList({ variant, onCreate }) {
       window.removeEventListener('resize', updateCurrentStage);
     };
   }, [variant]);
+
+  useEffect(() => {
+    if (variant !== 'list' || !createdStage) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`waste-stage-${createdStage.id}`)?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [createdStage, variant]);
 
   const jumpToStage = (id) => {
     setActiveStage(id);
@@ -102,6 +115,7 @@ function WasteList({ variant, onCreate }) {
                 <button
                   key={stage.id}
                   type="button"
+                  data-stage={stage.number}
                   aria-current={activeStage === stage.id ? 'location' : undefined}
                   className={activeStage === stage.id ? 'is-active' : ''}
                   onClick={() => jumpToStage(stage.id)}
@@ -121,6 +135,7 @@ function WasteList({ variant, onCreate }) {
               return (
                 <section
                   className="waste-stage-section"
+                  data-stage={stage.number}
                   id={`waste-stage-${stage.id}`}
                   key={stage.id}
                   aria-labelledby={`waste-stage-heading-${stage.id}`}
@@ -133,9 +148,27 @@ function WasteList({ variant, onCreate }) {
                     </div>
                     <strong>{stageWastes.length}건</strong>
                   </div>
+                  {createdStage?.id === stage.id && (
+                    <div className="waste-created-notice" role="status">
+                      <Icon name="check" size={18} />
+                      <div>
+                        <strong>STEP {stage.number} · {stage.label}</strong>
+                        <p>
+                          <b>{createdWaste.name}</b> 카드가 만들어졌어요. 카드를 눌러 처리경로를 확인해 주세요.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   {stageWastes.length ? (
                     <div className="waste-grid" aria-label={`${stage.label} 폐기물 목록`}>
-                      {stageWastes.map((waste) => <WasteCard waste={waste} key={waste.id} />)}
+                      {stageWastes.map((waste) => (
+                        <WasteCard
+                          waste={waste}
+                          step={stage.number}
+                          isNew={waste.id === createdWasteId}
+                          key={waste.id}
+                        />
+                      ))}
                     </div>
                   ) : (
                     <p className="waste-stage-empty">이 단계에 있는 폐기물이 없어요.</p>
@@ -153,6 +186,13 @@ function WasteList({ variant, onCreate }) {
 }
 
 export function WastesPage() {
-  const variant = new URLSearchParams(currentRoute().search).get('variant') === 'empty' ? 'empty' : 'list';
-  return <WasteList variant={variant} onCreate={() => navigate(`/wastes/lot-${crypto.randomUUID()}/survey`)} />;
+  const params = new URLSearchParams(currentRoute().search);
+  const variant = params.get('variant') === 'empty' ? 'empty' : 'list';
+  return (
+    <WasteList
+      variant={variant}
+      createdWasteId={params.get('created')}
+      onCreate={() => navigate(`/wastes/lot-${crypto.randomUUID()}/survey`)}
+    />
+  );
 }

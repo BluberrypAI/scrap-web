@@ -1,5 +1,5 @@
 /** A small, living, Bliss-inspired landscape. No downloaded assets are used. */
-export function createLandscape(THREE, scene) {
+export function createLandscape(THREE, scene, { routeView = false, mobile = false } = {}) {
   const root = new THREE.Group();
   root.name = 'Bliss meadow';
   scene.add(root);
@@ -132,7 +132,7 @@ export function createLandscape(THREE, scene) {
   terrainGeometry.computeVertexNormals();
 
   let meadowTexture;
-  if (typeof document !== 'undefined') {
+  if (!routeView && typeof document !== 'undefined') {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = 256;
     const ctx = canvas.getContext('2d');
@@ -191,8 +191,8 @@ export function createLandscape(THREE, scene) {
       transformed.z += cos(meadowTime + meadowRoot.x * .29) * position.y * .10;
     `);
   };
-  const grassCount = 4600;
-  const grass = instanced(grassGeometry, grassMaterial, grassCount);
+  const grassCount = routeView ? 0 : 4600;
+  const grass = grassCount ? instanced(grassGeometry, grassMaterial, grassCount) : null;
   const bladeColor = new THREE.Color();
   for (let i = 0; i < grassCount; i++) {
     let x, z;
@@ -207,13 +207,16 @@ export function createLandscape(THREE, scene) {
   }
 
   // Leave the Bliss-like hillside open; keep a few trees at the side edges.
-  const treePoints = [];
-  for (let attempt = 0; attempt < 2000 && treePoints.length < 12; attempt++) {
+  const treePoints = routeView
+    ? [[-23, -12], [-19, -14], [-23, 11], [-19, 13]].map(([x, z], index) => ({
+      x, z, scale: 0.75 + index * 0.08, phase: index * 0.9,
+    })) : [];
+  for (let attempt = 0; attempt < 4000 && treePoints.length < (routeView ? 20 : 12); attempt++) {
     const x = (random() - 0.5) * 76;
     const z = (random() - 0.5) * 57;
     const screenSide = x * 0.76 - z * 0.65;
     const backDepth = -(x * 0.65 + z * 0.76);
-    if (Math.abs(screenSide) < 29 || backDepth > 9) continue;
+    if (Math.abs(screenSide) < (routeView ? 23 : 29) || backDepth > 9) continue;
     if (occupied(x, z, 1.8) || (Math.abs(x) < 23 && z > -19 && z < 18)) continue;
     if (treePoints.some((p) => Math.hypot(p.x - x, p.z - z) < 3.2)) continue;
     treePoints.push({ x, z, scale: 0.68 + random() * 0.32, phase: random() * Math.PI * 2 });
@@ -238,8 +241,9 @@ export function createLandscape(THREE, scene) {
 
   const shrubGeometry = keepGeometry(new THREE.SphereGeometry(1, 8, 6));
   const shrubMaterial = keepMaterial(new THREE.MeshStandardMaterial({ color: '#65a437', roughness: 1 }));
-  const shrubs = instanced(shrubGeometry, shrubMaterial, 22, true);
-  for (let i = 0; i < 22; i++) {
+  const shrubCount = routeView ? 36 : 22;
+  const shrubs = instanced(shrubGeometry, shrubMaterial, shrubCount, true);
+  for (let i = 0; i < shrubCount; i++) {
     let x, z;
     do { x = (random() - 0.5) * 76; z = (random() - 0.5) * 58; }
     while (occupied(x, z, 0.8) || Math.abs(x * 0.76 - z * 0.65) < 24 || -(x * 0.65 + z * 0.76) > 14);
@@ -265,15 +269,21 @@ export function createLandscape(THREE, scene) {
   const pollen = instanced(pollenGeometry, pollenMaterial, 260);
   const patches = [[-21, 15], [-11, -6], [0, 16], [20, 5], [25, -20], [-25, -17], [2, -19]];
   for (let i = 0; i < 260; i++) {
-    const patch = patches[i % patches.length];
     let x, z;
-    let attempts = 0;
-    do {
-      const angle = random() * Math.PI * 2;
-      const distance = Math.sqrt(random()) * 5;
-      x = patch[0] + Math.cos(angle) * distance;
-      z = patch[1] + Math.sin(angle) * distance;
-    } while (occupied(x, z, 0.2) && ++attempts < 50);
+    if (routeView) {
+      // A narrow flower bed across the foreground keeps the factories clear.
+      x = (random() - 0.5) * (mobile ? 26 : 38);
+      z = (mobile ? 17 : 10) + (random() - 0.5) * 2.2;
+    } else {
+      const patch = patches[i % patches.length];
+      let attempts = 0;
+      do {
+        const angle = random() * Math.PI * 2;
+        const distance = Math.sqrt(random()) * 5;
+        x = patch[0] + Math.cos(angle) * distance;
+        z = patch[1] + Math.sin(angle) * distance;
+      } while (occupied(x, z, 0.2) && ++attempts < 50);
+    }
     const h = heightAt(x, z) + 0.17 + random() * 0.08;
     const s = 0.65 + random() * 0.9;
     transform(flowers, i, x, h, z, s, s, s, random() * Math.PI * 2);
@@ -308,7 +318,7 @@ export function createLandscape(THREE, scene) {
   const poleGeometry = keepGeometry(new THREE.CylinderGeometry(0.065, 0.18, 5.3, 10));
   const hubGeometry = keepGeometry(new THREE.SphereGeometry(0.18, 9, 7));
   const bladeGeometry = keepGeometry(new THREE.BoxGeometry(0.13, 2.4, 0.055));
-  [[32, -29]].forEach(([x, z], index) => {
+  (routeView ? [[-11, -18], [12, -17], [28, -30]] : [[32, -29]]).forEach(([x, z], index) => {
     const y = heightAt(x, z);
     const mast = new THREE.Mesh(poleGeometry, ivory);
     mast.position.set(x, y + 2.65, z);

@@ -10,11 +10,9 @@
 .wt-qr p { margin: 0 0 16px; font-size: 14px; }
 .wt-qr input { width: 100%; margin: 14px 0 5px; padding: 10px; border: 1px solid #d9d1ec; border-radius: 9px; font-size: 12px; }
 .wt-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
-.wt-notice { padding: 12px 14px; border-radius: 12px; background: #f0eafa; color: #655775; font-size: 13px; }
 .wt-public.transport-page { min-height: 100vh; background: #f7f6f2; color: #282332; }
 .wt-public-header { display: flex; justify-content: space-between; align-items: center; padding: 22px max(20px, calc((100% - 680px) / 2)); background: #fff; }
-.wt-public-header strong { color: #7053b7; font-size: 25px; letter-spacing: -.04em; }
-.wt-public-header strong span { color: #8ebf4c; }
+.wt-public-header img { display: block; width: 116px; height: 42px; object-fit: contain; object-position: left center; }
 .wt-public-header > span { color: #81768f; font-size: 13px; }
 .wt-public-body { width: min(680px, calc(100% - 32px)); margin: 28px auto; }
 .wt-public .transport-card { padding: 30px; border: 1px solid #e1d8ef; border-radius: 18px; background: #fff; box-shadow: 0 8px 28px #37284c0a; }

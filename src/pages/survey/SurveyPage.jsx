@@ -299,13 +299,31 @@ export function SurveyPage({ waste }) {
       )}
       {s === 'result' && (
         <main className="sv-result">
+          <div className="sv-result-title">
+            <span>STEP 01 · 분류 확인 완료</span>
+            <h1>폐기물 분류가 확정됐어요</h1>
+            <p>분류 결과를 저장하면 이 폐기물의 Step 02 경로 준비 카드가 생성됩니다.</p>
+            <ol className="sv-result-transition" aria-label="폐기물 처리 진행 단계">
+              <li className="is-complete">
+                <b>01</b>
+                <span>분류 확인</span>
+                <em>완료</em>
+              </li>
+              <li className="sv-result-transition-arrow" aria-hidden="true">→</li>
+              <li>
+                <b>02</b>
+                <span>경로 준비</span>
+                <em>카드 생성 예정</em>
+              </li>
+            </ol>
+          </div>
           <header className="sv-result-head">
             <div className="sv-badges">
               <span>사업장일반폐기물</span>
               <span>배출시설 운영 사업장</span>
             </div>
             <p className="sv-result-label">분류번호</p>
-            <h1>51-03-01</h1>
+            <strong className="sv-result-code">51-03-01</strong>
             <p className="sv-result-name">폐합성수지류 (폐염화비닐수지류는 제외한다)</p>
             <AgentNote
               mode="lookup"
@@ -331,18 +349,21 @@ export function SurveyPage({ waste }) {
               ))}
             </div>
           </section>
-          <section aria-labelledby="sv-recycle">
-            <h2 id="sv-recycle" className="sv-h2">
-              허용 재활용 유형
-            </h2>
-            <AgentNote mode="lookup" text="허용된 재활용 유형을 조회한 결과입니다" />
+          <section className="sv-recycle-section" aria-labelledby="sv-recycle">
+            <header className="sv-recycle-head">
+              <div>
+                <h2 id="sv-recycle">허용 재활용 유형</h2>
+                <p>분류 결과에 따라 바로 진행할 수 있는 유형과 사전 분석이 필요한 유형을 나눴어요.</p>
+              </div>
+              <strong>총 {freeRecycleTypes.length + analysisRecycleTypes.length}개</strong>
+            </header>
             <div className="sv-groups">
               <div className="sv-group is-free">
                 <header>
-                  <span className="lime-status" />
+                  <span className="sv-group-index" aria-hidden="true">01</span>
                   <div>
-                    <strong>사전 분석·확인 해당 없음</strong>
-                    <small>바로 진행할 수 있어요</small>
+                    <strong>바로 진행 가능</strong>
+                    <small>사전 분석·확인 해당 없음</small>
                   </div>
                   <em>{freeRecycleTypes.length}개</em>
                 </header>
@@ -357,10 +378,10 @@ export function SurveyPage({ waste }) {
               </div>
               <div className="sv-group is-analysis">
                 <header>
-                  <Icon name="clock" size={18} />
+                  <span className="sv-group-index" aria-hidden="true">02</span>
                   <div>
-                    <strong>사전 분석·확인 해당</strong>
-                    <small>분석 결과가 먼저 필요해요</small>
+                    <strong>사전 분석 필요</strong>
+                    <small>분석 결과를 확인한 뒤 진행해요</small>
                   </div>
                   <em>{analysisRecycleTypes.length}개</em>
                 </header>
@@ -377,8 +398,9 @@ export function SurveyPage({ waste }) {
             <div className="sv-notice">
               <Icon name="spark" size={18} />
               <p>
-                목표 재활용 유형에 따라 분석 요건이 달라집니다. 「해당 없음」 그룹은 바로 진행할 수
-                있고, 고형연료·시멘트 보조연료로 가려면 폐기물분석전문기관의 분석이 먼저입니다.
+                선택한 재활용 방식에 따라 필요한 절차가 달라져요. 바로 진행 가능한 유형은 추가 분석
+                없이 진행할 수 있고, 고형연료·시멘트 보조연료 유형은 폐기물분석전문기관의 분석 결과가
+                필요합니다.
               </p>
             </div>
           </section>

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { scrapTreatment } from '../../features/treatment/index.js';
 import {
   displayCase,
   getTreatmentCase,
@@ -12,6 +11,7 @@ import { DetailPanel } from './DetailPanel.jsx';
 import { NextActionCard } from './NextActionCard.jsx';
 import { AnalysisResultModal } from '../wastes/AnalysisResultModal.jsx';
 import { WasteQRShortcut } from './WasteQRShortcut.jsx';
+import { RouteMapPanel } from './RouteMapPanel.jsx';
 
 const detailTabs = [
   {
@@ -32,8 +32,15 @@ export function WasteDetailPage({ waste }) {
     return () => window.removeEventListener('scrap-treatment-change', refresh);
   }, []);
   const savedTreatment = loadCase(waste.id);
-  if (savedTreatment) waste = displayCase(savedTreatment);
+  if (savedTreatment) waste = { ...waste, ...displayCase(savedTreatment) };
   const routeTreatment = savedTreatment || getTreatmentCase(waste);
+  const detailStage = ['문진 중', '후보', '분석 대기'].includes(waste.status)
+    ? 'STEP 01 · 분류 확인'
+    : waste.status === '확정'
+      ? 'STEP 02 · 경로 준비'
+      : waste.status === '처리 진행'
+        ? 'STEP 03 · 처리 진행'
+        : '처리 완료';
   let t = new URLSearchParams(currentRoute().search).get('tab'),
     n = {
       분류: 'classification',
@@ -61,19 +68,17 @@ export function WasteDetailPage({ waste }) {
       window.history.state?.overlay ? window.history.back() : a(null);
     };
   return (
-    <main className="waste-detail" data-layer-name="L2-WasteDetail" data-variant={waste.status}>
+    <main className="waste-detail is-route-map"
+      data-layer-name="L2-WasteDetail" data-variant={waste.status}>
       <a className="detail-back" href="/wastes">
         <span>←</span>
         {' 내 폐기물'}
       </a>
       <header className="detail-header">
         <div>
-          <span>
-            {waste.category}
-            {' · 마지막 업데이트 '}
-            {waste.updatedAt}
-          </span>
+          <span className="detail-stage">{detailStage}</span>
           <h1>{waste.name}</h1>
+          <p className="detail-meta">{waste.category} · 마지막 업데이트 {waste.updatedAt}</p>
           <div className="detail-code">
             <strong>
               {'분류번호 '}
@@ -88,9 +93,7 @@ export function WasteDetailPage({ waste }) {
         </div>
         <WasteQRShortcut waste={waste} />
       </header>
-      {routeTreatment && !routeTreatment.pending ? (
-        <scrapTreatment.Summary waste={waste} />
-      ) : !routeTreatment ? (
+      {!routeTreatment ? (
         <NextActionCard waste={waste} onOpenOverlay={o} />
       ) : null}
       <nav
@@ -110,7 +113,7 @@ export function WasteDetailPage({ waste }) {
         ))}
       </nav>
       {r === 'route' ? (
-        <scrapTreatment.Panel waste={waste} />
+        <RouteMapPanel waste={waste} />
       ) : (
         <DetailPanel waste={classificationWaste} tab={r} onOpenLegal={() => o('legal')} />
       )}

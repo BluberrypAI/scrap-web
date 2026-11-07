@@ -59,6 +59,11 @@ test('confirmed cases reuse known material, form and site before any tracking en
   });
   assert.equal(loadCase(waste.id), null);
   assert.equal(getTreatmentCase({ ...waste, status: '후보' }), null);
+  const processing = { ...waste, status: '처리 진행',
+    treatmentInput: { ...waste.treatmentInput, originType: 'demo' } };
+  assert.equal(getTreatmentCase(processing).input.material, 'aluminium');
+  assert.deepEqual(getTreatmentCase(processing), getTreatmentCase(processing));
+  assert.equal(getTreatmentCase({ ...waste, status: '처리 진행' }), null);
   assert.equal(getTreatmentCase({ ...waste, treatmentInput: undefined }), null);
   assert.equal(getTreatmentCase({
     ...waste, treatmentInput: { ...waste.treatmentInput, origin: null },
