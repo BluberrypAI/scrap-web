@@ -4,6 +4,7 @@ import {
   getTreatmentCase,
   loadCase,
 } from '../../features/treatment/treatment-state.js';
+import { scrapTreatment } from '../../features/treatment/index.js';
 import { currentRoute } from '../../lib/router.js';
 import { hasConfirmedCode } from '../../data/wastes.js';
 import { DetailOverlay } from './DetailOverlay.jsx';
@@ -34,6 +35,8 @@ export function WasteDetailPage({ waste }) {
   const savedTreatment = loadCase(waste.id);
   if (savedTreatment) waste = { ...waste, ...displayCase(savedTreatment) };
   const routeTreatment = savedTreatment || getTreatmentCase(waste);
+  const needsFirstFacility = savedTreatment?.input.classificationAsOf &&
+    !savedTreatment.pending && !savedTreatment.completed.length && !savedTreatment.finished;
   const detailStage = ['문진 중', '후보', '분석 대기'].includes(waste.status)
     ? 'STEP 01 · 분류 확인'
     : waste.status === '확정'
@@ -83,6 +86,7 @@ export function WasteDetailPage({ waste }) {
             <strong>
               {'분류번호 '}
               {hasConfirmedCode(waste) ? waste.code : '미정'}
+              {savedTreatment?.input.classificationProvisional && ' · 잠정'}
             </strong>
             {hasConfirmedCode(waste) && !routeTreatment && (
               <button type="button" onClick={() => o('legal')}>
@@ -113,9 +117,11 @@ export function WasteDetailPage({ waste }) {
         ))}
       </nav>
       {r === 'route' ? (
-        <RouteMapPanel waste={waste} />
+        needsFirstFacility ? <scrapTreatment.Panel waste={waste} /> : <RouteMapPanel waste={waste} />
       ) : (
-        <DetailPanel waste={classificationWaste} tab={r} onOpenLegal={() => o('legal')} />
+        savedTreatment?.input.classificationAsOf
+          ? <scrapTreatment.SavedTab waste={waste} tab={r} />
+          : <DetailPanel waste={classificationWaste} tab={r} onOpenLegal={() => o('legal')} />
       )}
       {i === 'analysis' ? (
         <AnalysisResultModal waste={waste} onClose={s} />

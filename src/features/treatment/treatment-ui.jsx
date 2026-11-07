@@ -4,6 +4,7 @@ import { beginStep, completeStep, demoWorkplace, finishCase, getTreatmentCase, l
 import { recordEvidence } from './treatment-evidence.js';
 import { createEvidenceUI } from './treatment-evidence-ui.jsx';
 import { navigate } from '../../lib/router.js';
+import { LawArticleModal } from '../../pages/survey/LawArticleModal.jsx';
 import './treatment.css';
 
 const forms = {
@@ -33,6 +34,7 @@ async function requestNext(value, signal) {
       waste_code: value.input.waste_code,
       material: value.input.material,
       input_form: value.input.input_form,
+      recycling_types: value.completed.length ? undefined : value.input.recycling_types,
       origin: routeOrigin(value),
       completed_transitions: value.completed.map((step) => step.transition_key),
     }),
@@ -49,34 +51,6 @@ export function createTreatmentUI(React) {
   const { createElement: h, useEffect, useRef, useState } = React;
   const { EvidenceTrail, EvidenceReport } = createEvidenceUI(React);
 
-  function SurveyMaterial({ onAnswer }) {
-    const [material, setMaterial] = useState('');
-    const [form, setForm] = useState('');
-    return <form className="treatment-confirm" onSubmit={(event) => {
-      event.preventDefault();
-      onAnswer({ material, input_form: form });
-    }}>
-      <h2>어떤 수지이고 어떤 형태인가요?</h2>
-      <p>같은 폐합성수지 분류 안에서도 재질과 형태에 따라 이어지는 공정이 달라요.</p>
-      <div className="treatment-fields">
-        <label>재질<select required value={material} onChange={(e) => {
-          setMaterial(e.target.value);
-          setForm('');
-        }}>
-          <option value="">선택</option>
-          {['PP', 'PE', 'PET'].map((key) => <option key={key} value={key}>{materialLabels[key]}</option>)}
-        </select></label>
-        <label>현재 형태<select required value={form} disabled={!material} onChange={(e) => setForm(e.target.value)}>
-          <option value="">선택</option>
-          {(forms[material] || []).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-        </select></label>
-      </div>
-      <button className="button button-primary" type="submit" disabled={!material || !form}>
-        분류 결과 보기
-      </button>
-    </form>;
-  }
-
   function Confirm({ id, input }) {
     const [error, setError] = useState('');
     function save() {
@@ -88,7 +62,7 @@ export function createTreatmentUI(React) {
             ? formLabel
             : `폐합성수지 · ${materialLabels[material]} ${formLabel}`;
           storeCase(newCase(id, caseName, {
-            ...input, waste_code: '51-03-01', ...demoWorkplace.routeOrigin,
+            ...input, ...demoWorkplace.routeOrigin,
           }));
         }
         navigate(`/wastes?created=${encodeURIComponent(id)}`);
@@ -361,7 +335,8 @@ export function createTreatmentUI(React) {
             }}>다시 조회</button>
           </div> : !lookup ? <p className="treatment-status">다음 공정을 찾고 있어요…</p> : <div>
             <div className="treatment-option-head">
-              <div><small>{lookup.backend === 'reference_demo' ? 'KG 참조 데이터 · 데모' : 'Neo4j · 공정 근거'}</small>
+              <div><small>{value.input.classificationAsOf ? '공정·시설 근거 조회'
+                  : lookup.backend === 'reference_demo' ? 'KG 참조 데이터 · 데모' : 'Neo4j · 공정 근거'}</small>
                 <h3>지금 이어갈 수 있는 공정</h3><p>{lookup.message}</p>
                 {lookup.options.length > 0 && <p>{value.completed.length
                   ? `거리 기준 출발지 · ${value.completed.at(-1).facility}`
@@ -369,7 +344,7 @@ export function createTreatmentUI(React) {
                   {' · '}{pins.length > 1 ? `직선거리 순 ${pins.length}곳`
                     : pins.length ? '직선거리 표시 1곳' : '거리 확인 가능한 업체 없음'}</p>}
                 {lookup.options.length > 0 && <small>
-                  공정 KG에 등록된 시설 후보 {facilityCount}곳 · 검색 범위는 공개 공정 사례
+                  시설 후보 {facilityCount}곳 · 공개 공정 사례와 시설 근거
                 </small>}
                 {!value.completed.length && value.input.originSource && <SourceLinks sources={[{
                   publisher: '출발지 좌표', url: value.input.originSource, locator: '데모 지역 기준점',
@@ -406,7 +381,7 @@ export function createTreatmentUI(React) {
                 </div>
                 <button className="button button-primary" type="button"
                   onClick={() => update((previous) => beginStep(previous, process, facility))}>
-                  이 업체로 추적 시작
+                  {value.input.classificationAsOf ? '예정 업체로 기록' : '이 업체로 추적 시작'}
                 </button>
               </div>)}
               <RegistrySearch value={value} transition={process.transition_key}
@@ -420,15 +395,28 @@ export function createTreatmentUI(React) {
   }
 
   function SavedTab({ waste, tab }) {
+    const [article, setArticle] = useState(null);
     const value = getTreatmentCase(waste);
     if (!value) return null;
     if (tab === 'history') return <History value={value} />;
+    const { waste_code, material, input_form, classificationProvisional,
+      classificationAsOf, classificationEvidence, recycling_types } = value.input;
+    const types = Object.values(recycling_types ?? {}).flat();
     return <section className="detail-panel treatment-history">
       <header><div><p>CLASSIFICATION</p><h2>기록한 분류</h2></div></header>
-      <ul><li><strong>{value.input.waste_code} · {materialLabels[value.input.material]}</strong>
-        <small>{forms[value.input.material]?.find(([key]) => key === value.input.input_form)?.[1]}</small></li></ul>
+      <ul>
+        <li><strong>{waste_code} · {materialLabels[material]}{classificationProvisional && ' · 잠정'}</strong>
+          <small>{forms[material]?.find(([key]) => key === input_form)?.[1]}</small></li>
+        {types.length > 0 && <li><strong>재활용 유형</strong><small>{types.join(', ')}</small></li>}
+        {classificationEvidence?.map((item) => <li key={item.num}>
+          <strong>{item.title}</strong><small>{item.cite}</small>
+          <button className="button button-quiet" type="button" onClick={() => setArticle(item)}>근거 조문 보기</button>
+        </li>)}
+      </ul>
+      {article && <LawArticleModal article={article} code={waste_code}
+        asOf={classificationAsOf} onClose={() => setArticle(null)} />}
     </section>;
   }
 
-  return { Confirm, Panel, SavedTab, Summary, SurveyMaterial };
+  return { Confirm, Panel, SavedTab, Summary };
 }

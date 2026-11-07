@@ -1,9 +1,7 @@
 import { useEffect } from 'react';
 import { Icon } from '../../components/Icon.jsx';
-import { LAW_BASE_DATE, evidenceItems } from './surveyData.js';
 
-export function LawArticleModal({ index, onClose }) {
-  let n = evidenceItems[index];
+export function LawArticleModal({ article: n, code, asOf, onClose }) {
   return (
     useEffect(() => {
       let e = (e) => {
@@ -26,7 +24,7 @@ export function LawArticleModal({ index, onClose }) {
         >
           <header className="panel-header">
             <div>
-              <span className="panel-kicker">폐합성수지 · 51-03-01</span>
+              <span className="panel-kicker">{code || '분류 기준'}</span>
               <h2 id="sv-law-title">근거 조문</h2>
             </div>
             <button className="icon-button" type="button" onClick={onClose} aria-label="닫기">
@@ -59,12 +57,12 @@ export function LawArticleModal({ index, onClose }) {
               target="_blank"
               rel="noreferrer"
             >
-              원문 보기
+              국가법령정보센터에서 확인
               <Icon name="arrow" size={15} />
             </a>
             <small>
               {'법령 기준일 '}
-              {LAW_BASE_DATE}
+              {asOf}
               {' · 국가법령정보센터 기준'}
             </small>
           </div>

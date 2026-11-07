@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       proxy: {
+        ...(env.SCRAP_SERVER_URL && { '/api/classification': { target, changeOrigin: true } }),
         '^/api/treatment/next-step$': {
           target,
           changeOrigin: true,

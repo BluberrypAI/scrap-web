@@ -28,6 +28,7 @@ export function WasteCard({ waste, step, isNew = false }) {
         <p>
           {'분류번호 '}
           {hasConfirmedCode(waste) ? waste.code : '미정'}
+          {waste.classificationProvisional && ' · 잠정'}
         </p>
       </div>
       <div className="waste-card-state">

@@ -88,6 +88,10 @@ export function displayCase(value) {
     name: value.name,
     code: value.input.waste_code,
     category: value.input.material,
+    ...(value.input.classificationAsOf && {
+      classificationProvisional: value.input.classificationProvisional,
+      classificationAsOf: value.input.classificationAsOf,
+    }),
     status: value.finished ? '완료' : value.pending ? '처리 진행' : '확정',
     updatedAt: new Date(value.updatedAt).toLocaleDateString('ko-KR'),
   };

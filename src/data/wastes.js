@@ -102,6 +102,7 @@ export const statusMessages = {
 };
 
 export function wasteStatusMessage(waste) {
+  if (waste.classificationAsOf && waste.status === '확정') return '다음 공정과 처리업체 후보를 확인해 주세요.';
   if (waste.status === '확정') {
     const nextFacility = demoRouteStops(waste.treatmentInput?.material)[0]?.label || '처리업체 1';
     return `${nextFacility}의 처리 가능 여부 확인을 기다리고 있어요`;

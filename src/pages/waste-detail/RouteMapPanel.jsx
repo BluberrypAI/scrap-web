@@ -7,13 +7,15 @@ import './RouteMapPanel.css';
 
 export function RouteMapPanel({ waste }) {
   const treatment = getTreatmentCase(waste);
-  const planned = treatment?.input.originType === 'demo'
+  const planned = treatment?.input.originType === 'demo' && !treatment.input.classificationAsOf
     ? demoRouteStops(treatment.input.material)
     : [];
   const recorded = treatment
     ? [...treatment.completed, treatment.pending].filter(Boolean).map((step, index) => ({
       facility_key: step.capability_key || `recorded-${index}`,
       label: step.facility,
+      process: step.process,
+      output: step.output,
     })) : [];
   const stops = planned.length ? planned : recorded;
   const host = useRef(null);
@@ -22,13 +24,16 @@ export function RouteMapPanel({ waste }) {
   const { phase, activeStopIndex, activeSegmentIndex } = routeVisualState({
     status: waste.status, checks, completedCount: treatment?.completed.length || 0,
     stopCount: stops.length, pending: treatment?.pending,
-    routePhase: waste.routePhase, routeStopIndex: waste.routeStopIndex,
+    routePhase: treatment?.input.classificationAsOf ? 'ready' : waste.routePhase,
+    routeStopIndex: waste.routeStopIndex,
     routeLegIndex: waste.routeLegIndex,
   });
   const description = phase === 'complete'
     ? '처리가 완료됐어요. 이동한 경로와 처리 결과를 확인할 수 있어요.'
     : phase === 'ready'
-    ? '분류가 완료됐어요. 예정된 처리업체와 최종 수요업체로 가는 경로를 준비하고 있어요.'
+    ? treatment?.input.classificationAsOf
+      ? '다음 처리업체를 기록했어요. 인계 확인을 기다리고 있어요.'
+      : '분류가 완료됐어요. 예정된 처리업체와 최종 수요업체로 가는 경로를 준비하고 있어요.'
     : phase === 'transporting' ? `${activeSegmentIndex === 0 ? '배출 사업장' :
       stops[activeSegmentIndex - 1]?.label || '이전 업체'}에서 ${stops[activeSegmentIndex]?.label || '다음 업체'}로 운송 중이에요.`
       : `${stops[activeStopIndex]?.label || '처리업체'}에서 ${stops[activeStopIndex]?.process || '처리'} 공정을 진행하고 있어요.`;
