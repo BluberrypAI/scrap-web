@@ -49,7 +49,10 @@ export function createWasteTracking(React) {
     const [error, setError] = useState('');
     const label = role === 'driver' ? '폐기물 인수 완료' : '업체 입고 확인';
     return <main className="transport-page wt-public">
-      <header className="wt-public-header"><strong>SCRAP<span>.</span></strong><span>현장 확인</span></header>
+      <header className="wt-public-header">
+        <img src="/images/scrap-logo-2d.png" alt="SCRAP" />
+        <span>현장 확인</span>
+      </header>
       <div className="wt-public-body">
         <section className="transport-card wt-action">
           <small>{waste?.name || '폐기물 현장 확인'}</small>

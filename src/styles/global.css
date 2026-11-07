@@ -1478,7 +1478,7 @@
   top: 0;
 }
 .app-topnav-inner {
-  grid-template-columns: 132px 1fr 260px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   width: min(100% - 96px, 1320px);
   height: 100%;
@@ -1506,11 +1506,12 @@
 }
 .site-brand-logo {
   display: block;
-  width: 94px;
-  height: 48px;
+  width: 106px;
+  height: 42px;
   object-fit: contain;
 }
 .app-route-nav {
+  justify-self: center;
   justify-content: center;
   align-items: center;
   gap: 6px;
@@ -1523,18 +1524,32 @@
   font-size: 15px;
   font-weight: 500;
   text-decoration: none;
-  transition:
-    background-color 0.16s ease-out,
-    color 0.16s ease-out;
-}
-.app-route-nav a:hover {
-  color: var(--color-text-primary);
+  transition: background-color .16s ease, color .16s ease;
 }
 .app-route-nav a.is-active {
   background: var(--color-surface-lavender);
   color: var(--color-primary);
 }
+.app-route-nav a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+@media (width>720px) {
+  .app-wordmark {
+    grid-column: 1;
+  }
+  .app-route-nav {
+    position: absolute;
+    top: 50%;
+    left: 50vw;
+    transform: translate(-50%, -50%);
+  }
+  .app-account {
+    grid-column: 3;
+  }
+}
 .app-account {
+  justify-self: end;
   justify-content: flex-end;
   align-items: center;
   gap: 12px;
@@ -2132,7 +2147,7 @@
 }
 @media (width<=960px) {
   .app-topnav-inner {
-    grid-template-columns: 100px 1fr 48px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     width: min(100% - 32px, 900px);
   }
   .workplace-name {
@@ -6658,8 +6673,8 @@
 }
 .site-footer-logo {
   display: block;
-  width: 56px;
-  height: 27px;
+  width: 88px;
+  height: 28px;
   object-fit: contain;
   object-position: left center;
   margin-bottom: 3px;
@@ -6981,7 +6996,7 @@
 }
 @media (width<=960px) and (width>720px) {
   .site-topnav .app-topnav-inner {
-    grid-template-columns: 110px 1fr 160px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   }
   .site-topnav .landing-header-actions > button {
     display: none;
