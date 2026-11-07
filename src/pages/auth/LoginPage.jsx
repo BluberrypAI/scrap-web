@@ -59,17 +59,6 @@ export function LoginPage() {
             됩니다.
           </p>
         </section>
-        <aside className="login-branch-note" aria-label="로그인 후 이동 경로">
-          <span>AUTH BRANCH</span>
-          <p>
-            <strong>신규 회원</strong>
-            {' → /onboarding'}
-          </p>
-          <p>
-            <strong>기존 회원</strong>
-            {' → /wastes'}
-          </p>
-        </aside>
       </div>
     </main>
   );

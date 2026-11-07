@@ -97,7 +97,6 @@ export function createTreatmentUI(React) {
       }
     }
     return <div className="treatment-confirm">
-      <p>{materialLabels[input.material]} · {forms[input.material].find(([key]) => key === input.input_form)[1]}</p>
       {error && <p role="alert">{error}</p>}
       <button className="button button-primary" type="button" onClick={save}>저장하고 진행 카드 보기</button>
     </div>;

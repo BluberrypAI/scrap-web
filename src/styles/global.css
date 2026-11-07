@@ -4368,10 +4368,8 @@
   color: var(--color-primary);
 }
 .login-stage {
-  grid-template-columns: 400px 190px;
-  justify-content: center;
-  align-items: center;
-  gap: 28px;
+  grid-template-columns: minmax(0, 400px);
+  place-content: center;
   min-height: 100vh;
   padding: 90px 24px 50px;
   display: grid;
@@ -4379,7 +4377,7 @@
 .login-card {
   border: 1px solid var(--color-border-light);
   background: var(--color-card);
-  width: 400px;
+  width: 100%;
   box-shadow: 0 12px 38px var(--color-shadow);
   border-radius: 8px;
   padding: 31px;
@@ -4563,28 +4561,6 @@
 }
 .login-terms a {
   color: var(--color-text-secondary);
-}
-.login-branch-note {
-  border-left: 2px solid var(--color-border);
-  color: var(--color-text-secondary);
-  align-self: center;
-  padding: 15px;
-}
-.login-branch-note > span {
-  color: var(--color-primary);
-  font-family: var(--font-latin);
-  letter-spacing: 0.12em;
-  font-size: 8px;
-  font-weight: 700;
-}
-.login-branch-note p {
-  font-family: var(--font-latin);
-  margin: 8px 0 0;
-  font-size: 9px;
-}
-.login-branch-note strong {
-  color: var(--color-text-primary);
-  font-weight: 600;
 }
 .onboarding-page {
   place-items: center;
@@ -4801,9 +4777,6 @@
   }
   .login-card {
     width: min(100%, 400px);
-  }
-  .login-branch-note {
-    display: none;
   }
   .onboarding-page {
     padding-inline: 16px;
@@ -5937,8 +5910,8 @@
   padding: 9px 11px;
 }
 .sv-result-transition li.is-complete {
-  border-color: #e4c75f;
-  background: #fff3c9;
+  border-color: #e4ddea;
+  background: var(--color-white);
 }
 .sv-result-transition b {
   display: grid;
