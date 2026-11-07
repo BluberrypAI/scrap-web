@@ -6303,9 +6303,16 @@
   font-size: 14px;
   line-height: 1.55;
 }
+.berry-site-tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
 .berry-site-tour-copy button {
   min-height: 42px;
-  margin-top: 20px;
+  margin-top: 0;
   border: 0;
   border-radius: 999px;
   background: var(--color-primary);
@@ -6315,6 +6322,17 @@
   font: inherit;
   font-size: 13px;
   font-weight: 650;
+}
+.berry-site-tour-copy .berry-site-tour-skip {
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-text-secondary);
+  box-shadow: none;
+}
+.berry-site-tour-copy .berry-site-tour-skip:hover,
+.berry-site-tour-copy .berry-site-tour-skip:focus-visible {
+  background: var(--color-surface-lavender);
+  color: var(--color-primary-deep);
 }
 .berry-site-tour-copy button:hover,
 .berry-site-tour-copy button:focus-visible {
@@ -6338,6 +6356,13 @@
     top: -10px;
     left: calc(50% - 9px);
     transform: rotate(135deg);
+  }
+  .berry-site-tour-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+  .berry-site-tour-actions button {
+    width: 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {

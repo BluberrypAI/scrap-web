@@ -35,7 +35,7 @@ const steps = [
 function storedStep() {
   try {
     const value = localStorage.getItem(storageKey);
-    if (value === 'done') return null;
+    if (value === 'done' || value === 'skipped') return null;
     const step = Number(value);
     return value !== null && Number.isInteger(step) && step >= 0 && step < steps.length
       ? step
@@ -49,6 +49,7 @@ export function BerrySiteTour({ path }) {
   const [step, setStep] = useState(storedStep);
   const [visible, setVisible] = useState(false);
   const confirmRef = useRef(null);
+  const skipRef = useRef(null);
 
   useEffect(() => {
     if (step === null || path !== steps[step].path) return;
@@ -63,15 +64,27 @@ export function BerrySiteTour({ path }) {
     if (visible) confirmRef.current?.focus();
   }, [visible]);
 
-  if (!visible || step === null || path !== steps[step].path) return null;
+  const saveTourState = (value) => {
+    try {
+      localStorage.setItem(storageKey, value);
+    } catch {
+      // 저장소를 사용할 수 없어도 현재 화면에서는 상태를 유지한다.
+    }
+  };
+
+  const skip = () => {
+    saveTourState('skipped');
+    setVisible(false);
+    setStep(null);
+  };
+
+  if (!visible || step === null || path !== steps[step].path) {
+    return null;
+  }
 
   const confirm = () => {
     const next = step + 1;
-    try {
-      localStorage.setItem(storageKey, next === steps.length ? 'done' : String(next));
-    } catch {
-      // 저장소를 사용할 수 없어도 현재 화면의 안내는 진행할 수 있다.
-    }
+    saveTourState(next === steps.length ? 'done' : String(next));
     setVisible(false);
     if (next === steps.length) {
       setStep(null);
@@ -91,7 +104,12 @@ export function BerrySiteTour({ path }) {
         aria-labelledby="berry-site-tour-title"
         aria-describedby="berry-site-tour-description"
         onKeyDown={(event) => {
-          if (event.key === 'Tab') {
+          if (event.key === 'Escape') {
+            skip();
+          } else if (event.key === 'Tab' && !event.shiftKey && document.activeElement === confirmRef.current) {
+            event.preventDefault();
+            skipRef.current?.focus();
+          } else if (event.key === 'Tab' && event.shiftKey && document.activeElement === skipRef.current) {
             event.preventDefault();
             confirmRef.current?.focus();
           }
@@ -104,7 +122,12 @@ export function BerrySiteTour({ path }) {
           <span>베리의 안내 · {step + 1}/{steps.length}</span>
           <h2 id="berry-site-tour-title">{steps[step].title}</h2>
           <p id="berry-site-tour-description">{steps[step].description}</p>
-          <button ref={confirmRef} type="button" onClick={confirm}>확인했어요</button>
+          <div className="berry-site-tour-actions">
+            <button className="berry-site-tour-skip" ref={skipRef} type="button" onClick={skip}>
+              건너뛰기
+            </button>
+            <button ref={confirmRef} type="button" onClick={confirm}>확인했어요</button>
+          </div>
         </AnimatedContent>
       </section>
     </div>
