@@ -102,6 +102,10 @@ export const statusMessages = {
 };
 
 export function wasteStatusMessage(waste) {
+  if (waste.status === '확정') {
+    const nextFacility = demoRouteStops(waste.treatmentInput?.material)[0]?.label || '처리업체 1';
+    return `${nextFacility}의 처리 가능 여부 확인을 기다리고 있어요`;
+  }
   if (waste.status !== '처리 진행' || !waste.routePhase) return statusMessages[waste.status];
   const stops = demoRouteStops(waste.treatmentInput?.material);
   if (waste.routePhase === 'transporting') {
@@ -110,6 +114,13 @@ export function wasteStatusMessage(waste) {
   }
   const stop = stops[waste.routeStopIndex || 0];
   return stop ? `${stop.label}에서 ${stop.process} 중이에요` : statusMessages[waste.status];
+}
+
+export function wasteDisplayStatus(waste) {
+  if (waste.routePhase === 'transporting') return '운송 중';
+  if (waste.routePhase === 'processing') return '처리 중';
+  if (waste.status === '확정') return '업체 확인 대기';
+  return waste.status;
 }
 
 export const analysisFields = [

@@ -8,7 +8,6 @@ export function StatusBadge({ status }) {
       className={`status-badge${t ? ' is-analysis' : ''}${n ? ' is-complete' : ''}`}
       data-variant={status}
     >
-      {t && <Icon name="clock" size={14} />}
       {n && <Icon name="check" size={14} />}
       {status}
     </span>

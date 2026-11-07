@@ -41,7 +41,7 @@ function WasteList({ variant, onCreate, createdWasteId }) {
     const updateCurrentStage = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
-        const marker = window.innerWidth <= 720 ? 185 : 155;
+        const marker = window.innerHeight / 2;
         let current = stages[0].id;
         for (const stage of stages) {
           if (document.getElementById(`waste-stage-${stage.id}`)?.getBoundingClientRect().top <= marker) {
@@ -115,6 +115,7 @@ function WasteList({ variant, onCreate, createdWasteId }) {
                 <button
                   key={stage.id}
                   type="button"
+                  data-stage={stage.number}
                   aria-current={activeStage === stage.id ? 'location' : undefined}
                   className={activeStage === stage.id ? 'is-active' : ''}
                   onClick={() => jumpToStage(stage.id)}
@@ -134,6 +135,7 @@ function WasteList({ variant, onCreate, createdWasteId }) {
               return (
                 <section
                   className="waste-stage-section"
+                  data-stage={stage.number}
                   id={`waste-stage-${stage.id}`}
                   key={stage.id}
                   aria-labelledby={`waste-stage-heading-${stage.id}`}
@@ -160,6 +162,7 @@ function WasteList({ variant, onCreate, createdWasteId }) {
                       {stageWastes.map((waste) => (
                         <WasteCard
                           waste={waste}
+                          step={stage.number}
                           isNew={waste.id === createdWasteId}
                           key={waste.id}
                         />
