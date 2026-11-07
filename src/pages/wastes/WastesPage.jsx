@@ -153,7 +153,9 @@ function WasteList({ variant, onCreate, createdWasteId }) {
                       <Icon name="check" size={18} />
                       <div>
                         <strong>STEP {stage.number} · {stage.label}</strong>
-                        <p>새 진행 카드가 만들어졌어요. 카드를 눌러 처리경로를 확인해 주세요.</p>
+                        <p>
+                          <b>{createdWaste.name}</b> 카드가 만들어졌어요. 카드를 눌러 처리경로를 확인해 주세요.
+                        </p>
                       </div>
                     </div>
                   )}

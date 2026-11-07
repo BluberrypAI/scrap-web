@@ -256,6 +256,11 @@
   font-size: 12px;
 }
 
+.waste-created-notice p b {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
 .home-content .waste-card {
   --card-accent: #ffb900;
   --card-accent-ink: #755600;
