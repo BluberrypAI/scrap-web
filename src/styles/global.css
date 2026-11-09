@@ -7646,6 +7646,7 @@ html {
 }
 @media (width<=560px) {
   .site-topnav .landing-header-actions > button,
+  .site-topnav .landing-header-login,
   .site-topnav .landing-button-small svg {
     display: none;
   }
@@ -7654,4 +7655,3 @@ html {
 .site-topnav {
   word-break: normal;
 }
-  .site-topnav .landing-header-login,
