@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { DOKDO_COORDINATE, hideRoadNumberShields, styleKoreaMapContext } from '../../lib/mapbox-style.js';
 
-const KOREA_CENTER = [127.75, 36.25];
-const KOREA_BOUNDS = [[124.5, 32.8], [131.3, 39.4]];
-const KOREA_VIEW = [[125.65, 33.15], [129.75, 38.45]];
+const KOREA_CENTER = [128.25, 36.25];
+const KOREA_BOUNDS = [[124.5, 32.8], [132.35, 39.4]];
+const KOREA_VIEW = [[125.5, 33.05], [132.15, 38.55]];
 
 function createCompassMarker(factory, onSelect) {
   const marker = document.createElement('button');
@@ -78,6 +79,8 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect }) {
     map.on('error', handleError);
     map.on('load', () => {
       if (cancelled) return;
+      hideRoadNumberShields(map);
+      styleKoreaMapContext(map);
       factories.forEach((factory) => {
         const element = createCompassMarker(factory, (id) => onSelectRef.current?.(id));
         const marker = new mapboxgl.Marker({ element, anchor: 'bottom', offset: [0, -3] })
@@ -94,6 +97,7 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect }) {
           [factories[0].longitude, factories[0].latitude],
           [factories[0].longitude, factories[0].latitude],
         ));
+        if (factories.length >= 5) bounds.extend(DOKDO_COORDINATE);
         map.fitBounds(bounds, {
           padding: { top: 80, right: 80, bottom: 80, left: 80 },
           maxZoom: factories.length === 1 ? 11 : 7.8,

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { hideRoadNumberShields, styleKoreaMapContext } from '../../lib/mapbox-style.js';
 import { routeMapMarkerState, routeMapSegmentState } from './route-visual-state.js';
 
-const KOREA_BOUNDS = [[124.5, 32.8], [131.3, 39.4]];
-const KOREA_VIEW_BOUNDS = [[125.85, 33.05], [129.85, 38.55]];
-const KOREA_CENTER = [127.75, 36.25];
+const KOREA_BOUNDS = [[124.5, 32.8], [132.35, 39.4]];
+const KOREA_VIEW_BOUNDS = [[125.5, 33.05], [132.15, 38.55]];
+const KOREA_CENTER = [128.25, 36.25];
 const fallbackCoordinates = [
   { latitude: 37.16224762, longitude: 126.90491285 },
   { latitude: 37.342, longitude: 127.92 },
@@ -263,6 +264,8 @@ export function MapboxRouteMap({ stops, origin, phase, activeStopIndex, activeSe
       try {
         loaded = true;
         window.clearTimeout(loadTimer);
+        hideRoadNumberShields(map);
+        styleKoreaMapContext(map);
         const routeLines = await fetchRoadRouteLines(
           points,
           accessToken,
