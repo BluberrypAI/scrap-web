@@ -333,7 +333,7 @@ export function createTreatmentUI(React) {
         {!value && <div className="treatment-status">
             <h3>{waste.status === '분석 대기' ? '분석 결과 확인이 필요해요' : '연결된 처리경로가 없어요'}</h3>
             <p>문진에서 분류번호와 재질·형태를 기록한 건부터 다음 공정을 조회할 수 있어요.</p>
-            <a className="button button-primary" href="/wastes">내 폐기물로 돌아가기</a>
+            <a className="button button-primary" href="/wastes">자원 경로로 돌아가기</a>
           </div>}
         {value && <div className="treatment-flow" aria-label="처리 진행 상태">
           <span className="is-done">✓ 분류 기록</span>

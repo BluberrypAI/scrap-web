@@ -24,3 +24,39 @@ export function routeEmptyMessage(status) {
     완료: '처리가 완료됐어요. 처리 결과는 처리 이력에서 확인할 수 있어요.',
   }[status] || '분류 정보를 확인하면 처리경로를 볼 수 있어요.';
 }
+
+export function visibleRouteStops(phase, stops = []) {
+  return phase === 'ready' ? [] : stops;
+}
+
+export function routeStopState({ phase, index, activeStopIndex, activeSegmentIndex }) {
+  if (phase === 'complete') return 'done';
+  if (phase === 'ready') return 'planned';
+  if (phase === 'processing') {
+    if (index < activeStopIndex) return 'done';
+    return index === activeStopIndex ? 'active' : 'planned';
+  }
+  if (index < activeSegmentIndex) return 'done';
+  return index === activeSegmentIndex ? 'active' : 'planned';
+}
+
+export function routeMapMarkerState({ phase, index, activeStopIndex, activeSegmentIndex }) {
+  if (phase === 'complete') return 'done';
+  if (phase === 'ready') return index === 0 ? 'active' : 'planned';
+  if (phase === 'processing') {
+    if (index <= activeStopIndex) return 'done';
+    return index === activeStopIndex + 1 ? 'active' : 'planned';
+  }
+  if (index <= activeSegmentIndex) return 'done';
+  return index === activeSegmentIndex + 1 ? 'active' : 'planned';
+}
+
+export function routeMapSegmentState({ phase, index, activeStopIndex, activeSegmentIndex }) {
+  if (phase === 'complete') return 'done';
+  if (phase === 'processing') return index <= activeStopIndex ? 'done' : 'planned';
+  if (phase === 'transporting') {
+    if (index < activeSegmentIndex) return 'done';
+    return index === activeSegmentIndex ? 'active' : 'planned';
+  }
+  return 'planned';
+}

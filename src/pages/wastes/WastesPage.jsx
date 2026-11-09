@@ -90,7 +90,7 @@ function WasteList({ variant, onCreate, createdWasteId }) {
         <div>
           <p>RECYCLING ROUTE</p>
           <div className="page-title-row">
-            <h1>내 폐기물</h1>
+            <h1>자원 경로</h1>
           </div>
           <span className="page-lead">분류부터 처리까지, 폐기물마다 어디까지 진행됐는지 한눈에 확인하세요.</span>
           <a className="completed-history-link" href="/data?tab=history">

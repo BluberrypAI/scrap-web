@@ -6641,17 +6641,23 @@
   line-height: 1.6;
 }
 .sv-result-actions {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  display: flex;
+  margin-top: -18px;
+  display: grid;
+}
+.sv-result-actions > .button-quiet {
+  justify-self: start;
 }
 .sv-result-actions > .treatment-confirm {
   display: flex;
   align-items: center;
+  justify-self: end;
+  justify-content: flex-end;
   gap: 12px;
   max-width: none;
-  margin: 0;
+  margin: 0 !important;
   border: 0;
   background: transparent;
   padding: 0;
@@ -6726,8 +6732,9 @@
     padding: 18px 16px;
   }
   .sv-result-actions {
+    grid-template-columns: 1fr;
     align-items: stretch;
-    flex-direction: column-reverse;
+    margin-top: -10px;
   }
   .sv-result-actions > .button,
   .sv-result-actions > .treatment-confirm,
@@ -6735,6 +6742,7 @@
     width: 100%;
   }
   .sv-result-actions > .treatment-confirm {
+    justify-self: stretch;
     align-items: stretch;
     flex-direction: column;
   }
