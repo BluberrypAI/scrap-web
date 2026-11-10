@@ -72,7 +72,7 @@ export function WasteDetailPage({ waste }) {
       data-layer-name="L2-WasteDetail" data-variant={waste.status}>
       <a className="detail-back" href="/wastes">
         <span>←</span>
-        {' 내 폐기물'}
+        {' 자원 경로'}
       </a>
       <header className="detail-header">
         <div>

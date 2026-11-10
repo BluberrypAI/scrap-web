@@ -18,7 +18,7 @@ const steps = [
   {
     path: '/wastes',
     title: '재활용 경로',
-    description: '내 폐기물과 각각의 처리경로를 확인하는 페이지예요.',
+    description: '사업장의 폐기물과 각각의 자원 경로를 확인하는 페이지예요.',
   },
   {
     path: '/map',

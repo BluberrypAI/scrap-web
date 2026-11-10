@@ -4,7 +4,7 @@ export const navItems = [
     href: '/about',
   },
   {
-    label: '재활용 경로',
+    label: '자원 경로',
     href: '/wastes',
   },
   {
