@@ -44,14 +44,15 @@ VITE_MAPBOX_ACCESS_TOKEN=pk로_시작하는_공개_액세스_토큰
 회원·기업 API(`/api/v1`)는 로그인 쿠키(httpOnly) 때문에 **같은 출처**로만 호출합니다. 개발 중에는 Vite가 `/api/v1`을 서버(기본 `http://127.0.0.1:8000`)로 넘기고, 운영에서는 nginx가 넘깁니다. 서버 주소를 바꾸려면 `.env`에 `SCRAP_SERVER_URL`을 둡니다.
 
 1. server 레포를 8000 포트로 실행합니다 (server `backend/README.md`의 "프론트엔드와 함께 실행").
-2. `npm run dev`로 실행하고 `http://127.0.0.1:5173`을 엽니다. `localhost`와 섞어 쓰면 쿠키가 따로 저장되니 한쪽으로 맞춥니다.
-3. OAuth 키가 없으면 개발용 로그인(`POST /api/v1/auth/dev-login`)을 씁니다.
+2. `npm run dev`로 실행하고 **`http://localhost:5173`**을 엽니다. 소셜 로그인 콜백이 `localhost:8000`으로 오므로 `127.0.0.1`로 열면 로그인 쿠키가 보이지 않습니다.
+3. OAuth 키가 없으면 로그인 화면의 "개발용 로그인" 버튼(dev 모드에서만 보임)을 씁니다.
 
 | 파일 | 역할 |
 | --- | --- |
 | [src/lib/api.js](src/lib/api.js) | API 호출. 401이면 토큰을 한 번 재발급하고 다시 보냄. 오류는 서버 형식(`code`, `message`, `details`)의 `ApiError`로 던짐 |
 | [src/lib/session.js](src/lib/session.js) | 로그인 상태 판단 (`signed-out`, `onboarding`, `ready`)과 이동할 화면 결정 |
-| [src/hooks/useSession.js](src/hooks/useSession.js) | 화면에서 로그인 상태를 쓰는 훅 |
+| [src/hooks/useSession.js](src/hooks/useSession.js) | 화면에서 로그인 상태를 쓰는 훅. `useRequireSession`은 상태에 맞지 않는 화면이면 로그인·온보딩·앱 화면으로 보냄 |
+| [src/lib/auth.js](src/lib/auth.js) | 헤더 버튼처럼 서버 응답 전에 그려야 하는 곳에서 쓰는 로그인 힌트(localStorage). 기준은 항상 `/users/me` |
 
 서버는 로그인 뒤 `/onboarding`, `/login?error=...` 같은 일반 경로로 보냅니다. [src/lib/router.js](src/lib/router.js)가 이를 해시 주소(`/#/onboarding`)로 바꿉니다.
 
