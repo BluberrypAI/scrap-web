@@ -4,6 +4,7 @@ import BorderGlow from '../../components/reactbits/BorderGlow/BorderGlow.jsx';
 import MicroSlats from '../../components/reactbits/MicroSlats/MicroSlats.jsx';
 import { SiteFooter } from '../../components/SiteFooter.jsx';
 import { SiteHeader } from '../../components/SiteHeader.jsx';
+import { getStartPath } from '../../lib/auth.js';
 import { useInView } from '../../hooks/useInView.js';
 import {
   aboutWhy,
@@ -194,10 +195,10 @@ export function AboutPage() {
       </section>
       <section className="about-cta">
         <div>
-          <h2>내 폐기물의 재활용 경로 찾기</h2>
+          <h2>우리 사업장의 자원 경로 찾기</h2>
           <p>질문 몇 개에 답하면 분류번호와 근거, 가능한 재활용 유형을 확인할 수 있어요.</p>
         </div>
-        <a className="landing-button landing-button-primary" href="/login">
+        <a className="landing-button landing-button-primary" href={getStartPath()}>
           시작하기
           <ArrowUpRightIcon />
         </a>

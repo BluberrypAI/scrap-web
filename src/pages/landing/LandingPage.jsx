@@ -3,6 +3,7 @@ import { SiteFooter } from '../../components/SiteFooter.jsx';
 import { SiteHeader } from '../../components/SiteHeader.jsx';
 import { LandingArtwork } from './LandingArtwork.jsx';
 import { AnimatedContent, MagnetLink } from './LandingMotion.jsx';
+import { getStartPath } from '../../lib/auth.js';
 
 const partners = [
   { id: 'moel', name: '고용노동부', image: '/images/partner-moel.svg' },
@@ -40,7 +41,7 @@ export function LandingPage() {
             SCRAP이 더 빠르고 투명한 자원순환을 시작합니다.
           </AnimatedContent>
           <AnimatedContent className="landing-actions" delay={380}>
-            <MagnetLink className="landing-button landing-button-primary landing-button-large" href="/login">
+            <MagnetLink className="landing-button landing-button-primary landing-button-large" href={getStartPath()}>
               시작하기
               <ArrowUpRightIcon />
             </MagnetLink>
