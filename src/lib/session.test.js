@@ -45,6 +45,7 @@ test('401이 아닌 오류는 그대로 던진다', async () => {
 
 test('상태에 따라 이동할 화면을 정한다', () => {
   assert.equal(redirectFor({ status: 'signed-out' }, '/wastes'), '/login');
+  assert.equal(redirectFor({ status: 'signed-out' }, '/login'), null);
   assert.equal(redirectFor({ status: 'onboarding' }, '/wastes'), '/onboarding');
   assert.equal(redirectFor({ status: 'onboarding' }, '/onboarding'), null);
   assert.equal(redirectFor({ status: 'ready' }, '/onboarding'), '/wastes');

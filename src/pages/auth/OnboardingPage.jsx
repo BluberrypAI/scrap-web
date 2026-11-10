@@ -1,14 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AuthLogo } from '../../components/AuthLogo.jsx';
 import { Icon } from '../../components/Icon.jsx';
-import {
-  clearSignupDraft,
-  getSignupDraft,
-  saveAuthenticatedSession,
-} from '../../lib/auth.js';
+import { useRequireSession } from '../../hooks/useSession.js';
+import { ApiError, api } from '../../lib/api.js';
+import { rememberSession } from '../../lib/auth.js';
 import { navigate } from '../../lib/router.js';
 
 const facilityOptions = ['폐수처리시설', '혼합시설', '세척시설', '반응시설', '건조시설', '저장시설'];
+// 서버와 같은 형식 검사 (companies/schemas.py EMAIL_PATTERN)
+const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+// 단계별로 다음으로 넘어가기 전에 빠진 항목을 알려준다. 문제가 없으면 빈 문자열.
+function stepProblem(step, values) {
+  if (step === 0) {
+    if (!values.companyName.trim()) return '회사명을 입력해 주세요.';
+    if (!values.workplaceName.trim()) return '사업장명을 입력해 주세요.';
+    if (!emailPattern.test(values.contactEmail.trim())) return '담당자 이메일을 확인해 주세요.';
+    if (!values.industry) return '업종을 선택해 주세요.';
+    if (!values.address.trim()) return '사업장 위치를 입력해 주세요.';
+  }
+  if (step === 1 && values.facilities.length === 0) return '배출시설을 하나 이상 선택해 주세요.';
+  return '';
+}
 
 export function OnboardingPage() {
   let [e, t] = useState(0),
@@ -20,9 +33,13 @@ export function OnboardingPage() {
     [mainWastes, setMainWastes] = useState([]),
     [wasteInput, setWasteInput] = useState(''),
     [companyName, setCompanyName] = useState(''),
-    [signupEmail] = useState(() => getSignupDraft().email),
-    [contactEmail, setContactEmail] = useState(() => getSignupDraft().email),
+    [contactEmail, setContactEmail] = useState(''),
     [workplaceName, setWorkplaceName] = useState(''),
+    [problem, setProblem] = useState(''),
+    [submitting, setSubmitting] = useState(false),
+    // 로그인 전이면 로그인 화면으로, 이미 기업이 있으면 앱 화면으로 보낸다.
+    session = useRequireSession('/onboarding'),
+    signupEmail = session.user?.email || '',
     u = (e) => {
       s((t) => (t.includes(e) ? t.filter((t) => t !== e) : [...t, e]));
     },
@@ -37,15 +54,62 @@ export function OnboardingPage() {
         setWasteInput('')
       );
     },
+    submit = async () => {
+      setSubmitting(true);
+      try {
+        await api.createCompany({
+          company_name: companyName.trim(),
+          contact_email: contactEmail.trim(),
+          industry: n,
+          site_name: workplaceName.trim(),
+          site_address: i.trim(),
+          site_facilities: o,
+          main_products: c,
+          main_waste_types: mainWastes.map((category) => ({ category })),
+        });
+        rememberSession({ status: 'ready' });
+        navigate('/wastes');
+      } catch (error) {
+        setSubmitting(false);
+        if (error instanceof ApiError && error.status === 409) {
+          // 다른 탭에서 이미 등록함
+          rememberSession({ status: 'ready' });
+          navigate('/wastes');
+        } else if (error instanceof ApiError && error.status === 401) {
+          navigate('/login?mode=login');
+        } else {
+          setProblem(
+            error instanceof ApiError
+              ? `등록하지 못했어요. ${error.message}`
+              : '서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.',
+          );
+        }
+      }
+    },
     d = () => {
+      const found = stepProblem(e, {
+        companyName,
+        workplaceName,
+        contactEmail,
+        industry: n,
+        address: i,
+        facilities: o,
+      });
+      setProblem(found);
+      if (found) return;
       if (e < 2) {
         t((e) => e + 1);
         return;
       }
-      saveAuthenticatedSession();
-      clearSignupDraft();
-      navigate('/wastes');
+      submit();
     };
+  // 담당자 이메일은 로그인한 계정 이메일로 미리 채운다.
+  useEffect(() => {
+    if (signupEmail) setContactEmail((value) => value || signupEmail);
+  }, [signupEmail]);
+  if (session.status === 'loading' || session.redirecting) {
+    return <main className="l0-page onboarding-page" aria-busy="true" />;
+  }
   return (
     <main className="l0-page onboarding-page" data-layer-name="L0-Onboarding" data-step={e + 1}>
       <AuthLogo />
@@ -91,7 +155,7 @@ export function OnboardingPage() {
               </div>
               <div className="onboarding-field-row">
                 <label className="onboarding-field">
-                  담당자 연락처
+                  담당자 이메일
                   <input
                     type="email"
                     value={contactEmail}
@@ -113,12 +177,13 @@ export function OnboardingPage() {
               </div>
               <label className="onboarding-field">
                 사업장 위치
-                <span className="address-field">
-                  <input type="text" value={i} readOnly placeholder="사업장 주소를 검색하세요" />
-                  <button type="button" onClick={() => a('경기도 화성시 팔탄면 산업로 128')}>
-                    주소 검색
-                  </button>
-                </span>
+                <input
+                  type="text"
+                  value={i}
+                  onChange={(event) => a(event.target.value)}
+                  placeholder="사업장 주소를 입력하세요"
+                  autoComplete="street-address"
+                />
               </label>
             </section>
           )}
@@ -230,6 +295,11 @@ export function OnboardingPage() {
             </section>
           )}
         </div>
+        {problem && (
+          <p className="onboarding-error" role="alert">
+            {problem}
+          </p>
+        )}
         <p className="onboarding-guide">
           <Icon name="spark" size={16} />
           등록 후에도 기업 데이터 관리에서 수정할 수 있어요
@@ -238,13 +308,16 @@ export function OnboardingPage() {
           <button
             className="button button-quiet"
             type="button"
-            onClick={() => t((e) => Math.max(0, e - 1))}
-            disabled={e === 0}
+            onClick={() => {
+              setProblem('');
+              t((e) => Math.max(0, e - 1));
+            }}
+            disabled={e === 0 || submitting}
           >
             이전
           </button>
-          <button className="button button-primary" type="button" onClick={d}>
-            {e === 2 ? '시작하기' : '다음'}
+          <button className="button button-primary" type="button" onClick={d} disabled={submitting}>
+            {e === 2 ? (submitting ? '등록하는 중…' : '시작하기') : '다음'}
             <Icon name="arrow" size={17} />
           </button>
         </footer>
