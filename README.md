@@ -39,6 +39,22 @@ VITE_MAPBOX_ACCESS_TOKEN=pk로_시작하는_공개_액세스_토큰
 
 `npm test`와 `npm run build`로 확인할 수 있습니다.
 
+## 서버 API 연동
+
+회원·기업 API(`/api/v1`)는 로그인 쿠키(httpOnly) 때문에 **같은 출처**로만 호출합니다. 개발 중에는 Vite가 `/api/v1`을 서버(기본 `http://127.0.0.1:8000`)로 넘기고, 운영에서는 nginx가 넘깁니다. 서버 주소를 바꾸려면 `.env`에 `SCRAP_SERVER_URL`을 둡니다.
+
+1. server 레포를 8000 포트로 실행합니다 (server `backend/README.md`의 "프론트엔드와 함께 실행").
+2. `npm run dev`로 실행하고 `http://127.0.0.1:5173`을 엽니다. `localhost`와 섞어 쓰면 쿠키가 따로 저장되니 한쪽으로 맞춥니다.
+3. OAuth 키가 없으면 개발용 로그인(`POST /api/v1/auth/dev-login`)을 씁니다.
+
+| 파일 | 역할 |
+| --- | --- |
+| [src/lib/api.js](src/lib/api.js) | API 호출. 401이면 토큰을 한 번 재발급하고 다시 보냄. 오류는 서버 형식(`code`, `message`, `details`)의 `ApiError`로 던짐 |
+| [src/lib/session.js](src/lib/session.js) | 로그인 상태 판단 (`signed-out`, `onboarding`, `ready`)과 이동할 화면 결정 |
+| [src/hooks/useSession.js](src/hooks/useSession.js) | 화면에서 로그인 상태를 쓰는 훅 |
+
+서버는 로그인 뒤 `/onboarding`, `/login?error=...` 같은 일반 경로로 보냅니다. [src/lib/router.js](src/lib/router.js)가 이를 해시 주소(`/#/onboarding`)로 바꿉니다.
+
 ## Docker
 
 빌드한 정적 파일을 nginx로 서빙합니다. `/api/` 요청은 `SCRAP_SERVER_URL`(기본값 `http://host.docker.internal:8000`)로 그대로 전달합니다.
@@ -63,7 +79,8 @@ src/
 ├─ layouts/AppShell.jsx # 상단 내비게이션이 있는 앱 화면과 작업(L3) 화면 분기
 ├─ pages/               # 화면 단위 컴포넌트 (landing, about, auth, wastes, waste-detail, survey, map, data, report …)
 ├─ components/          # 여러 화면에서 쓰는 컴포넌트 (Icon, SiteFooter, AppTopNav, WorkBar …)
-├─ hooks/               # 공용 훅
+├─ hooks/               # 공용 훅 (useSession: 로그인 상태)
+├─ lib/                 # 라우팅(router.js), 서버 API 호출(api.js), 로그인 상태 판단(session.js)
 ├─ data/                # 시연용 정적 데이터 (폐기물, 업체, 메뉴)
 ├─ features/treatment/  # 처리경로 추적 기능 (상태·증빙 로직, 3D 모식도, 테스트)
 ├─ assets/              # import해서 쓰는 이미지
