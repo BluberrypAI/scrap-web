@@ -54,6 +54,11 @@ export function OnboardingPage() {
         setWasteInput('')
       );
     },
+    // 입력칸에 쓰고 '추가'를 누르지 않은 값도 함께 등록한다.
+    withPending = (items, text) => {
+      const value = text.trim();
+      return value && !items.includes(value) ? [...items, value] : items;
+    },
     submit = async () => {
       setSubmitting(true);
       try {
@@ -64,8 +69,8 @@ export function OnboardingPage() {
           site_name: workplaceName.trim(),
           site_address: i.trim(),
           site_facilities: o,
-          main_products: c,
-          main_waste_types: mainWastes.map((category) => ({ category })),
+          main_products: withPending(c, f),
+          main_waste_types: withPending(mainWastes, wasteInput).map((category) => ({ category })),
         });
         rememberSession({ status: 'ready' });
         navigate('/wastes');

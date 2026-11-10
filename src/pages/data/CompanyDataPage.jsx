@@ -33,23 +33,43 @@ const workplaceFields = [
   ['industry', '업종', false, true],
   ['site_facilities', '배출시설', true, true],
   ['main_products', '주생산품', true, false],
+  ['main_waste_types', '주폐기물', true, false],
   ['site_address', '위치', false, true],
 ];
+
+// 화면에 보이는 값. 주폐기물은 종류 이름만 보여준다.
+function readField(company, key, isList) {
+  if (!isList) return company?.[key] || '';
+  const items = company?.[key] || [];
+  return key === 'main_waste_types' ? items.map((item) => item.category) : items;
+}
 
 // 서버 값 → 입력란 문자열
 function toDraft(company) {
   return Object.fromEntries(
-    workplaceFields.map(([key, , isList]) => [
-      key,
-      isList ? (company?.[key] || []).join(', ') : company?.[key] || '',
-    ]),
+    workplaceFields.map(([key, , isList]) => {
+      const value = readField(company, key, isList);
+      return [key, isList ? value.join(', ') : value];
+    }),
   );
 }
 
-// 입력란 문자열 → 서버 값
+// 입력란 문자열 → 화면 값 (readField와 같은 형태)
 function fromDraft(isList, text) {
   if (!isList) return text.trim();
   return [...new Set(text.split(',').map((item) => item.trim()).filter(Boolean))];
+}
+
+// 화면 값 → 서버로 보낼 값. 주폐기물은 기존 항목의 예상 물량을 종류별로 유지한다.
+function toServerValue(company, key, value) {
+  if (key !== 'main_waste_types') return value;
+  const volumes = new Map(
+    (company.main_waste_types || []).map((item) => [item.category, item.expected_monthly_volume_kg]),
+  );
+  return value.map((category) => ({
+    category,
+    expected_monthly_volume_kg: volumes.get(category) ?? null,
+  }));
 }
 
 function sameValue(a, b) {
@@ -101,7 +121,9 @@ export function CompanyDataPage() {
         setSaveError(`${label} 항목을 입력해 주세요.`);
         return;
       }
-      if (!sameValue(value, company[key])) changes[key] = value;
+      if (!sameValue(value, readField(company, key, isList))) {
+        changes[key] = toServerValue(company, key, value);
+      }
     }
     if (Object.keys(changes).length === 0) {
       setSaveError('');
@@ -220,7 +242,9 @@ export function CompanyDataPage() {
                     <article key={key}>
                       <span>{label}</span>
                       <strong>
-                        {isList ? (company?.[key] || []).join(', ') || '없음' : company?.[key]}
+                        {isList
+                          ? readField(company, key, true).join(', ') || '없음'
+                          : company?.[key]}
                       </strong>
                     </article>
                   ))}
