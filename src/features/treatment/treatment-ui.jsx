@@ -39,7 +39,8 @@ async function requestNext(value, signal) {
   });
   const result = await response.json().catch(() => null);
   if (!response.ok || !result?.status) {
-    throw new Error(result?.detail?.message || '공정 엔진에 연결하지 못했어요. 실행 상태를 확인해 주세요.');
+    // server 공통 오류 형식은 {code, message, details}
+    throw new Error(result?.message || result?.detail?.message || '공정 엔진에 연결하지 못했어요. 실행 상태를 확인해 주세요.');
   }
   return result;
 }
