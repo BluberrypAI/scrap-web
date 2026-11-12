@@ -35,12 +35,14 @@ export function createBerryFigure() {
   ellipsoid(wave,blue,[0.56,0.40,0.03],[0.23,0.15,0.14]);
   tube(wave,[[0.43,0.42,0.03],[0.48,0.67,0.03]],0.075);
   tube(wave,[[0.6,0.44,0.04],[0.82,0.51,0.04]],0.075);
+  const bubbleAnchor = new THREE.Object3D();
+  bubbleAnchor.position.set(0.62,0.78,0.04); wave.add(bubbleAnchor);
   for (const side of [-1,1]) {
     tube(root,[[side*0.34,0.57,0],[side*0.38,0.18,0.05]],0.11);
     ellipsoid(root,blue,[side*0.43,0.13,0.16],[0.28,0.14,0.34]);
   }
-  root.scale.setScalar(1.28);
-  return {root, update(time) {
+  root.scale.setScalar(1.76);
+  return {root, bubbleAnchor, update(time) {
     body.scale.y = 1 + Math.sin(time*1.6)*0.012;
     body.rotation.z = Math.sin(time*0.9)*0.02;
     wave.rotation.z = 0.06 + Math.sin(time*2.1)*0.10;

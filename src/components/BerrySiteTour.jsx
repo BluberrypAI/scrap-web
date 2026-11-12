@@ -53,12 +53,24 @@ export function BerrySiteTour({ path }) {
 
   useEffect(() => {
     if (step === null || path !== steps[step].path) return;
-    if (step === 0) {
-      const timer = window.setTimeout(() => setVisible(true), 1000);
-      return () => window.clearTimeout(timer);
-    }
+    if (step === 0) return;
     setVisible(true);
   }, [path, step]);
+
+  useEffect(() => {
+    const startTour = () => {
+      if (path !== '/') return;
+      try {
+        localStorage.setItem(storageKey, '0');
+      } catch {
+        // 저장소를 사용할 수 없어도 현재 화면에서는 안내를 시작한다.
+      }
+      setStep(0);
+      setVisible(true);
+    };
+    window.addEventListener('scrap:open-site-tour', startTour);
+    return () => window.removeEventListener('scrap:open-site-tour', startTour);
+  }, [path]);
 
   useEffect(() => {
     if (visible) confirmRef.current?.focus();

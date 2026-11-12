@@ -8,29 +8,31 @@ import { addFactoryDetails } from './factory-details.js';
 import { createBerryFigure } from './berry-figure.js';
 
 // An illustrative world only: no waste records, facility decisions or engine calls.
-export function MeadowShowcase() {
+export function MeadowShowcase({ onBerryClick }) {
   const hostRef = useRef(null), engineRef = useRef(null), berryBubbleRef = useRef(null);
-  const [paused, setPaused] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [ready, setReady] = useState(false), [failed, setFailed] = useState(false);
   useEffect(() => {
-    let engine;
-    try { engine = createMeadow(hostRef.current, berryBubbleRef.current); engineRef.current = engine; setReady(true); }
+    let engine, active = true;
+    try {
+      engine = createMeadow(hostRef.current, berryBubbleRef.current, onBerryClick, () => {
+        if (active) setReady(true);
+      });
+      engineRef.current = engine;
+    }
     catch { setFailed(true); }
-    return () => { engine?.dispose(); engineRef.current = null; };
-  }, []);
-  useEffect(() => { engineRef.current?.pause(paused); }, [paused]);
+    return () => { active = false; engine?.dispose(); engineRef.current = null; };
+  }, [onBerryClick]);
   return <>
-    <div className="meadow-world" ref={hostRef} tabIndex={0} role="img" aria-label="공장 위쪽 초원에서 베리가 자, 뭘 도와드릴까요? 하고 인사합니다. 드래그로 회전하는 SCRAP 조형물, 문서 확인·PP 세척·파쇄 공장과 작업 중인 에이전트들이 보입니다.">
-      <div className="berry-world-bubble" ref={berryBubbleRef}><span>베리</span>자, 뭘 도와드릴까요?</div>
+    <div className="meadow-world" ref={hostRef} tabIndex={0} role="group" aria-label="공장 위쪽 초원에서 베리가 인사합니다. 베리를 누르면 SCRAP 주요 화면을 볼 수 있습니다. 드래그로 회전하는 SCRAP 조형물, 문서 확인·PP 세척·파쇄 공장과 작업 중인 에이전트들이 보입니다.">
+      <button className="berry-world-bubble" ref={berryBubbleRef} type="button" onClick={onBerryClick} aria-label="베리에게 SCRAP 화면 안내 받기">저를 눌러보세요</button>
     </div>
     {!ready && <div className="meadow-loading">{failed ? '이 브라우저에서는 3D 장면을 표시할 수 없어요. 상단 메뉴에서 서비스를 이용해 주세요.' : '작은 세상을 펼치는 중…'}</div>}
-    <button className="meadow-pause" type="button" aria-label={paused ? '장면 재생' : '장면 일시 정지'} aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? '▶' : 'Ⅱ'}</button>
   </>;
 }
 
-function createMeadow(host, berryBubble) {
+function createMeadow(host, berryBubble, onBerryClick, onFirstFrame) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
@@ -43,7 +45,11 @@ function createMeadow(host, berryBubble) {
   const sun = new THREE.DirectionalLight(0xfff0d8, 2.7); sun.position.set(-16, 32, 18); sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -38, right: 38, top: 32, bottom: -32, far: 100 }); sun.shadow.normalBias = 0.025; sun.shadow.bias = -0.00008; scene.add(sun);
-  const meadow = createLandscape(THREE, scene, { mobile: window.innerWidth < 700 });
+  const meadow = createLandscape(THREE, scene, {
+    mobile: window.innerWidth < 700,
+    cloudLayout: 'clear-copy',
+    lightweight: true,
+  });
   const positions = [[-16, 8], [-3, 5], [10, -4]];
   const facilities = positions.map(([x, z], i) => {
     const facility = createFacility(THREE, ['source', 'sorting', 'recycling'][i], [0x3d8bd6, 0xe6ad3a, 0x72ae65][i]);
@@ -101,29 +107,41 @@ function createMeadow(host, berryBubble) {
   });
   const workshops = createWorkshopLife(scene, meadow, facilities, makeRobot, layout);
   const berry = createBerryFigure();
-  // Move toward the viewer along the view direction: same screen column,
-  // lower character and bubble, with space beneath the Korean introduction.
-  berry.root.position.set(-3, meadow.heightAt(-3, -5) + 0.07, -5);
-  berry.root.rotation.y = Math.atan2(camera.position.x + 3, camera.position.z + 5);
+  // Keep Berry above and to the right of the factory row, clear of the headline.
+  berry.root.position.set(-4, meadow.heightAt(-4, -18) + 0.07, -18);
+  berry.root.rotation.y = Math.atan2(camera.position.x + 4, camera.position.z + 18);
   scene.add(berry.root);
   const berryAnchor = new THREE.Vector3();
-  let sculpture = null, disposed = false;
+  let sculpture = null, disposed = false, cancelSculptureLoad = null;
   const sculpturePosition = new THREE.Vector3(-31, meadow.heightAt(-31, 4) + 0.07, 4);
   const sculptureYaw = Math.atan2(camera.position.x - sculpturePosition.x, camera.position.z - sculpturePosition.z);
-  createCompassSculpture(renderer).then(model => {
-    if (disposed) { model.dispose(); return; }
-    sculpture = model; model.root.position.copy(sculpturePosition); model.root.rotation.y = sculptureYaw; scene.add(model.root);
-  }).catch(error => { if (!disposed) console.error('SCRAP sculpture could not load', error); });
+  const loadSculpture = () => {
+    cancelSculptureLoad = null;
+    if (disposed) return;
+    createCompassSculpture(renderer).then(model => {
+      if (disposed) { model.dispose(); return; }
+      sculpture = model; model.root.position.copy(sculpturePosition); model.root.rotation.y = sculptureYaw; scene.add(model.root);
+    }).catch(error => { if (!disposed) console.error('SCRAP sculpture could not load', error); });
+  };
+  const scheduleSculpture = () => {
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(loadSculpture, { timeout: 1200 });
+      cancelSculptureLoad = () => window.cancelIdleCallback(id);
+    } else {
+      const id = window.setTimeout(loadSculpture, 250);
+      cancelSculptureLoad = () => window.clearTimeout(id);
+    }
+  };
   const raycaster = new THREE.Raycaster();
-  let pointerInside = false, dragging = false, dragLastX = 0, dragAngle = 0;
+  let pointerInside = false, dragging = false, dragLastX = 0, dragAngle = 0, berryPress = null;
   const birds = new THREE.Group();
   for (let i = 0; i < 5; i++) {
     const shape = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.3, 0, 0), new THREE.Vector3(0, -0.12, 0), new THREE.Vector3(0.3, 0, 0)]);
     const bird = new THREE.Line(shape, new THREE.LineBasicMaterial({ color: 0x426276 })); bird.position.set(i * 1.1, (i % 2) * 0.6, i * 0.8); birds.add(bird);
   }
   scene.add(birds);
-  let paused = false, visible = true, elapsed = 0, last = performance.now(), frame = 0;
   const pointer = new THREE.Vector2(), reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let paused = reducedMotion.matches, visible = true, elapsed = 0, last = performance.now(), frame = 0, firstFrame = false;
   function resize() {
     const { width, height } = host.getBoundingClientRect();
     renderer.setSize(width, height, false); camera.aspect = width / Math.max(height, 1);
@@ -131,17 +149,9 @@ function createMeadow(host, berryBubble) {
     camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(37 / 2)) * Math.max(1, 1.45 / camera.aspect)));
     camera.setViewOffset(width, height, width < 650 ? 0 : -width * 0.045, 0, width, height);
     camera.updateProjectionMatrix();
-    // Short, wide viewports bring the headline and 3D anchor together.
-    // Lower Berry only as much as needed, preserving its screen column.
-    const copy = host.parentElement.querySelector('.landing-copy');
-    const minBubbleTop = copy.getBoundingClientRect().bottom - host.getBoundingClientRect().top + 24;
-    for (let step = 0; step <= 16; step++) {
-      const x = -3 + step * 0.35, z = -5 + step * 0.58;
-      berry.root.position.set(x, meadow.heightAt(x, z) + 0.07, z);
-      const anchor = berry.root.position.clone(); anchor.y += 3.8; anchor.project(camera);
-      const bubbleTop = (-anchor.y * 0.5 + 0.5) * height - berryBubble.offsetHeight;
-      if (bubbleTop >= minBubbleTop) break;
-    }
+    const compact = width < 650;
+    const x = compact ? -10 : -4, z = compact ? -15 : -18;
+    berry.root.position.set(x, meadow.heightAt(x, z) + 0.07, z);
     berry.root.rotation.y = Math.atan2(camera.position.x - berry.root.position.x, camera.position.z - berry.root.position.z);
   }
   const observer = new ResizeObserver(resize); observer.observe(host); observer.observe(host.parentElement.querySelector('.landing-copy')); resize();
@@ -152,16 +162,36 @@ function createMeadow(host, berryBubble) {
     raycaster.setFromCamera(new THREE.Vector2(pointer.x * 2, -pointer.y * 2), camera);
     return raycaster.intersectObject(sculpture.root, true).length > 0;
   };
+  const hitBerry = () => {
+    if (!pointerInside) return false;
+    raycaster.setFromCamera(new THREE.Vector2(pointer.x * 2, -pointer.y * 2), camera);
+    return raycaster.intersectObject(berry.root, true).length > 0;
+  };
   const move = event => {
     updatePointer(event);
     if (dragging) { dragAngle += (event.clientX - dragLastX) * 0.015; dragLastX = event.clientX; }
-    host.style.cursor = dragging ? 'grabbing' : hitLogo() ? 'grab' : 'default';
+    host.style.cursor = dragging ? 'grabbing' : hitLogo() ? 'grab' : hitBerry() ? 'pointer' : 'default';
   };
   const down = event => {
-    updatePointer(event); if (!hitLogo()) return;
+    updatePointer(event);
+    if (hitBerry()) {
+      event.preventDefault(); berryPress = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+      host.setPointerCapture(event.pointerId); host.focus({preventScroll:true}); return;
+    }
+    if (!hitLogo()) return;
     event.preventDefault(); dragging = true; dragLastX = event.clientX; host.setPointerCapture(event.pointerId); host.focus({preventScroll:true}); host.style.cursor = 'grabbing';
   };
-  const up = event => { dragging = false; if (host.hasPointerCapture(event.pointerId)) host.releasePointerCapture(event.pointerId); host.style.cursor = hitLogo() ? 'grab' : 'default'; };
+  const up = event => {
+    if (berryPress && berryPress.pointerId === event.pointerId) {
+      updatePointer(event);
+      const clicked = Math.hypot(event.clientX - berryPress.x, event.clientY - berryPress.y) < 8 && hitBerry();
+      berryPress = null;
+      if (clicked) onBerryClick?.();
+    }
+    dragging = false;
+    if (host.hasPointerCapture(event.pointerId)) host.releasePointerCapture(event.pointerId);
+    host.style.cursor = hitLogo() ? 'grab' : hitBerry() ? 'pointer' : 'default';
+  };
   const key = event => {
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); dragAngle += event.key === 'ArrowLeft' ? -0.25 : 0.25; }
     if (event.key === 'Escape') dragAngle = 0;
@@ -198,16 +228,19 @@ function createMeadow(host, berryBubble) {
     camera.position.x = THREE.MathUtils.lerp(camera.position.x, 25 + (motion ? pointer.x * 1.8 : 0), 0.025);
     camera.position.y = THREE.MathUtils.lerp(camera.position.y, 21 + (motion ? pointer.y * 0.8 : 0), 0.025);
     camera.lookAt(target); renderer.render(scene, camera);
-    berryAnchor.copy(berry.root.position); berryAnchor.y += 3.8; berryAnchor.project(camera);
+    if (!firstFrame) { firstFrame = true; onFirstFrame?.(); scheduleSculpture(); }
+    berry.bubbleAnchor.getWorldPosition(berryAnchor); berryAnchor.y += 0.18; berryAnchor.project(camera);
     const bx = (berryAnchor.x * 0.5 + 0.5) * host.clientWidth;
     const by = (-berryAnchor.y * 0.5 + 0.5) * host.clientHeight;
-    berryBubble.style.left = `${Math.max(90, Math.min(host.clientWidth - 90, bx))}px`;
-    berryBubble.style.top = `${by}px`;
+    const halfBubble = berryBubble.offsetWidth / 2;
+    berryBubble.style.left = `${THREE.MathUtils.clamp(bx + (host.clientWidth < 650 ? 36 : 64), halfBubble + 12, host.clientWidth - halfBubble - 12)}px`;
+    berryBubble.style.top = `${THREE.MathUtils.clamp(by - 8, berryBubble.offsetHeight + 12, host.clientHeight - 12)}px`;
     berryBubble.style.visibility = berryAnchor.z < 1 ? 'visible' : 'hidden';
   }
   frame = requestAnimationFrame(animate);
-  return { pause(value) { paused = value; }, dispose() {
+  return { dispose() {
     disposed = true;
+    cancelSculptureLoad?.();
     if (sculpture) { scene.remove(sculpture.root); sculpture.dispose(); }
     cancelAnimationFrame(frame); observer.disconnect(); visibility.disconnect(); host.removeEventListener('pointermove', move); host.removeEventListener('pointerleave', leave); host.removeEventListener('pointerdown', down); host.removeEventListener('pointerup', up); host.removeEventListener('pointercancel', up); host.removeEventListener('keydown', key); workshops.dispose(); meadow.dispose();
     const geometries = new Set(), materials = new Set(); scene.traverse(object => { if (object.geometry) geometries.add(object.geometry); if (object.material) (Array.isArray(object.material) ? object.material : [object.material]).forEach(m => materials.add(m)); });

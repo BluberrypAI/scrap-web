@@ -17,7 +17,7 @@ export function LandingPage() {
     <main className="landing-page showcase-home" data-layer-name="Landing-Hero" data-theme="light">
       <SiteHeader />
       <section className="landing-hero meadow-integrated" aria-labelledby="landing-title">
-        <MeadowBackground />
+        <MeadowBackground onBerryClick={openBerryTour} />
         <GachonBadge />
         <div className="landing-copy">
           <h1 id="landing-title">
@@ -65,4 +65,8 @@ export function LandingPage() {
 
     </main>
   );
+}
+
+function openBerryTour() {
+  window.dispatchEvent(new CustomEvent('scrap:open-site-tour'));
 }

@@ -1,7 +1,13 @@
 import { lazy, Suspense } from 'react';
 
-const MeadowShowcase = lazy(() => import('./MeadowShowcase.jsx').then(module => ({ default: module.MeadowShowcase })));
+const loadMeadowShowcase = () => import('./MeadowShowcase.jsx');
+const MeadowShowcase = lazy(() => loadMeadowShowcase()
+  .then(module => ({ default: module.MeadowShowcase })));
 
-export function MeadowBackground() {
-  return <Suspense fallback={null}><MeadowShowcase /></Suspense>;
+export function preloadMeadowShowcase() {
+  return loadMeadowShowcase();
+}
+
+export function MeadowBackground({ onBerryClick }) {
+  return <Suspense fallback={null}><MeadowShowcase onBerryClick={onBerryClick} /></Suspense>;
 }
