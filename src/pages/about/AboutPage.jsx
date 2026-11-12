@@ -31,6 +31,9 @@ export function AboutPage() {
           SCRAP은 사업장에서 나오는 폐기물을 분류부터 처리업체로 넘기는 과정까지 이어주는
           재활용자원순환 네비게이터입니다.
         </p>
+        <p className="about-acronym" aria-label="Structured Circular Resource Assessment and Planning">
+          <b>S</b>tructured <b>C</b>ircular <b>R</b>esource <b>A</b>ssessment and <b>P</b>lanning
+        </p>
       </section>
       <section className="about-section" aria-labelledby="about-why">
         <div className="about-heading">

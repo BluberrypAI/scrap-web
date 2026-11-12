@@ -1,5 +1,10 @@
 /** A small, living, Bliss-inspired landscape. No downloaded assets are used. */
-export function createLandscape(THREE, scene, { routeView = false, mobile = false } = {}) {
+export function createLandscape(THREE, scene, {
+  routeView = false,
+  mobile = false,
+  cloudLayout = 'default',
+  lightweight = false,
+} = {}) {
   const root = new THREE.Group();
   root.name = 'Bliss meadow';
   scene.add(root);
@@ -83,8 +88,8 @@ export function createLandscape(THREE, scene, { routeView = false, mobile = fals
 
   // A circular, gridded meadow has no square far corner. Its remote perimeter
   // drops behind the rolling crest, outside the working area and into the fog.
-  const radialSegments = 144;
-  const angularSegments = 256;
+  const radialSegments = lightweight ? 80 : 144;
+  const angularSegments = lightweight ? 144 : 256;
   const terrainRadius = 180;
   const terrainVertices = [0, 0, 0];
   const terrainUVs = [0.5, 0.5];
@@ -139,7 +144,7 @@ export function createLandscape(THREE, scene, { routeView = false, mobile = fals
     if (ctx) {
       ctx.fillStyle = '#c9d6b9';
       ctx.fillRect(0, 0, 256, 256);
-      for (let i = 0; i < 12000; i++) {
+      for (let i = 0; i < (lightweight ? 4000 : 12000); i++) {
         const x = random() * 256;
         const y = random() * 256;
         ctx.strokeStyle = random() > 0.5 ? 'rgba(255,255,210,.13)' : 'rgba(32,74,25,.09)';
@@ -191,7 +196,7 @@ export function createLandscape(THREE, scene, { routeView = false, mobile = fals
       transformed.z += cos(meadowTime + meadowRoot.x * .29) * position.y * .10;
     `);
   };
-  const grassCount = routeView ? 0 : 4600;
+  const grassCount = routeView ? 0 : lightweight ? 1800 : 4600;
   const grass = grassCount ? instanced(grassGeometry, grassMaterial, grassCount) : null;
   const bladeColor = new THREE.Color();
   for (let i = 0; i < grassCount; i++) {
@@ -211,7 +216,8 @@ export function createLandscape(THREE, scene, { routeView = false, mobile = fals
     ? [[-23, -12], [-19, -14], [-23, 11], [-19, 13]].map(([x, z], index) => ({
       x, z, scale: 0.75 + index * 0.08, phase: index * 0.9,
     })) : [];
-  for (let attempt = 0; attempt < 4000 && treePoints.length < (routeView ? 20 : 12); attempt++) {
+  const treeTarget = routeView ? 20 : lightweight ? 8 : 12;
+  for (let attempt = 0; attempt < 4000 && treePoints.length < treeTarget; attempt++) {
     const x = (random() - 0.5) * 76;
     const z = (random() - 0.5) * 57;
     const screenSide = x * 0.76 - z * 0.65;
@@ -241,7 +247,7 @@ export function createLandscape(THREE, scene, { routeView = false, mobile = fals
 
   const shrubGeometry = keepGeometry(new THREE.SphereGeometry(1, 8, 6));
   const shrubMaterial = keepMaterial(new THREE.MeshStandardMaterial({ color: '#65a437', roughness: 1 }));
-  const shrubCount = routeView ? 36 : 22;
+  const shrubCount = routeView ? 36 : lightweight ? 14 : 22;
   const shrubs = instanced(shrubGeometry, shrubMaterial, shrubCount, true);
   for (let i = 0; i < shrubCount; i++) {
     let x, z;
@@ -265,10 +271,11 @@ export function createLandscape(THREE, scene, { routeView = false, mobile = fals
   const flowerMaterial = keepMaterial(new THREE.MeshStandardMaterial({ color: '#fff8dc', side: THREE.DoubleSide, roughness: 0.95 }));
   const pollenGeometry = keepGeometry(new THREE.SphereGeometry(0.031, 5, 4));
   const pollenMaterial = keepMaterial(new THREE.MeshStandardMaterial({ color: '#f9c84d', roughness: 0.8 }));
-  const flowers = instanced(flowerGeometry, flowerMaterial, 260);
-  const pollen = instanced(pollenGeometry, pollenMaterial, 260);
+  const flowerCount = lightweight ? 120 : 260;
+  const flowers = instanced(flowerGeometry, flowerMaterial, flowerCount);
+  const pollen = instanced(pollenGeometry, pollenMaterial, flowerCount);
   const patches = [[-21, 15], [-11, -6], [0, 16], [20, 5], [25, -20], [-25, -17], [2, -19]];
-  for (let i = 0; i < 260; i++) {
+  for (let i = 0; i < flowerCount; i++) {
     let x, z;
     if (routeView) {
       // A narrow flower bed across the foreground keeps the factories clear.
@@ -298,10 +305,16 @@ export function createLandscape(THREE, scene, { routeView = false, mobile = fals
     color: '#ffffff', roughness: 1, emissive: '#e5f1ff', emissiveIntensity: 0.12,
   }));
   const cloudPuffs = [];
-  const cloudGroups = [
-    [-44, 9, -37, 1.5], [-19, 11, -54, 1.8], [8, 9, -47, 1.4],
-    [37, 12, -53, 2.0], [-61, 12, -7, 1.8], [61, 11, -24, 1.5],
-  ];
+  const cloudGroups = cloudLayout === 'clear-copy'
+    ? [
+        [-80, 15, -24, 1.45],
+        [-55, 17, -20, 0.72],
+        [-10, 17, -38, 0.55],
+      ]
+    : [
+        [-44, 9, -37, 1.5], [-19, 11, -54, 1.8], [8, 9, -47, 1.4],
+        [37, 12, -53, 2.0], [-61, 12, -7, 1.8], [61, 11, -24, 1.5],
+      ];
   cloudGroups.forEach(([x, y, z, scale], group) => {
     [[-2.2, 0, 0, 1.9], [-0.5, 0.7, 0.2, 2.2], [1.2, 0.3, 0, 1.9], [2.7, -0.1, 0.1, 1.3], [0.2, -0.5, 0.5, 2.2]].forEach(([dx, dy, dz, size]) => {
       cloudPuffs.push({ x: x + dx * scale, y: y + dy * scale, z: z + dz * scale,
@@ -347,7 +360,8 @@ export function createLandscape(THREE, scene, { routeView = false, mobile = fals
     color: '#ffdf83', roughness: 0.8, emissive: '#ffd685', emissiveIntensity: 0.10,
   }));
   const butterflies = [];
-  for (let i = 0; i < 11; i++) {
+  const butterflyCount = lightweight ? 7 : 11;
+  for (let i = 0; i < butterflyCount; i++) {
     const patch = patches[i % patches.length];
     butterflies.push({ x: patch[0], z: patch[1], phase: random() * Math.PI * 2, speed: 0.35 + random() * 0.25 });
   }

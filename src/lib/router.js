@@ -21,11 +21,11 @@ export function hashUrlFor(pathname, search = '') {
   return `/#${path}${search}`;
 }
 
-// 해시가 바뀌면 새로고침해 화면을 다시 그리고, 내부 링크(/...)는 해시 이동으로 바꾼다.
+// 내부 링크(/...)는 해시 이동으로 바꾼다. 화면 갱신은 App의 hashchange 구독이 맡아
+// 무거운 3D 모듈과 공통 자원을 다시 내려받지 않는다.
 export function installHashRouting() {
   const redirect = location.hash ? null : hashUrlFor(location.pathname, location.search);
   if (redirect) location.replace(redirect);
-  window.addEventListener('hashchange', () => location.reload());
   document.addEventListener(
     'click',
     (event) => {
