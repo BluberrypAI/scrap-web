@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
-import { demoWorkplace } from '../../features/treatment/treatment-state.js';
+import { useSession } from '../../hooks/useSession.js';
+import { ApiError, api } from '../../lib/api.js';
 import { currentRoute } from '../../lib/router.js';
 import { AnimatedContent } from '../landing/LandingMotion.jsx';
 import { DataTable } from './DataTable.jsx';
@@ -27,55 +28,119 @@ const dataTabs = [
   },
 ];
 
+// [서버 필드, 화면 이름, 목록 여부, 필수 여부]. 목록은 쉼표로 나눠 입력받는다.
 const workplaceFields = [
-  ['industry', '업종'],
-  ['facilities', '배출시설'],
-  ['product', '주생산품'],
-  ['region', '위치'],
+  ['industry', '업종', false, true],
+  ['site_facilities', '배출시설', true, true],
+  ['main_products', '주생산품', true, false],
+  ['main_waste_types', '주폐기물', true, false],
+  ['site_address', '위치', false, true],
 ];
 
-const defaultWorkplaceInfo = {
-  industry: '화학제품 제조업',
-  facilities: '혼합시설 외 3개',
-  product: '산업용 윤활유',
-  region: demoWorkplace.region,
-  savedAt: '',
-};
-const storageKey = 'scrap-workplace-info-v1';
+// 화면에 보이는 값. 주폐기물은 종류 이름만 보여준다.
+function readField(company, key, isList) {
+  if (!isList) return company?.[key] || '';
+  const items = company?.[key] || [];
+  return key === 'main_waste_types' ? items.map((item) => item.category) : items;
+}
 
-function readWorkplaceInfo() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
-    if (!saved || typeof saved !== 'object') return defaultWorkplaceInfo;
-    const info = { ...defaultWorkplaceInfo };
-    for (const [key] of workplaceFields) {
-      if (typeof saved[key] === 'string' && saved[key].trim()) info[key] = saved[key];
-    }
-    if (typeof saved.savedAt === 'string') info.savedAt = saved.savedAt;
-    return info;
-  } catch {
-    return defaultWorkplaceInfo;
+// 서버 값 → 입력란 문자열
+function toDraft(company) {
+  return Object.fromEntries(
+    workplaceFields.map(([key, , isList]) => {
+      const value = readField(company, key, isList);
+      return [key, isList ? value.join(', ') : value];
+    }),
+  );
+}
+
+// 입력란 문자열 → 화면 값 (readField와 같은 형태)
+function fromDraft(isList, text) {
+  if (!isList) return text.trim();
+  return [...new Set(text.split(',').map((item) => item.trim()).filter(Boolean))];
+}
+
+// 화면 값 → 서버로 보낼 값. 주폐기물은 기존 항목의 예상 물량을 종류별로 유지한다.
+function toServerValue(company, key, value) {
+  if (key !== 'main_waste_types') return value;
+  const volumes = new Map(
+    (company.main_waste_types || []).map((item) => [item.category, item.expected_monthly_volume_kg]),
+  );
+  return value.map((category) => ({
+    category,
+    expected_monthly_volume_kg: volumes.get(category) ?? null,
+  }));
+}
+
+function sameValue(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function saveErrorMessage(error) {
+  if (error instanceof ApiError && error.status === 409) {
+    return '다른 곳에서 먼저 수정했어요. 새로고침한 뒤 다시 수정해 주세요.';
   }
+  if (error instanceof ApiError) return `저장하지 못했어요. ${error.message}`;
+  return '서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.';
 }
 
 export function CompanyDataPage() {
   const requestedTab = new URLSearchParams(currentRoute().search).get('tab');
   const activeTab = dataTabs.some((tab) => tab.id === requestedTab) ? requestedTab : 'workplace';
-  const [workplaceInfo, setWorkplaceInfo] = useState(readWorkplaceInfo);
-  const [draft, setDraft] = useState(workplaceInfo);
+  // 이 화면은 AppShell 안에서만 열리므로 이미 기업 등록까지 마친 세션이다.
+  const session = useSession();
+  const [company, setCompany] = useState(null);
+  const [savedAt, setSavedAt] = useState('');
+  const [draft, setDraft] = useState(() => toDraft(null));
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const saveWorkplaceInfo = (event) => {
+  const displayName = session.user?.name || session.user?.email || '';
+
+  useEffect(() => {
+    if (session.company) setCompany(session.company);
+  }, [session.company]);
+  // 마지막 수정일은 변경 이력의 최신 항목에서 읽는다. 수정한 적이 없으면 비어 있다.
+  useEffect(() => {
+    if (!session.company) return;
+    api
+      .companyHistory(1, 1)
+      .then((page) => {
+        const latest = page?.items?.[0]?.changed_at;
+        if (latest) setSavedAt(new Date(latest).toLocaleDateString('ko-KR'));
+      })
+      .catch(() => {});
+  }, [session.company]);
+
+  const saveWorkplaceInfo = async (event) => {
     event.preventDefault();
-    const next = Object.fromEntries(workplaceFields.map(([key]) => [key, draft[key].trim()]));
-    next.savedAt = new Date().toLocaleDateString('ko-KR');
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(next));
-      setWorkplaceInfo(next);
+    const changes = {};
+    for (const [key, label, isList, required] of workplaceFields) {
+      const value = fromDraft(isList, draft[key]);
+      if (required && (isList ? value.length === 0 : !value)) {
+        setSaveError(`${label} 항목을 입력해 주세요.`);
+        return;
+      }
+      if (!sameValue(value, readField(company, key, isList))) {
+        changes[key] = toServerValue(company, key, value);
+      }
+    }
+    if (Object.keys(changes).length === 0) {
       setSaveError('');
       setIsEditing(false);
-    } catch {
-      setSaveError('저장할 수 없어요. 브라우저 저장소를 확인해 주세요.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const result = await api.updateCompany(company.profile_version, changes);
+      setCompany((value) => ({ ...value, ...changes, profile_version: result.profile_version }));
+      if (result.changed_fields.length > 0) setSavedAt(new Date().toLocaleDateString('ko-KR'));
+      setSaveError('');
+      setIsEditing(false);
+    } catch (error) {
+      setSaveError(saveErrorMessage(error));
+    } finally {
+      setSaving(false);
     }
   };
   return (
@@ -90,10 +155,10 @@ export function CompanyDataPage() {
       <div className="data-layout">
         <aside className="data-sidebar">
           <div className="data-profile">
-            <span className="data-profile-avatar" aria-hidden="true">김</span>
+            <span className="data-profile-avatar" aria-hidden="true">{displayName.charAt(0)}</span>
             <div>
-              <strong>김수현</strong>
-              <span>(주)가천정밀 · 사업장 관리자</span>
+              <strong>{displayName}</strong>
+              <span>{company?.company_name} · 사업장 관리자</span>
             </div>
           </div>
           <p className="data-sidebar-label">기업 데이터</p>
@@ -121,8 +186,8 @@ export function CompanyDataPage() {
                 </div>
                 <div>
                   <span>사업장 요약</span>
-                  <h2>(주)가천정밀</h2>
-                  <p>환경부 사업장 코드 · HW-03182</p>
+                  <h2>{company?.company_name}</h2>
+                  <p>{company?.site_name}</p>
                 </div>
                 <div className="workplace-header-actions">
                   <span className="verified-badge">
@@ -136,7 +201,8 @@ export function CompanyDataPage() {
                         setIsEditing(false);
                         setSaveError('');
                       } else {
-                        setDraft(workplaceInfo);
+                        setDraft(toDraft(company));
+                        setSaveError('');
                         setIsEditing(true);
                       }
                     }}
@@ -148,37 +214,44 @@ export function CompanyDataPage() {
               {isEditing ? (
                 <form className="workplace-edit-form" onSubmit={saveWorkplaceInfo}>
                   <div className="workplace-edit-grid">
-                    {workplaceFields.map(([key, label]) => (
+                    {workplaceFields.map(([key, label, isList, required]) => (
                       <label key={key}>
                         <span>{label}</span>
                         <input
                           type="text"
                           value={draft[key]}
                           onChange={(event) => setDraft((value) => ({ ...value, [key]: event.target.value }))}
-                          maxLength={80}
-                          required
+                          maxLength={key === 'site_address' ? 500 : isList ? 1000 : 100}
+                          placeholder={isList ? '쉼표(,)로 나눠 입력' : undefined}
+                          required={required}
                         />
                       </label>
                     ))}
                   </div>
                   <div className="workplace-edit-footer">
-                    <span>입력한 내용은 이 브라우저에 저장됩니다.</span>
-                    <button className="button button-primary" type="submit">저장하기</button>
+                    <span>저장하면 서버의 기업 정보가 바뀝니다.</span>
+                    <button className="button button-primary" type="submit" disabled={saving || !company}>
+                      {saving ? '저장하는 중…' : '저장하기'}
+                    </button>
                   </div>
                   {saveError && <p className="workplace-save-error" role="alert">{saveError}</p>}
                 </form>
               ) : (
                 <div className="workplace-info-grid">
-                  {workplaceFields.map(([key, label]) => (
+                  {workplaceFields.map(([key, label, isList]) => (
                     <article key={key}>
                       <span>{label}</span>
-                      <strong>{workplaceInfo[key]}</strong>
+                      <strong>
+                        {isList
+                          ? readField(company, key, true).join(', ') || '없음'
+                          : company?.[key]}
+                      </strong>
                     </article>
                   ))}
                 </div>
               )}
               <div className="workplace-update-row">
-                <span>마지막 수정 {workplaceInfo.savedAt || '2026. 10. 18'} · 김수현 관리자</span>
+                <span>{savedAt ? `마지막 수정 ${savedAt}` : '등록 후 수정 이력 없음'}</span>
                 <span>사업장 정보는 폐기물 분류와 업체 추천에 활용됩니다.</span>
               </div>
             </section>

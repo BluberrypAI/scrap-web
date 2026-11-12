@@ -281,3 +281,25 @@
   .workplace-edit-grid { grid-template-columns: 1fr; }
   .workplace-edit-footer { align-items: stretch; flex-direction: column; }
 }
+
+/* 사업장 요약은 주폐기물까지 5칸 */
+.data-page .workplace-info-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+@media (width<=960px) {
+  .data-page .workplace-info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .data-page .workplace-info-grid article {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  .data-page .workplace-info-grid article:nth-child(odd) { border-right: 1px solid var(--color-border-light); }
+  .data-page .workplace-info-grid article:last-child {
+    grid-column: 1 / -1;
+    border-right: 0;
+    border-bottom: 0;
+  }
+}
+
+@media (width<=720px) {
+  .data-page .workplace-info-grid { grid-template-columns: 1fr; }
+  .data-page .workplace-info-grid article:nth-child(odd) { border-right: 0; }
+}

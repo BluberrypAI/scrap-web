@@ -1,35 +1,53 @@
 import { useState } from 'react';
 import { AuthLogo } from '../../components/AuthLogo.jsx';
 import { GoogleMark, MicrosoftMark } from '../../components/SocialMarks.jsx';
-import { saveAuthenticatedSession, saveSignupDraft } from '../../lib/auth.js';
+import { useRequireSession } from '../../hooks/useSession.js';
+import { api } from '../../lib/api.js';
+import { rememberSession } from '../../lib/auth.js';
 import { currentRoute, navigate } from '../../lib/router.js';
+import { loadSession, redirectFor } from '../../lib/session.js';
+
+// 서버가 소셜 로그인 실패 뒤 /login?error=... 로 돌려보낼 때의 안내 문구
+const errorMessages = {
+  oauth_failed: '계정 연동을 완료하지 못했어요.',
+  account_withdrawn: '탈퇴 처리 중인 계정이에요.',
+};
+const defaultErrorMessage = errorMessages.oauth_failed;
 
 export function LoginPage() {
   const params = new URLSearchParams(currentRoute().search);
   const [mode, setMode] = useState(params.get('mode') === 'login' ? 'login' : 'signup');
-  const [status, setStatus] = useState(
-    params.get('variant') === 'error'
-      ? 'error'
-      : params.get('variant') === 'connecting'
-        ? 'connecting'
-        : 'default',
+  const [errorMessage, setErrorMessage] = useState(
+    errorMessages[params.get('error')] ||
+      (params.get('error') || params.get('variant') === 'error' ? defaultErrorMessage : ''),
   );
+  const [status, setStatus] = useState(
+    errorMessage ? 'error' : params.get('variant') === 'connecting' ? 'connecting' : 'default',
+  );
+  // 이미 로그인했으면 온보딩 또는 앱 화면으로 보낸다.
+  useRequireSession('/login');
   const isLogin = mode === 'login';
   const changeMode = (nextMode) => {
     setMode(nextMode);
     setStatus('default');
   };
-  const completeAuth = (signupEmail = '') => {
+  // 로그인과 회원가입은 같은 소셜 로그인으로 시작한다. 기업 등록 여부에 따라 서버가 이동할 화면을 정한다.
+  const startSocialLogin = (provider) => {
     setStatus('connecting');
-    window.setTimeout(() => {
-      if (isLogin) {
-        saveAuthenticatedSession();
-        navigate('/wastes');
-        return;
-      }
-      saveSignupDraft({ email: signupEmail });
-      navigate('/onboarding');
-    }, 700);
+    window.location.href = api.loginUrl(provider);
+  };
+  // 로컬 서버(APP_ENV=local)에만 있는 개발용 로그인. 빌드 결과에는 버튼이 나오지 않는다.
+  const devLogin = async () => {
+    setStatus('connecting');
+    try {
+      await api.devLogin();
+      const session = await loadSession();
+      rememberSession(session);
+      navigate(redirectFor(session, '/login') || '/wastes');
+    } catch {
+      setErrorMessage('개발용 로그인에 실패했어요. 서버가 APP_ENV=local로 실행 중인지 확인해 주세요.');
+      setStatus('error');
+    }
   };
   return (
     <main className="l0-page login-page" data-layer-name="L0-Login" data-variant={status}>
@@ -60,7 +78,7 @@ export function LoginPage() {
         <section className="login-card">
           {status === 'error' && (
             <div className="login-error" role="alert">
-              <span>계정 연동을 완료하지 못했어요.</span>
+              <span>{errorMessage || defaultErrorMessage}</span>
               <button type="button" onClick={() => setStatus('default')}>
                 다시 시도
               </button>
@@ -94,14 +112,19 @@ export function LoginPage() {
             </p>
           </header>
           <div className="social-login-list">
-            <button type="button" onClick={() => completeAuth()} disabled={status === 'connecting'}>
+            <button type="button" onClick={() => startSocialLogin('microsoft')} disabled={status === 'connecting'}>
               {status === 'connecting' ? <span className="login-spinner" /> : <MicrosoftMark />}
               Microsoft로 {isLogin ? '로그인' : '계속하기'}
             </button>
-            <button type="button" onClick={() => completeAuth()} disabled={status === 'connecting'}>
+            <button type="button" onClick={() => startSocialLogin('google')} disabled={status === 'connecting'}>
               {status === 'connecting' ? <span className="login-spinner" /> : <GoogleMark />}
               Google로 {isLogin ? '로그인' : '계속하기'}
             </button>
+            {import.meta.env.DEV && (
+              <button type="button" onClick={devLogin} disabled={status === 'connecting'}>
+                개발용 로그인 (로컬 서버)
+              </button>
+            )}
           </div>
           <p
             className={`social-signup-terms${isLogin ? ' is-placeholder' : ''}`}
