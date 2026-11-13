@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AppTopNav } from '../components/AppTopNav.jsx';
 import { caseToWaste } from '../data/diagnosisCases.js';
+import { DiagnosisCaseScreen, DiagnosisHistoryScreen } from '../features/diagnosis/index.jsx';
 import { handlers } from '../data/handlers.js';
 import { wastes } from '../data/wastes.js';
 import { CompanyDataPage } from '../pages/data/CompanyDataPage.jsx';
@@ -39,14 +40,23 @@ export function AppShell({ path }) {
     trackingWaste = tracking ? wastes.find((e) => e.id === tracking[1]) : undefined,
     a = r
       ? wastes.find((e) => e.id === r[1]) ||
-        (r[2] === 'survey' && (/^lot-[a-f0-9-]{36}$/.test(r[1]) || /^case-[A-Za-z0-9_-]{1,64}$/.test(r[1]))
+        (r[2] === 'survey' && /^lot-[a-f0-9-]{36}$/.test(r[1])
           ? {
               id: r[1],
               name: '새 폐기물',
             }
           : undefined)
       : undefined,
-    o = n ? handlers.find((e) => e.id === n[1]) : undefined;
+    o = n ? handlers.find((e) => e.id === n[1]) : undefined,
+    // 문진 엔진 건: 문진(베리 | 채팅 | 판정 보드)과 판정 기록
+    dx = path.match(/^\/wastes\/case-([A-Za-z0-9_-]{1,64})\/(survey|history)$/);
+  if (dx)
+    return (
+      <div className="app-route-shell" data-theme="light">
+        <AppTopNav path={path} />
+        {dx[2] === 'survey' ? <DiagnosisCaseScreen caseId={dx[1]} /> : <DiagnosisHistoryScreen caseId={dx[1]} />}
+      </div>
+    );
   return a && r && r[2] !== 'match' ? (
     <div className="l3-shell" data-theme="light">
       {r[2] === 'survey' ? (
