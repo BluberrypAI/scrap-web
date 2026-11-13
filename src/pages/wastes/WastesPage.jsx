@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
 import { caseToWaste } from '../../data/diagnosisCases.js';
+import { workflowApi } from '../../features/workflow/api.js';
+import { LOT_STATUS, lotCardStatus, lotToWaste } from '../../features/workflow/labels.js';
 import { api } from '../../lib/api.js';
 import { currentRoute, navigate } from '../../lib/router.js';
 import './WastesPage.css';
@@ -186,15 +188,33 @@ function WasteList({ variant, onCreate, createdWasteId, wastes }) {
   );
 }
 
+// 우리 문진으로 만든 처리 건은 그 문진 카드에 진행 상태를 덮고,
+// 다른 기업이 보낸 처리 건(우리가 요청받았거나 지금 처리 중)은 별도 카드로 넣는다
+function mergeLots(cards, lots, myCompanyId) {
+  const byCase = new Map(lots.filter((l) => l.owner_company_id === myCompanyId).map((l) => [l.data?.handoff?.case_id, l]));
+  const merged = cards.map((card) => {
+    const lot = byCase.get(card.caseId);
+    return lot
+      ? { ...card, status: lotCardStatus(lot.status), displayStatus: LOT_STATUS[lot.status], message: '처리 건 진행 상황 보기', href: `/wastes/${card.id}?tab=route` }
+      : card;
+  });
+  const received = lots.filter((l) => l.owner_company_id !== myCompanyId).map((l) => lotToWaste(l, myCompanyId));
+  return [...received, ...merged];
+}
+
 export function WastesPage() {
   const params = new URLSearchParams(currentRoute().search);
   // 카드는 문진 엔진의 실제 건 목록으로 채운다 (server /api/v1/diagnosis/cases)
   const [wastes, setWastes] = useState(null);
   const [problem, setProblem] = useState('');
   useEffect(() => {
-    api.diagnosis
-      .listCases()
-      .then((page) => setWastes(page.items.map(caseToWaste)))
+    // 처리 건(기업 간 인계)은 목록을 못 불러와도 문진 카드는 보여 준다
+    Promise.all([
+      api.diagnosis.listCases(),
+      workflowApi.listLots().catch(() => []),
+      api.myCompany().catch(() => null),
+    ])
+      .then(([page, lots, company]) => setWastes(mergeLots(page.items.map(caseToWaste), lots, company?.id)))
       .catch((error) => {
         setWastes([]);
         setProblem(error?.message || '폐기물 목록을 불러오지 못했어요.');
