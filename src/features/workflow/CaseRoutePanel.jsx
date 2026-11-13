@@ -89,7 +89,15 @@ export function CaseRoutePanel({ caseId, onLotCreated }) {
               {reviewing ? '공개 근거를 검토하는 중… (최대 1~2분)' : reviews ? '업체 근거 다시 검토' : '업체 공개 근거 AI 검토'}
             </button>
           </div>
-          {canRegister && <LotRegisterForm caseId={caseId} inputForm={form} onCreated={onLotCreated} />}
+          {canRegister ? (
+            <LotRegisterForm caseId={caseId} inputForm={form} onCreated={onLotCreated} />
+          ) : (
+            <p className="wf-card wf-muted">
+              {context.route_input?.material !== 'pp'
+                ? '업체에 인수 요청을 보내고 QR로 인계하는 기능은 아직 PP(폴리프로필렌)만 지원해요. 이 물량은 후보 업체와 공개 근거까지 확인할 수 있어요.'
+                : '업체에 인계하려면 지금 물량이 사출 잔재·스크랩이나 파쇄품이어야 해요.'}
+            </p>
+          )}
         </>
       )}
     </div>
