@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
-import { wastes } from '../../data/wastes.js';
+import { caseToWaste } from '../../data/diagnosisCases.js';
+import { api } from '../../lib/api.js';
 import { currentRoute, navigate } from '../../lib/router.js';
 import './WastesPage.css';
 import { EmptyState } from './EmptyState.jsx';
@@ -30,7 +31,7 @@ const stages = [
   },
 ];
 
-function WasteList({ variant, onCreate, createdWasteId }) {
+function WasteList({ variant, onCreate, createdWasteId, wastes }) {
   const createdWaste = wastes.find((waste) => waste.id === createdWasteId);
   const createdStage = stages.find((stage) => stage.statuses.includes(createdWaste?.status));
   const [activeStage, setActiveStage] = useState(createdStage?.id || stages[0].id);
@@ -187,12 +188,33 @@ function WasteList({ variant, onCreate, createdWasteId }) {
 
 export function WastesPage() {
   const params = new URLSearchParams(currentRoute().search);
-  const variant = params.get('variant') === 'empty' ? 'empty' : 'list';
+  // 카드는 문진 엔진의 실제 건 목록으로 채운다 (server /api/v1/diagnosis/cases)
+  const [wastes, setWastes] = useState(null);
+  const [problem, setProblem] = useState('');
+  useEffect(() => {
+    api.diagnosis
+      .listCases()
+      .then((page) => setWastes(page.items.map(caseToWaste)))
+      .catch((error) => {
+        setWastes([]);
+        setProblem(error?.message || '폐기물 목록을 불러오지 못했어요.');
+      });
+  }, []);
+  if (wastes === null) return <div className="home-content" aria-busy="true" />;
+  const variant = params.get('variant') === 'empty' || !wastes.length ? 'empty' : 'list';
   return (
-    <WasteList
-      variant={variant}
+    <>
+      {problem && (
+        <p className="waste-stage-empty" role="alert">
+          {problem}
+        </p>
+      )}
+      <WasteList
+        wastes={wastes}
+        variant={variant}
       createdWasteId={params.get('created')}
-      onCreate={() => navigate(`/wastes/lot-${crypto.randomUUID()}/survey`)}
-    />
+        onCreate={() => navigate(`/wastes/lot-${crypto.randomUUID()}/survey`)}
+      />
+    </>
   );
 }

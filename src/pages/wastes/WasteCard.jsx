@@ -7,11 +7,12 @@ import {
 } from '../../data/wastes.js';
 
 export function WasteCard({ waste, step, isNew = false }) {
-  const displayStatus = wasteDisplayStatus(waste);
+  // 엔진 건이면 엔진이 준 상태 문구·다음 할 일·이동 경로를 씀
+  const displayStatus = waste.displayStatus ?? wasteDisplayStatus(waste);
   return (
     <a
       className={`waste-card${isNew ? ' is-new' : ''}`}
-      href={`/wastes/${waste.id}`}
+      href={waste.href ?? `/wastes/${waste.id}`}
       data-step={step}
       aria-label={`${waste.name}, 현재 상태 ${displayStatus}`}
     >
@@ -27,7 +28,7 @@ export function WasteCard({ waste, step, isNew = false }) {
         <h3>{waste.name}</h3>
         <p>
           {'분류번호 '}
-          {hasConfirmedCode(waste) ? waste.code : '미정'}
+          {(waste.caseId ? waste.code : hasConfirmedCode(waste) && waste.code) || '미정'}
         </p>
       </div>
       <div className="waste-card-state">
@@ -35,7 +36,7 @@ export function WasteCard({ waste, step, isNew = false }) {
           <span>현재 상태</span>
           <StatusBadge status={displayStatus} />
         </div>
-        <p>{wasteStatusMessage(waste)}</p>
+        <p>{waste.message ?? wasteStatusMessage(waste)}</p>
       </div>
       <footer className="card-footer">
         <span>마지막 업데이트</span>

@@ -1,23 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ExitConfirmModal } from '../../components/ExitConfirmModal.jsx';
 import { Icon } from '../../components/Icon.jsx';
 import { WorkBar } from '../../components/WorkBar.jsx';
 import { scrapTreatment } from '../../features/treatment/index.js';
 import { useExitGuard } from '../../hooks/useExitGuard.js';
+import { ApiError, api } from '../../lib/api.js';
 import { AgentNote } from './AgentNote.jsx';
 import { BerryDock } from './BerryDock.jsx';
 import { JudgingScreen } from './JudgingScreen.jsx';
 import { LawArticleModal } from './LawArticleModal.jsx';
 import {
   LAW_BASE_DATE,
-  TOTAL_CANDIDATES,
   analysisRecycleTypes,
   evidenceItems,
   freeRecycleTypes,
   intakeCues,
   intakeExamples,
-  surveySteps,
 } from './surveyData.js';
+
+// 문진 엔진 오류를 베리 말풍선 문구로
+function errorText(error) {
+  if (error instanceof ApiError && error.code === 'ENGINE_UNAVAILABLE')
+    return '문진 엔진에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.';
+  return error instanceof ApiError ? error.message : '서버에 연결하지 못했어요.';
+}
 
 export function SurveyPage({ waste }) {
   const [routeInput, setRouteInput] = useState(null);
@@ -33,52 +39,109 @@ export function SurveyPage({ waste }) {
     [m, h] = useState(false),
     [g, v] = useState(null);
   useExitGuard(h);
-  let y = surveySteps[t],
+  // 문진 엔진 건과 마지막 턴. 질문·선택지·남은 후보·결과는 모두 이 턴에서 읽는다
+  const [caseId, setCaseId] = useState(null);
+  const [turn, setTurn] = useState(null);
+  const [counts, setCounts] = useState([]);
+  const question = turn?.ui?.question;
+  const board = turn?.ui?.board;
+  const result = turn?.branch === 'FINAL_REVIEW' ? turn.ui.result : null;
+  const maxQuestions = board?.progress?.max_questions || 12;
+  const showTurn = (next) => {
+    setTurn(next);
+    const count = next?.ui?.board?.candidates_count;
+    if (typeof count === 'number') setCounts((list) => [...list, count]);
+    if (next?.branch === 'FINAL_REVIEW') {
+      c('route-input');
+    } else if (next?.message) {
+      p(next.message, 4000);
+    }
+  };
+  const startCase = (memo) => {
+    o(true);
+    p('입력하신 내용을 읽고 있어요');
+    api.diagnosis
+      .createCase(memo ? { memo } : {})
+      .then((created) => {
+        setCaseId(created.case.id);
+        setCounts([]);
+        n(0);
+        i({});
+        c('question');
+        showTurn(created.turn);
+      })
+      .catch((error) => {
+        c('intake');
+        p(errorText(error));
+      })
+      .finally(() => o(false));
+  };
+  // 목록 카드(case-<엔진 건 ID>)에서 들어오면 그 건의 마지막 턴부터 이어서 보여 준다
+  useEffect(() => {
+    if (!waste.id.startsWith('case-')) return;
+    const id = waste.id.slice('case-'.length);
+    api.diagnosis
+      .getCase(id)
+      .then((detail) => {
+        setCaseId(id);
+        n(detail.conversation?.filter((item) => item.role === 'user').length || 0);
+        c('question');
+        showTurn(detail.latest_turn);
+      })
+      .catch((error) => p(errorText(error)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waste.id]);
+  let y = question
+      ? {
+          title: question.text,
+          helper: question.help,
+          options: question.options.map((option) => ({ label: option.label, reply: option })),
+        }
+      : { title: turn?.message || '', options: [] },
     b = r[t],
     S = b === undefined ? undefined : y.options[b],
-    w = !!S?.demo,
-    ee = t === surveySteps.length - 1,
-    te = w ? y.remaining : y.start,
-    ne = y.start - te,
-    T = [TOTAL_CANDIDATES];
-  for (let e = 0; e <= t; e += 1)
-    surveySteps[e].options[r[e]]?.demo && T.push(surveySteps[e].remaining);
+    w = false,
+    ee = false,
+    te = counts.at(-1) ?? 0,
+    ne = counts.length > 1 ? counts.at(-2) - te : 0,
+    T = counts;
+  y.start = counts.at(-2) ?? te;
+  y.remaining = te;
   let re = a ? 'saving' : S ? 'answered' : 'unanswered',
     ie = {
       ...waste,
-      name: '폐합성수지',
+      name: result?.name || waste.name,
     },
     ae = (e) => {
+      if (a || !caseId) return;
+      const reply = y.options[e].reply;
       (i((n) => ({
         ...n,
         [t]: e,
       })),
         o(true),
-        p('답변이 앞선 내용과 맞는지 살펴보고 있어요', 1400),
-        window.setTimeout(() => o(false), 700));
+        p('답변이 앞선 내용과 맞는지 살펴보고 있어요'));
+      api.diagnosis
+        .send(caseId, { quick_reply: { key: question.key, kind: reply.kind, value: reply.value } })
+        .then((next) => {
+          n((step) => step + 1);
+          showTurn(next);
+        })
+        .catch((error) => {
+          i({});
+          p(errorText(error));
+        })
+        .finally(() => o(false));
     },
-    oe = () => {
-      if (w) {
-        if (ee) {
-          c('route-input');
-          return;
-        }
-        n((e) => e + 1);
-      }
-    },
+    oe = () => {},
     se = () => {
-      (i({}), n(0), c('question'), f(null));
+      (setCaseId(null), setTurn(null), setCounts([]), i({}), n(0), c('intake'), f('어떤 폐기물인지 편하게 적어 주세요'));
     },
     ce = () => {
-      l.trim() &&
-        (c('reading'),
-        p('입력하신 내용을 읽고 있어요'),
-        window.setTimeout(() => {
-          c((e) => (e === 'reading' ? (p('이렇게 읽었어요. 맞는지 확인해 주세요'), 'confirm') : e));
-        }, 1400));
+      l.trim() && (c('reading'), startCase(l.trim()));
     },
     le = () => {
-      (c('question'), p('질문 3개로 후보를 좁혀 볼게요', 2200));
+      startCase(null);
     };
   return (
     <div
@@ -90,7 +153,7 @@ export function SurveyPage({ waste }) {
       <div className="survey-progress-track">
         <span
           style={{
-            width: `${s === 'intake' || s === 'reading' || s === 'confirm' ? 0 : s === 'question' ? ((t + (w ? 1 : 0.4)) / surveySteps.length) * 100 : 100}%`,
+            width: `${s === 'intake' || s === 'reading' || s === 'confirm' ? 0 : s === 'question' ? ((t + 0.4) / maxQuestions) * 100 : 100}%`,
           }}
         />
       </div>
@@ -190,8 +253,8 @@ export function SurveyPage({ waste }) {
             <p className="sv-context">(주)가천정밀 · 10인 사출 공장 · 3번 라인 월 2.3톤 배출</p>
             <span className="sv-step">
               {t + 1}
-              {' / '}
-              {surveySteps.length}
+              {' / 최대 '}
+              {maxQuestions}
             </span>
             <h1 id="sv-question">{y.title}</h1>
             {y.helper && <p className="sv-helper">{y.helper}</p>}
@@ -231,7 +294,7 @@ export function SurveyPage({ waste }) {
                 className="button button-quiet"
                 type="button"
                 onClick={() => n((e) => Math.max(0, e - 1))}
-                disabled={t === 0}
+                disabled
               >
                 이전
               </button>
@@ -243,7 +306,7 @@ export function SurveyPage({ waste }) {
               ) : (
                 <span className="survey-guide">
                   {S
-                    ? '데모에서는 합성수지 · 고체 · 일반 합성수지류 경로만 제공돼요.'
+                    ? '답변을 반영하고 있어요.'
                     : '답변을 선택하면 다음 단계로 이동할 수 있어요.'}
                 </span>
               )}
@@ -259,7 +322,7 @@ export function SurveyPage({ waste }) {
             <div className="sv-bar" aria-hidden="true">
               <span
                 style={{
-                  width: `${(te / TOTAL_CANDIDATES) * 100}%`,
+                  width: `${counts.length ? (te / Math.max(...counts)) * 100 : 0}%`,
                 }}
               />
             </div>
@@ -270,11 +333,13 @@ export function SurveyPage({ waste }) {
                 </li>
               ))}
             </ol>
-            <p className="sv-why">
-              {y.start}
-              {'개 후보를 '}
-              {y.remaining}개로 줄이는 질문이에요.
-            </p>
+            {ne > 0 && (
+              <p className="sv-why">
+                {y.start}
+                {'개 후보를 '}
+                {y.remaining}개로 줄였어요.
+              </p>
+            )}
             {w && y.note && <p className="sv-note">{y.note}</p>}
           </aside>
         </main>
@@ -285,6 +350,9 @@ export function SurveyPage({ waste }) {
             onAnswer={(input) => {
               setRouteInput(input);
               c('judging');
+              if (turn?.ui?.can_confirm) {
+                api.diagnosis.confirm(caseId).catch((error) => p(errorText(error)));
+              }
             }}
           />
         </main>
@@ -318,13 +386,14 @@ export function SurveyPage({ waste }) {
             </ol>
           </div>
           <header className="sv-result-head">
-            <div className="sv-badges">
-              <span>사업장일반폐기물</span>
-              <span>배출시설 운영 사업장</span>
-            </div>
-            <p className="sv-result-label">분류번호</p>
-            <strong className="sv-result-code">51-03-01</strong>
-            <p className="sv-result-name">폐합성수지류 (폐염화비닐수지류는 제외한다)</p>
+            {result?.category_label && (
+              <div className="sv-badges">
+                <span>{result.category_label}</span>
+              </div>
+            )}
+            <p className="sv-result-label">{result?.code ? '분류번호' : '판정 결과'}</p>
+            <strong className="sv-result-code">{result?.code || '분류번호 없음'}</strong>
+            <p className="sv-result-name">{result?.name || result?.conclusion}</p>
             <AgentNote
               mode="lookup"
               text={`분류번호는 법령 기준표에서 조회한 결과입니다 · 법령 기준일 ${LAW_BASE_DATE}`}
@@ -408,7 +477,8 @@ export function SurveyPage({ waste }) {
             <button className="button button-quiet" type="button" onClick={se}>
               다시 문진하기
             </button>
-            <scrapTreatment.Confirm id={waste.id} input={routeInput} />
+            {/* 목록 카드 ID(case-<엔진 건 ID>)로 넘겨야 새 카드 강조(?created=)가 맞음 */}
+            <scrapTreatment.Confirm id={caseId ? `case-${caseId}` : waste.id} input={routeInput} />
           </footer>
         </main>
       )}
