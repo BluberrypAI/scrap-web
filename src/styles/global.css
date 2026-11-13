@@ -4752,6 +4752,13 @@
   font-size: 12px;
   text-align: left;
 }
+.social-login-list > .dev-login-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+}
 .login-form {
   display: grid;
   gap: 12px;
