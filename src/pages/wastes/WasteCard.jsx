@@ -9,7 +9,9 @@ import {
 
 export function WasteCard({ waste, step, isNew = false }) {
   const [flipped, setFlipped] = useState(false);
-  const displayStatus = wasteDisplayStatus(waste);
+  // 엔진 건이면 엔진이 준 상태 문구·다음 할 일·이동 경로를 씀
+  const displayStatus = waste.displayStatus ?? wasteDisplayStatus(waste);
+  const message = waste.message ?? wasteStatusMessage(waste);
   return (
     <article className={`waste-flip-card${flipped ? ' is-flipped' : ''}`}
       onPointerEnter={(event) => { if (event.pointerType === 'mouse') setFlipped(true); }}
@@ -19,7 +21,7 @@ export function WasteCard({ waste, step, isNew = false }) {
       <div className="waste-flip-inner">
         <a
           className={`waste-card waste-card-front${isNew ? ' is-new' : ''}`}
-          href={`/wastes/${waste.id}`}
+          href={waste.href ?? `/wastes/${waste.id}`}
           data-step={step}
           inert={flipped}
           aria-hidden={flipped}
@@ -37,7 +39,7 @@ export function WasteCard({ waste, step, isNew = false }) {
             <h3>{waste.name}</h3>
             <p>
               {'분류번호 '}
-              {hasConfirmedCode(waste) ? waste.code : '미정'}
+              {(waste.caseId ? waste.code : hasConfirmedCode(waste) && waste.code) || '미정'}
             </p>
           </div>
           <div className="waste-card-state">
@@ -45,17 +47,17 @@ export function WasteCard({ waste, step, isNew = false }) {
               <span>현재 상태</span>
               <StatusBadge status={displayStatus} />
             </div>
-            <p>{wasteStatusMessage(waste)}</p>
+            <p>{message}</p>
           </div>
           <footer className="card-footer">
             <span>마지막 업데이트</span>
             <time>{waste.updatedAt}</time>
           </footer>
         </a>
-        <a className="waste-card-back" href={`/wastes/${waste.id}${waste.status === '문진 중' ? '/survey' : '?tab=route'}`}
+        <a className="waste-card-back" href={waste.href ?? `/wastes/${waste.id}${waste.status === '문진 중' ? '/survey' : '?tab=route'}`}
           data-step={step}
           inert={!flipped} aria-hidden={!flipped}
-          aria-label={`${waste.name}, ${displayStatus}, ${wasteStatusMessage(waste)}`}
+          aria-label={`${waste.name}, ${displayStatus}, ${message}`}
         >
           <WasteJourneyPreview waste={waste} active={flipped} />
         </a>

@@ -5,13 +5,21 @@
 const BASE = '/api/v1';
 
 // 서버 공통 오류 형식 {code, message, details}를 담는다.
+// 문진 API는 엔진 오류 본문({detail: {code, message}} 또는 {detail: "문구"})을 그대로 넘기므로 그것도 읽는다.
 export class ApiError extends Error {
   constructor(status, body) {
-    super(body?.message || `요청을 처리하지 못했어요 (${status})`);
+    const detail = body && typeof body === 'object' ? body.detail : null;
+    const inner = detail && typeof detail === 'object' && !Array.isArray(detail) ? detail : null;
+    super(
+      body?.message ||
+        inner?.message ||
+        (typeof detail === 'string' ? detail : null) ||
+        `요청을 처리하지 못했어요 (${status})`,
+    );
     this.name = 'ApiError';
     this.status = status;
-    this.code = body?.code ?? null;
-    this.details = body?.details ?? null;
+    this.code = body?.code ?? inner?.code ?? null;
+    this.details = body?.details ?? detail ?? null;
   }
 }
 
@@ -33,11 +41,13 @@ function refreshSession() {
 
 export async function apiFetch(path, { method = 'GET', body, query, retry = true } = {}) {
   const search = query ? `?${new URLSearchParams(query)}` : '';
+  // 파일 업로드(FormData)는 브라우저가 경계값을 담은 Content-Type을 직접 붙인다
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
   const res = await fetch(`${BASE}${path}${search}`, {
     method,
     credentials: 'same-origin',
-    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: body === undefined || isForm ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined || isForm ? body : JSON.stringify(body),
   });
 
   if (res.status === 401 && retry && !path.startsWith('/auth/')) {
@@ -70,4 +80,28 @@ export const api = {
     }),
   companyHistory: (pageNumber = 1, pageSize = 20) =>
     apiFetch('/companies/me/history', { query: { pageNumber, pageSize } }),
+
+  // 문진 (server가 문진 엔진으로 중계함, 응답은 엔진 형식 그대로)
+  diagnosis: {
+    // body: { memo?, quantity?, unit?, period? } → { case, turn }
+    createCase: (body = {}) => apiFetch('/diagnosis/cases', { method: 'POST', body }),
+    // 내 기업의 문진 건 목록 → { items, pagingInfo }
+    listCases: (page = 1, size = 100) => apiFetch('/diagnosis/cases', { query: { page, size } }),
+    // 건 상세. latest_turn으로 새로고침 뒤 이어서 그림
+    getCase: (caseId) => apiFetch(`/diagnosis/cases/${encodeURIComponent(caseId)}`),
+    // body: { text } 또는 { quick_reply: { key, kind, value } } → TurnResponse
+    send: (caseId, body) =>
+      apiFetch(`/diagnosis/cases/${encodeURIComponent(caseId)}/messages`, { method: 'POST', body }),
+    // 규칙 버전이 바뀐 건(KB_CHANGED)을 지금 규칙으로 다시 평가
+    rebase: (caseId) =>
+      apiFetch(`/diagnosis/cases/${encodeURIComponent(caseId)}/rebase`, { method: 'POST' }),
+    // → { case, verdict, handoff }
+    confirm: (caseId, expectedCode) =>
+      apiFetch(`/diagnosis/cases/${encodeURIComponent(caseId)}/confirm`, {
+        method: 'POST',
+        body: expectedCode ? { expected_code: expectedCode } : {},
+      }),
+    reopen: (caseId) =>
+      apiFetch(`/diagnosis/cases/${encodeURIComponent(caseId)}/reopen`, { method: 'POST', body: {} }),
+  },
 };

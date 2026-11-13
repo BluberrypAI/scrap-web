@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { ExitConfirmModal } from '../../components/ExitConfirmModal.jsx';
 import { Icon } from '../../components/Icon.jsx';
 import { WorkBar } from '../../components/WorkBar.jsx';
+import { diagnosisApi } from '../../features/diagnosis/index.jsx';
 import { scrapTreatment } from '../../features/treatment/index.js';
 import { useExitGuard } from '../../hooks/useExitGuard.js';
+import { navigate } from '../../lib/router.js';
 import { AgentNote } from './AgentNote.jsx';
 import { BerryDock } from './BerryDock.jsx';
 import { JudgingScreen } from './JudgingScreen.jsx';
@@ -69,13 +71,22 @@ export function SurveyPage({ waste }) {
     se = () => {
       (i({}), n(0), c('question'), f(null));
     },
+    // 적은 내용으로 문진 엔진 건을 만들고 문진 화면(베리 | 채팅 | 판정 보드)으로 넘어간다
     ce = () => {
-      l.trim() &&
-        (c('reading'),
-        p('입력하신 내용을 읽고 있어요'),
-        window.setTimeout(() => {
-          c((e) => (e === 'reading' ? (p('이렇게 읽었어요. 맞는지 확인해 주세요'), 'confirm') : e));
-        }, 1400));
+      if (!l.trim()) return;
+      c('reading');
+      p('입력하신 내용을 읽고 있어요');
+      diagnosisApi
+        .createCase({ memo: l.trim() })
+        .then((created) => navigate(`/wastes/case-${created.case.id}/survey`))
+        .catch((error) => {
+          c('intake');
+          p(
+            error?.code === 'ENGINE_UNAVAILABLE'
+              ? '문진 엔진에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.'
+              : error?.message || '서버에 연결하지 못했어요.',
+          );
+        });
     },
     le = () => {
       (c('question'), p('질문 3개로 후보를 좁혀 볼게요', 2200));

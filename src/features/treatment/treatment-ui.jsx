@@ -89,7 +89,7 @@ export function createTreatmentUI(React) {
             ? formLabel
             : `폐합성수지 · ${materialLabels[material]} ${formLabel}`;
           storeCase(newCase(id, caseName, {
-            ...input, waste_code: '51-03-01', ...demoWorkplace.routeOrigin,
+            ...input, waste_code: input.waste_code || '51-03-01', ...demoWorkplace.routeOrigin,
           }));
         }
         navigate(`/wastes?created=${encodeURIComponent(id)}`);
