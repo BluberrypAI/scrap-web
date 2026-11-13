@@ -120,7 +120,8 @@ export function LoginPage() {
               {status === 'connecting' ? <span className="login-spinner" /> : <GoogleMark />}
               Google로 {isLogin ? '로그인' : '계속하기'}
             </button>
-            {import.meta.env.DEV && (
+            {/* 개발 서버, 또는 로컬 통합 실행용 빌드(VITE_ENABLE_DEV_LOGIN=true)에서만 보임 */}
+            {(import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true') && (
               <button type="button" className="dev-login-button" onClick={devLogin} disabled={status === 'connecting'}>
                 개발용 로그인 (로컬 서버)
               </button>
