@@ -4,6 +4,8 @@ export function createLandscape(THREE, scene, {
   mobile = false,
   cloudLayout = 'default',
   lightweight = false,
+  // 홈 화면 전용: 꽃 색·나무 종류·덤불 색에 변화를 줌
+  richFlora = false,
 } = {}) {
   const root = new THREE.Group();
   root.name = 'Bliss meadow';
@@ -216,7 +218,7 @@ export function createLandscape(THREE, scene, {
     ? [[-23, -12], [-19, -14], [-23, 11], [-19, 13]].map(([x, z], index) => ({
       x, z, scale: 0.75 + index * 0.08, phase: index * 0.9,
     })) : [];
-  const treeTarget = routeView ? 20 : lightweight ? 8 : 12;
+  const treeTarget = routeView ? 20 : richFlora ? 14 : lightweight ? 8 : 12;
   for (let attempt = 0; attempt < 4000 && treePoints.length < treeTarget; attempt++) {
     const x = (random() - 0.5) * 76;
     const z = (random() - 0.5) * 57;
@@ -231,16 +233,35 @@ export function createLandscape(THREE, scene, {
   const trunkMaterial = keepMaterial(new THREE.MeshStandardMaterial({ color: '#95734b', roughness: 1 }));
   const crownGeometry = keepGeometry(new THREE.SphereGeometry(1, 11, 8));
   const crownMaterial = keepMaterial(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.95 }));
+  // richFlora에서는 일부를 뾰족한 침엽수로 바꿔 실루엣에 변화를 줌
+  if (richFlora) treePoints.forEach((p, i) => { p.conifer = i % 5 === 1 || i % 5 === 3; });
+  const conifers = treePoints.filter((p) => p.conifer);
+  const roundTrees = treePoints.filter((p) => !p.conifer);
   const trunks = instanced(trunkGeometry, trunkMaterial, treePoints.length, true);
-  const crowns = instanced(crownGeometry, crownMaterial, treePoints.length * 3, true);
+  const crowns = instanced(crownGeometry, crownMaterial, roundTrees.length * 3, true);
   const crownColor = new THREE.Color();
   treePoints.forEach((p, i) => {
     const y = heightAt(p.x, p.z);
     transform(trunks, i, p.x, y + p.scale * 0.76, p.z, p.scale, p.scale, p.scale);
+  });
+  if (conifers.length) {
+    const coneGeometry = keepGeometry(new THREE.ConeGeometry(1, 1.7, 8));
+    const cones = instanced(coneGeometry, crownMaterial, conifers.length * 3, true);
+    conifers.forEach((p, i) => {
+      const y = heightAt(p.x, p.z);
+      [[1.75, 1.0], [2.45, 0.8], [3.05, 0.58]].forEach(([dy, size], j) => {
+        transform(cones, i * 3 + j, p.x, y + dy * p.scale, p.z, size * p.scale, size * p.scale, size * p.scale, p.phase);
+        crownColor.setHSL(0.36 + random() * 0.04, 0.45 + random() * 0.12, 0.20 + random() * 0.06);
+        cones.setColorAt(i * 3 + j, crownColor);
+      });
+    });
+  }
+  roundTrees.forEach((p, i) => {
+    const y = heightAt(p.x, p.z);
     [[-0.43, 1.85, 0.10, 0.87], [0.39, 2.04, 0, 0.91], [0.02, 2.66, -0.05, 0.82]].forEach(([dx, dy, dz, size], j) => {
       transform(crowns, i * 3 + j, p.x + dx * p.scale, y + dy * p.scale, p.z + dz * p.scale,
         size * p.scale, size * p.scale * 1.13, size * p.scale);
-      crownColor.setHSL(0.25 + random() * 0.035, 0.60 + random() * 0.12, 0.22 + random() * 0.08);
+      crownColor.setHSL((richFlora ? 0.21 + random() * 0.08 : 0.25 + random() * 0.035), 0.60 + random() * 0.12, (richFlora ? 0.22 + random() * 0.12 : 0.22 + random() * 0.08));
       crowns.setColorAt(i * 3 + j, crownColor);
     });
   });
@@ -255,6 +276,7 @@ export function createLandscape(THREE, scene, {
     while (occupied(x, z, 0.8) || Math.abs(x * 0.76 - z * 0.65) < 24 || -(x * 0.65 + z * 0.76) > 14);
     const s = 0.3 + random() * 0.43;
     transform(shrubs, i, x, heightAt(x, z) + s * 0.35, z, s * 1.35, s * 0.85, s);
+    if (richFlora) shrubs.setColorAt(i, new THREE.Color().setHSL(0.22 + random() * 0.07, 0.5 + random() * 0.15, 0.36 + random() * 0.1));
   }
 
   // Tiny daisies catch the sun in patches instead of becoming a uniform grid.
@@ -271,10 +293,13 @@ export function createLandscape(THREE, scene, {
   const flowerMaterial = keepMaterial(new THREE.MeshStandardMaterial({ color: '#fff8dc', side: THREE.DoubleSide, roughness: 0.95 }));
   const pollenGeometry = keepGeometry(new THREE.SphereGeometry(0.031, 5, 4));
   const pollenMaterial = keepMaterial(new THREE.MeshStandardMaterial({ color: '#f9c84d', roughness: 0.8 }));
-  const flowerCount = lightweight ? 120 : 260;
+  const flowerCount = richFlora ? 240 : lightweight ? 120 : 260;
   const flowers = instanced(flowerGeometry, flowerMaterial, flowerCount);
   const pollen = instanced(pollenGeometry, pollenMaterial, flowerCount);
   const patches = [[-21, 15], [-11, -6], [0, 16], [20, 5], [25, -20], [-25, -17], [2, -19]];
+  // 홈 화면 앞쪽의 빈 들판에 꽃밭을 더함
+  if (richFlora) patches.push([14, 18], [-8, 24], [24, 14], [6, 26]);
+  const flowerPalette = ['#fff9de', '#ffd76a', '#ff9fbf', '#aeb9f9', '#ffb070', '#ffffff'];
   for (let i = 0; i < flowerCount; i++) {
     let x, z;
     if (routeView) {
@@ -295,7 +320,8 @@ export function createLandscape(THREE, scene, {
     const s = 0.65 + random() * 0.9;
     transform(flowers, i, x, h, z, s, s, s, random() * Math.PI * 2);
     transform(pollen, i, x, h + 0.008, z, s, s * 0.55, s);
-    if (i % 13 === 0) flowers.setColorAt(i, new THREE.Color('#aeb9f9'));
+    if (richFlora) flowers.setColorAt(i, new THREE.Color(flowerPalette[(i * 7 + (i % patches.length)) % flowerPalette.length]));
+    else if (i % 13 === 0) flowers.setColorAt(i, new THREE.Color('#aeb9f9'));
     else flowers.setColorAt(i, new THREE.Color('#fff9de'));
   }
 
