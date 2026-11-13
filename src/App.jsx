@@ -64,6 +64,7 @@ export function App() {
     <OnboardingPage />
   ) : ['/app', '/wastes', '/map', '/data'].includes(e) ||
     e.startsWith('/wastes/') ||
+    e.startsWith('/lots/') ||
     e.startsWith('/map/') ? (
     <ProtectedShell path={e} />
   ) : (

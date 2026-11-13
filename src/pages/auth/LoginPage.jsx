@@ -37,10 +37,12 @@ export function LoginPage() {
     window.location.href = api.loginUrl(provider);
   };
   // 로컬 서버(APP_ENV=local)에만 있는 개발용 로그인. 빌드 결과에는 버튼이 나오지 않는다.
+  // 여러 기업 계정으로 인계를 시험할 때 이메일을 바꿔 로그인한다(비우면 dev@example.com)
+  const [devEmail, setDevEmail] = useState('');
   const devLogin = async () => {
     setStatus('connecting');
     try {
-      await api.devLogin();
+      await api.devLogin(devEmail.trim() || undefined);
       resetSession();
       const session = await loadSession();
       rememberSession(session);
@@ -123,9 +125,19 @@ export function LoginPage() {
             </button>
             {/* 개발 서버, 또는 로컬 통합 실행용 빌드(VITE_ENABLE_DEV_LOGIN=true)에서만 보임 */}
             {(import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true') && (
-              <button type="button" className="dev-login-button" onClick={devLogin} disabled={status === 'connecting'}>
-                개발용 로그인 (로컬 서버)
-              </button>
+              <div className="dev-login-group">
+                <input
+                  type="email"
+                  className="dev-login-email"
+                  aria-label="개발용 로그인 이메일"
+                  placeholder="dev@example.com"
+                  value={devEmail}
+                  onChange={(e) => setDevEmail(e.target.value)}
+                />
+                <button type="button" className="dev-login-button" onClick={devLogin} disabled={status === 'connecting'}>
+                  개발용 로그인 (로컬 서버)
+                </button>
+              </div>
             )}
           </div>
           <p

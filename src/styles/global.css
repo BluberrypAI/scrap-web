@@ -4447,7 +4447,8 @@
   gap: 9px;
   display: flex;
 }
-.social-login-list > button {
+.social-login-list > button,
+.social-login-list .dev-login-group > button {
   border: 1px solid var(--color-border);
   background: var(--color-card);
   height: 46px;
@@ -4465,11 +4466,13 @@
   display: grid;
   position: relative;
 }
-.social-login-list > button:hover:not(:disabled) {
+.social-login-list > button:hover:not(:disabled),
+.social-login-list .dev-login-group > button:hover:not(:disabled) {
   border-color: var(--color-primary);
   background: var(--color-surface-lavender);
 }
-.social-login-list > button:disabled {
+.social-login-list > button:disabled,
+.social-login-list .dev-login-group > button:disabled {
   cursor: wait;
   opacity: 0.65;
 }
@@ -4742,7 +4745,8 @@
   grid-template-columns: 1fr;
   gap: 10px;
 }
-.social-login-list > button {
+.social-login-list > button,
+.social-login-list .dev-login-group > button {
   height: 50px;
   grid-template-columns: 22px auto;
   justify-content: center;
@@ -4753,6 +4757,19 @@
   font-size: 12px;
   text-align: left;
 }
+.social-login-list .dev-login-group {
+  display: grid;
+  gap: 6px;
+}
+.social-login-list .dev-login-email {
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: 10px;
+  background: transparent;
+}
+.social-login-list .dev-login-button,
 .social-login-list > .dev-login-button {
   display: flex;
   align-items: center;
