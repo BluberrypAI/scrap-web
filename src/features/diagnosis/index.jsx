@@ -34,7 +34,7 @@ function RoutePrep({ id, handoff }) {
     <div className="wd-card stack">
       <strong>다음 단계: 처리 경로</strong>
       {guide?.summary && <p className="muted">{guide.summary}</p>}
-      <a className="button button-primary" href={`/wastes/case-${id}?tab=route`}>
+      <a className="button button-primary" href={`/wastes/case-${id}`}>
         처리 경로 보기
       </a>
     </div>

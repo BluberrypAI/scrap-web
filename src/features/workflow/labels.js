@@ -92,11 +92,38 @@ export function lotToWaste(lot, myCompanyId) {
     name: `${lotTitle(lot)} · ${lot.companies[lot.owner_company_id] || '다른 기업'}`,
     code: lot.data?.handoff?.waste_code,
     status: lot.status === 'completed' ? '완료' : '처리 진행',
-    displayStatus: LOT_STATUS[lot.status] || lot.status,
-    message: lot.current_company_id === myCompanyId ? '우리 기업이 처리할 차례예요' : '받은 인계 요청',
+    ...lotCardText(lot, myCompanyId),
     category: '받은 인계',
     updatedAt: '',
     href: `/lots/${lot.id}`,
     received: true,
   };
+}
+
+/**
+ * 이 기업 입장에서 처리 건이 어디까지 왔는지.
+ *  - completed: 재활용 완료
+ *  - handed_off: 우리가 보낸 물량을 받는 쪽이 QR 입고 확인함(지금 담당은 다른 기업). 우리 몫은 끝
+ *  - active: 우리가 할 일이 있거나 아직 넘기기 전
+ */
+export function lotProgress(lot, me) {
+  if (lot.status === 'completed') return { kind: 'completed', offer: null };
+  if (me && lot.current_company_id !== me) {
+    const sent = [...(lot.offers || [])]
+      .reverse()
+      .find((o) => o.sender_id === me && ['received', 'processed'].includes(o.status));
+    if (sent) return { kind: 'handed_off', offer: sent };
+  }
+  return { kind: 'active', offer: null };
+}
+
+/** 자원 경로 목록 카드의 상태 문구 (내 몫이 끝났는지 먼저 보여 줌) */
+export function lotCardText(lot, me) {
+  const progress = lotProgress(lot, me);
+  if (progress.kind === 'completed') return { displayStatus: '재활용 완료', message: '처리 과정 보기' };
+  if (progress.kind === 'handed_off') return { displayStatus: '전달 완료', message: '처리 추적 중' };
+  if (lot.current_company_id === me) {
+    return { displayStatus: LOT_STATUS[lot.status] || lot.status, message: '우리 기업이 처리할 차례예요' };
+  }
+  return { displayStatus: LOT_STATUS[lot.status] || lot.status, message: '상대 기업 응답 대기' };
 }

@@ -1,5 +1,5 @@
 // 처리 경로·인계 화면
-//  - /wastes/case-<문진 건 ID>[?tab=route|classification] : 문진 건 상세 (처리경로 | 분류)
+//  - /wastes/case-<문진 건 ID>                            : 문진 건 상세 (처리 경로를 보고 업체를 고르는 화면)
 //  - /lots/<처리 건 ID>                                    : 처리 건 (요청받은 업체도 여기서 봄)
 //  - /lots/<처리 건 ID>/receive/<요청 ID>?t=<QR 토큰>       : 입고 QR을 스캔하면 열리는 입고 확인
 import { useEffect, useState } from 'react';
@@ -11,16 +11,10 @@ import { LotPanel } from './LotPanel.jsx';
 import { LOT_STATUS, STATE_LABEL, formatKg } from './labels.js';
 import './workflow.css';
 
-const TABS = [
-  ['route', '처리경로'],
-  ['classification', '분류'],
-];
-
 export function CaseDetailPage({ caseId }) {
   const [detail, setDetail] = useState(null);
   const [lot, setLot] = useState(undefined); // undefined: 불러오는 중, null: 처리 건 없음
   const [error, setError] = useState('');
-  const tab = new URLSearchParams(currentRoute().search).get('tab') === 'classification' ? 'classification' : 'route';
 
   useEffect(() => {
     let live = true;
@@ -39,7 +33,6 @@ export function CaseDetailPage({ caseId }) {
 
   const kase = detail.case;
   const confirmed = ['CODE_CONFIRMED', 'IN_TRANSIT', 'COMPLETED'].includes(kase.status);
-  const verdict = detail.latest_turn?.ui?.result;
   const code = kase.summary?.code || detail.handoff?.waste_code;
 
   return (
@@ -52,31 +45,17 @@ export function CaseDetailPage({ caseId }) {
           </span>
           <h1>{kase.summary?.title || '폐기물'}</h1>
           <p className="detail-meta">{kase.summary?.result_label || kase.summary?.status_label}</p>
-          <div className="detail-code"><strong>분류번호 {code || '미정'}</strong></div>
+          {/* 분류 결과는 카드 위 문구로 충분하고, 근거는 문진 대화·판정 기록에서 본다 */}
+          <div className="detail-code wf-code">
+            <strong>분류번호 {code || '미정'}</strong>
+            <a className="button button-quiet button-small" href={`/wastes/case-${caseId}/survey`}>
+              {confirmed ? '문진 대화' : '문진 이어서 하기'}
+            </a>
+            <a className="button button-quiet button-small" href={`/wastes/case-${caseId}/history`}>판정 기록</a>
+          </div>
         </div>
       </header>
-      <nav className="detail-tabs" aria-label="폐기물 상세 메뉴">
-        {TABS.map(([id, label]) => (
-          <a key={id} href={`/wastes/case-${caseId}?tab=${id}`} className={tab === id ? 'is-active' : ''} aria-current={tab === id ? 'page' : undefined}>
-            {label}
-          </a>
-        ))}
-      </nav>
-      {tab === 'classification' ? (
-        <section className="wf-card">
-          <h3>분류 결과</h3>
-          {verdict ? (
-            <p>{verdict.code ? `${verdict.code} ${verdict.name || ''}` : verdict.conclusion}</p>
-          ) : (
-            <p className="wf-muted">{kase.summary?.next_action}</p>
-          )}
-          {detail.handoff?.route_guidance && <p className="wf-muted">{detail.handoff.route_guidance.summary}</p>}
-          <div className="wf-actions">
-            <a className="button button-quiet" href={`/wastes/case-${caseId}/survey`}>{confirmed ? '문진 대화 보기' : '문진 이어서 하기'}</a>
-            <a className="button button-quiet" href={`/wastes/case-${caseId}/history`}>판정 기록</a>
-          </div>
-        </section>
-      ) : !confirmed ? (
+      {!confirmed ? (
         <section className="wf-card">
           <p>분류를 확정하면 처리 경로를 볼 수 있어요.</p>
           <a className="button button-primary" href={`/wastes/case-${caseId}/survey`}>문진 이어서 하기</a>

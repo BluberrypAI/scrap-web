@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSession } from '../../hooks/useSession.js';
 import QRCode from 'qrcode';
 import { receiveUrl, workflowApi } from './api.js';
 import { ProcessOption } from './FacilityCard.jsx';
@@ -9,6 +10,7 @@ import {
   STATE_LABEL,
   formatDateTime,
   formatKg,
+  lotProgress,
 } from './labels.js';
 
 // 처리 건(로트) 하나. 지금 물량을 가진 기업(can_manage)과 요청받은 기업이 각자 할 일을 본다.
@@ -17,6 +19,7 @@ export function LotPanel({ lotId, initialLot = null }) {
   const [lot, setLot] = useState(initialLot);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
+  const me = useSession().company?.id;
 
   const reload = useCallback(() => {
     setError('');
@@ -55,8 +58,8 @@ export function LotPanel({ lotId, initialLot = null }) {
   const manage = lot.can_manage;
   const canFinish = manage && lot.status === 'processed' && ['pp-pellet', 'pp-compound'].includes(current.state_key);
 
-  return (
-    <div className="wf-panel">
+  const progress = lotProgress(lot, me);
+  const summary = (
       <section className="wf-card wf-summary">
         <div className="wf-summary-head">
           <span className="wf-status" data-status={lot.status}>{LOT_STATUS[lot.status] || lot.status}</span>
@@ -77,9 +80,9 @@ export function LotPanel({ lotId, initialLot = null }) {
           </ul>
         )}
       </section>
-
-      {error && <p className="wf-alert" role="alert">{error}</p>}
-
+  );
+  const steps = (
+    <>
       {lot.status === 'review_required' && (
         <p className="wf-alert">기록한 산출물이 예상한 형태와 달라 다음 단계를 보류했어요. 담당자 확인이 필요해요.</p>
       )}
@@ -103,7 +106,10 @@ export function LotPanel({ lotId, initialLot = null }) {
           {pendingOffer.can_decide ? (
             <DecisionForm busy={busy} onDecide={(v) => run('decide', () => workflowApi.decide(lot, pendingOffer.id, v))} />
           ) : (
-            <p className="wf-muted">{name(pendingOffer.recipient_id)}의 응답을 기다리고 있어요.</p>
+            <p className="wf-muted">
+              {name(pendingOffer.recipient_id)}의 응답을 기다리고 있어요.
+              {pendingOffer.sender_id === me && ' 수락되면 여기서 입고 QR을 발급할 수 있어요. 새로고침해 확인해 주세요.'}
+            </p>
           )}
         </OfferCard>
       )}
@@ -122,7 +128,78 @@ export function LotPanel({ lotId, initialLot = null }) {
       )}
 
       <History lot={lot} name={name} />
+    </>
+  );
+
+  // 내 몫의 일이 끝났으면(전달 완료·재활용 완료) 그것을 먼저 보여 주고, 처리 과정은 접어 둔다.
+  // 배출 기업은 위탁 뒤에도 최종 처리까지 확인할 수 있어야 하므로 숨기지 않는다.
+  return (
+    <div className="wf-panel">
+      {error && <p className="wf-alert" role="alert">{error}</p>}
+      {progress.kind === 'active' ? (
+        <>
+          {summary}
+          {steps}
+        </>
+      ) : (
+        <>
+          {progress.kind === 'completed' ? (
+            <CompletedCard lot={lot} name={name} />
+          ) : (
+            <HandedOffCard lot={lot} offer={progress.offer} name={name} onReload={reload} busy={busy} />
+          )}
+          <details className="wf-card wf-more">
+            <summary>{progress.kind === 'completed' ? '처리 과정 보기' : '이후 처리 과정 보기'}</summary>
+            <div className="wf-panel">
+              {summary}
+              {steps}
+            </div>
+          </details>
+        </>
+      )}
     </div>
+  );
+}
+
+// 우리 기업이 다음 업체에 실물을 넘겼다(받는 쪽 QR 입고 확인). 우리 몫은 끝났고 이후는 추적만 한다
+function HandedOffCard({ lot, offer, name, onReload, busy }) {
+  const received = lot.data.events?.find((e) => e.action === 'QR 입고 확인' && e.company_id === offer.recipient_id);
+  const sent = offer.data.current;
+  return (
+    <section className="wf-card wf-done">
+      <div className="wf-summary-head">
+        <span className="wf-status" data-status="handed_off">전달 완료</span>
+        <button className="button button-quiet button-small" type="button" onClick={onReload} disabled={!!busy}>새로고침</button>
+      </div>
+      <h3>{offer.data.facility?.label}에 전달했어요</h3>
+      <dl className="wf-facts">
+        <div><dt>받은 기업</dt><dd>{name(offer.recipient_id)}</dd></div>
+        <div><dt>입고 확인</dt><dd>{received ? formatDateTime(received.at) : '-'}</dd></div>
+        <div><dt>전달 물량</dt><dd>{STATE_LABEL[sent?.state_key] || sent?.state_key} · {formatKg(sent?.mass_kg)}</dd></div>
+        <div><dt>지금 진행</dt><dd>{name(lot.current_company_id)} · {LOT_STATUS[lot.status] || lot.status}</dd></div>
+      </dl>
+      <p className="wf-muted">우리 기업이 할 일은 끝났어요. 최종 처리까지는 아래에서 확인할 수 있어요.</p>
+    </section>
+  );
+}
+
+function CompletedCard({ lot, name }) {
+  const finished = [...(lot.data.events || [])].reverse().find((e) => e.action === '처리 완료 확인');
+  const current = lot.data.current;
+  return (
+    <section className="wf-card wf-done">
+      <div className="wf-summary-head">
+        <span className="wf-status" data-status="completed">재활용 완료</span>
+      </div>
+      <h3>{STATE_LABEL[current.state_key] || current.state_key} {formatKg(current.mass_kg)}로 재활용됐어요</h3>
+      <dl className="wf-facts">
+        <div><dt>완료 업체</dt><dd>{name(lot.current_company_id)}</dd></div>
+        <div><dt>완료 일시</dt><dd>{finished ? formatDateTime(finished.at) : '-'}</dd></div>
+        <div><dt>용도</dt><dd>{finished?.intended_use || '-'}</dd></div>
+        <div><dt>완료 근거</dt><dd>{finished?.reference || '-'}</dd></div>
+      </dl>
+      <p className="wf-muted">처리 단계 {lot.data.completed.length}개 · 처음 배출 {name(lot.owner_company_id)}</p>
+    </section>
   );
 }
 

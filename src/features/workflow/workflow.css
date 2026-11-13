@@ -4,7 +4,8 @@
   margin: 0 auto;
   padding: 16px 0 64px;
 }
-.wf-page .detail-tabs { margin-bottom: 16px; }
+.wf-page .detail-header { margin-bottom: 16px; }
+.wf-code { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .wf-panel { display: grid; gap: 16px; }
 .wf-card {
   display: grid;
@@ -61,6 +62,7 @@
 
 .wf-summary-head { display: flex; justify-content: space-between; align-items: center; }
 .wf-status { padding: 4px 10px; border-radius: 999px; background: var(--color-surface-lavender); font-weight: 600; font-size: 13px; }
+.wf-status[data-status="handed_off"] { background: color-mix(in srgb, var(--color-accent-lime) 55%, var(--color-card)); }
 .wf-status[data-status="completed"] { background: var(--color-accent-lime); color: var(--color-on-lime, #24212d); }
 .wf-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 16px; margin: 0; }
 .wf-facts dt { color: var(--color-text-secondary); font-size: 12px; }
@@ -99,3 +101,8 @@
   .wf-page { width: calc(100% - 32px); }
   .wf-facility-head { flex-direction: column; }
 }
+
+.wf-done h3 { font-size: 18px; }
+.wf-more > summary { cursor: pointer; font-weight: 600; }
+.wf-more[open] > summary { margin-bottom: 12px; }
+.wf-more .wf-card { border-style: dashed; }

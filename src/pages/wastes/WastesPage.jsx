@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
 import { caseToWaste } from '../../data/diagnosisCases.js';
 import { workflowApi } from '../../features/workflow/api.js';
-import { LOT_STATUS, lotCardStatus, lotToWaste } from '../../features/workflow/labels.js';
+import { lotCardStatus, lotCardText, lotToWaste } from '../../features/workflow/labels.js';
 import { api } from '../../lib/api.js';
 import { currentRoute, navigate } from '../../lib/router.js';
 import './WastesPage.css';
@@ -195,7 +195,7 @@ function mergeLots(cards, lots, myCompanyId) {
   const merged = cards.map((card) => {
     const lot = byCase.get(card.caseId);
     return lot
-      ? { ...card, status: lotCardStatus(lot.status), displayStatus: LOT_STATUS[lot.status], message: '처리 건 진행 상황 보기', href: `/wastes/${card.id}?tab=route` }
+      ? { ...card, status: lotCardStatus(lot.status), ...lotCardText(lot, myCompanyId), href: `/wastes/${card.id}` }
       : card;
   });
   const received = lots.filter((l) => l.owner_company_id !== myCompanyId).map((l) => lotToWaste(l, myCompanyId));
