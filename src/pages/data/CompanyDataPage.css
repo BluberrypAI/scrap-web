@@ -303,3 +303,15 @@
   .data-page .workplace-info-grid { grid-template-columns: 1fr; }
   .data-page .workplace-info-grid article:nth-child(odd) { border-right: 0; }
 }
+
+/* 분석 결과 표: 서류 값에서 읽은 실제 행 + 문진 링크 열 */
+.data-table[data-type="analysis"] .data-table-head,
+.data-table[data-type="analysis"] .data-table-row {
+  grid-template-columns: 1.05fr 0.8fr 1.6fr 0.8fr 0.8fr;
+}
+.data-table-empty {
+  margin: 0;
+  padding: 20px 23px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
