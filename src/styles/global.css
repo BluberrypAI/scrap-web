@@ -1,5 +1,6 @@
 @import "https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap";
 @import "https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+@import "https://api.fontshare.com/v2/css?f[]=switzer@600&display=swap";
 @layer components;
 @layer properties {
   @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or
@@ -5521,9 +5522,11 @@
 }
 .landing-copy h1 {
   color: var(--color-text-primary);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.025em;
   margin: 0 0 20px;
+  /* 히어로 영문 헤드라인 전용 폰트 (Fontshare Switzer, ITF Free Font License) */
   font-family:
+    Switzer,
     Inter,
     Pretendard,
     Segoe UI,
@@ -6909,7 +6912,7 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #201a2b4d;
+  background: #201a2b66;
   backdrop-filter: blur(1px);
 }
 .berry-site-tour {
@@ -7721,4 +7724,20 @@ html {
 /* 기업소개의 word-break: keep-all이 헤더 메뉴 줄바꿈에 영향을 주지 않도록 앱 헤더와 같은 값으로 되돌림 */
 .site-topnav {
   word-break: normal;
+}
+
+/* 모든 화면의 상단 헤더는 최대 폭 없이 좌우 끝까지 (로고 왼쪽 끝, 계정·시작하기 오른쪽 끝).
+   위쪽의 폭 규칙보다 뒤에 두어 덮어씀. 여백은 홈 푸터와 같은 값 */
+.app-topnav-inner {
+  width: calc(100% - 72px);
+}
+@media (width<=800px) {
+  .app-topnav-inner {
+    width: calc(100% - 40px);
+  }
+}
+@media (width<=560px) {
+  .app-topnav-inner {
+    width: calc(100% - 26px);
+  }
 }

@@ -2,10 +2,11 @@ html:has(.showcase-home) { scrollbar-gutter: auto; }
 .showcase-home { background: #8ac4f4; }
 .showcase-home .site-topnav { position: absolute; inset: 0 0 auto; z-index: 10; background: #ffffffd9; backdrop-filter: blur(18px); border-bottom: 1px solid #ffffff70; }
 .landing-hero.meadow-integrated { position: relative; width: 100%; max-width: none; height: 100svh; min-height: 640px; padding: clamp(104px,14vh,148px) 24px 0; margin: 0; overflow: hidden; border-radius: 0; background: #8ac4f4; }
-.landing-hero.meadow-integrated::after { inset: 0; width: auto; height: auto; transform: none; background: linear-gradient(180deg,#eaf4fc99 0%,#eaf4fc33 25%,transparent 43%); pointer-events: none; z-index: 1; }
+/* 위쪽은 기존처럼 밝게(검은 헤드라인용), 소제목이 걸리는 능선 부근부터는 장면을 살짝 어둡게(흰 소제목용) */
+.landing-hero.meadow-integrated::after { inset: 0; width: auto; height: auto; transform: none; background: linear-gradient(180deg,#eaf4fc99 0%,#eaf4fc33 18%,transparent 26%,#0e2a2629 33%,#0e2a2629 100%); pointer-events: none; z-index: 1; }
 .meadow-integrated .landing-copy { width: 100%; pointer-events: none; }
 .meadow-integrated .landing-copy h1 { font-size: clamp(36px,4.6vw,66px); line-height: 1.08; margin-bottom: 18px; }
-.meadow-integrated .landing-copy > p { font-size: 19px; font-weight: 750; line-height: 1.65; color: #203d36; margin-bottom: 0; text-shadow: 0 1px 6px #ffffffb3; word-break: keep-all; }
+.meadow-integrated .landing-copy > p { font-size: 19px; font-weight: 500; line-height: 1.65; color: #fff; margin-bottom: 0; text-shadow: 0 1px 2px #12302a73, 0 0 1px #12302a59; word-break: keep-all; }
 .meadow-integrated .landing-copy > p br { display: initial; }
 .meadow-world { position: absolute; inset: 0; z-index: 0; }
 .meadow-world canvas { display: block; width: 100%; height: 100%; }
@@ -13,7 +14,8 @@ html:has(.showcase-home) { scrollbar-gutter: auto; }
 .showcase-home :is(button,a):focus-visible { outline: 3px solid #6554ba; outline-offset: 4px; }
 @media (max-width:800px) {
   .meadow-integrated .landing-copy h1 { font-size: clamp(32px,5.8vw,46px); }
-  .meadow-integrated .landing-copy > p { font-size: 17px; }
+  /* 좁은 화면에서는 소제목이 하늘 위에 놓이므로 진한 글씨로 */
+  .meadow-integrated .landing-copy > p { font-size: 17px; color: #1d3a33; text-shadow: none; }
 }
 @media (max-width:560px) {
   .landing-hero.meadow-integrated { padding: 130px 16px 0; min-height: 700px; }
@@ -31,7 +33,7 @@ html:has(.showcase-home) { scrollbar-gutter: auto; }
 .meadow-partners { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px 25px; margin-bottom: 17px; }
 .meadow-partner { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 650; }
 .meadow-partner img { width: 27px; height: 27px; object-fit: contain; padding: 3px; background: #fffffff0; border-radius: 6px; }
-.meadow-credit-line { display: flex; justify-content: space-between; align-items: center; gap: 12px; max-width: 1180px; margin: auto; }
+.meadow-credit-line { display: flex; justify-content: space-between; align-items: center; gap: 12px; max-width: none; margin: auto; }
 .meadow-credit-line p, .meadow-credit-line nav { display: flex; align-items: center; flex-wrap: wrap; gap: 15px; margin: 0; font-size: 12px; }
 .meadow-credit-line p > strong { font-size: 18px; letter-spacing: -.5px; }
 .meadow-credits a { color: #fff; text-decoration: none; }
