@@ -121,7 +121,7 @@ export function LoginPage() {
               Google로 {isLogin ? '로그인' : '계속하기'}
             </button>
             {import.meta.env.DEV && (
-              <button type="button" onClick={devLogin} disabled={status === 'connecting'}>
+              <button type="button" className="dev-login-button" onClick={devLogin} disabled={status === 'connecting'}>
                 개발용 로그인 (로컬 서버)
               </button>
             )}
