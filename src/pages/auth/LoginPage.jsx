@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AuthLogo } from '../../components/AuthLogo.jsx';
 import { GoogleMark, MicrosoftMark } from '../../components/SocialMarks.jsx';
-import { useRequireSession } from '../../hooks/useSession.js';
+import { resetSession, useRequireSession } from '../../hooks/useSession.js';
 import { api } from '../../lib/api.js';
 import { rememberSession } from '../../lib/auth.js';
 import { currentRoute, navigate } from '../../lib/router.js';
@@ -43,6 +43,7 @@ export function LoginPage() {
     setStatus('connecting');
     try {
       await api.devLogin(devEmail.trim() || undefined);
+      resetSession();
       const session = await loadSession();
       rememberSession(session);
       navigate(redirectFor(session, '/login') || '/wastes');
