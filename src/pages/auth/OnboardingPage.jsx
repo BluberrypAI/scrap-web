@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AuthLogo } from '../../components/AuthLogo.jsx';
 import { Icon } from '../../components/Icon.jsx';
-import { useRequireSession } from '../../hooks/useSession.js';
+import { resetSession, useRequireSession } from '../../hooks/useSession.js';
 import { ApiError, api } from '../../lib/api.js';
 import { rememberSession } from '../../lib/auth.js';
 import { navigate } from '../../lib/router.js';
@@ -73,12 +73,14 @@ export function OnboardingPage() {
           main_waste_types: withPending(mainWastes, wasteInput).map((category) => ({ category })),
         });
         rememberSession({ status: 'ready' });
+        resetSession();
         navigate('/wastes');
       } catch (error) {
         setSubmitting(false);
         if (error instanceof ApiError && error.status === 409) {
           // 다른 탭에서 이미 등록함
           rememberSession({ status: 'ready' });
+          resetSession();
           navigate('/wastes');
         } else if (error instanceof ApiError && error.status === 401) {
           navigate('/login?mode=login');

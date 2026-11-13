@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSession } from '../hooks/useSession.js';
+import { resetSession, useSession } from '../hooks/useSession.js';
 import { api } from '../lib/api.js';
 import { clearAuthenticatedSession } from '../lib/auth.js';
 import { navigate } from '../lib/router.js';
@@ -20,6 +20,7 @@ export function AuthenticatedAccount() {
   const logout = async () => {
     await api.logout().catch(() => {});
     clearAuthenticatedSession();
+    resetSession();
     navigate('/');
   };
 

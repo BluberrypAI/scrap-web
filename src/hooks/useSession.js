@@ -4,8 +4,13 @@ import { rememberSession } from '../lib/auth.js';
 import { navigate } from '../lib/router.js';
 import { loadSession, redirectFor } from '../lib/session.js';
 
-// hash 라우팅이 이동마다 페이지를 새로 읽으므로, 한 페이지 안에서는 한 번만 불러온다.
+// 한 페이지 안에서는 한 번만 불러온다. 화면 이동은 페이지를 새로 읽지 않으므로
+// 로그인·기업 등록·로그아웃처럼 상태가 바뀐 뒤에는 resetSession()으로 다시 불러오게 한다.
 let cached = null;
+
+export function resetSession() {
+  cached = null;
+}
 
 export function useSession() {
   const [state, setState] = useState({ status: 'loading', user: null, company: null });
