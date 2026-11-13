@@ -70,4 +70,28 @@ export const api = {
     }),
   companyHistory: (pageNumber = 1, pageSize = 20) =>
     apiFetch('/companies/me/history', { query: { pageNumber, pageSize } }),
+
+  // 문진 (server가 문진 엔진으로 중계함, 응답은 엔진 형식 그대로)
+  diagnosis: {
+    // body: { memo?, quantity?, unit?, period? } → { case, turn }
+    createCase: (body = {}) => apiFetch('/diagnosis/cases', { method: 'POST', body }),
+    // 내 기업의 문진 건 목록 → { items, pagingInfo }
+    listCases: (page = 1, size = 100) => apiFetch('/diagnosis/cases', { query: { page, size } }),
+    // 건 상세. latest_turn으로 새로고침 뒤 이어서 그림
+    getCase: (caseId) => apiFetch(`/diagnosis/cases/${encodeURIComponent(caseId)}`),
+    // body: { text } 또는 { quick_reply: { key, kind, value } } → TurnResponse
+    send: (caseId, body) =>
+      apiFetch(`/diagnosis/cases/${encodeURIComponent(caseId)}/messages`, { method: 'POST', body }),
+    // 규칙 버전이 바뀐 건(KB_CHANGED)을 지금 규칙으로 다시 평가
+    rebase: (caseId) =>
+      apiFetch(`/diagnosis/cases/${encodeURIComponent(caseId)}/rebase`, { method: 'POST' }),
+    // → { case, verdict, handoff }
+    confirm: (caseId, expectedCode) =>
+      apiFetch(`/diagnosis/cases/${encodeURIComponent(caseId)}/confirm`, {
+        method: 'POST',
+        body: expectedCode ? { expected_code: expectedCode } : {},
+      }),
+    reopen: (caseId) =>
+      apiFetch(`/diagnosis/cases/${encodeURIComponent(caseId)}/reopen`, { method: 'POST', body: {} }),
+  },
 };
