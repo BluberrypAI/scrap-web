@@ -6,6 +6,7 @@ import { createWorkshopLife } from './workshop-life.js';
 import { createCompassSculpture } from './compass-sculpture.js';
 import { addFactoryDetails } from './factory-details.js';
 import { createBerryFigure } from './berry-figure.js';
+import { createSkyDome, createDistantRanges } from './meadow-enhancements.js';
 
 // An illustrative world only: no waste records, facility decisions or engine calls.
 export function MeadowShowcase({ onBerryClick }) {
@@ -35,11 +36,15 @@ function createMeadow(host, berryBubble, onBerryClick, onFirstFrame) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.NoToneMapping;
+  // 필름 톤 매핑으로 명암에 깊이를 주고, 어두워지는 만큼 노출을 살짝 올림
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.12;
   host.appendChild(renderer.domElement);
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x8ac4f4); scene.fog = new THREE.FogExp2(0xb7d9ee, 0.006);
   const camera = new THREE.PerspectiveCamera(39, 1, 0.1, 240), target = new THREE.Vector3(-3, 5, 2);
   camera.position.set(25, 21, 41); camera.lookAt(target);
+  const viewYaw = Math.atan2(target.x - camera.position.x, target.z - camera.position.z);
+  const sky = createSkyDome(THREE, viewYaw); scene.add(sky);
+  scene.add(createDistantRanges(THREE, camera.position, viewYaw));
   scene.add(new THREE.HemisphereLight(0xf2faff, 0x587537, 1.35));
   const fill = new THREE.DirectionalLight(0xc5ddf5, 0.4); fill.position.set(24, 14, -12); scene.add(fill);
   const sun = new THREE.DirectionalLight(0xfff0d8, 2.7); sun.position.set(-16, 32, 18); sun.castShadow = true;
@@ -49,6 +54,7 @@ function createMeadow(host, berryBubble, onBerryClick, onFirstFrame) {
     mobile: window.innerWidth < 700,
     cloudLayout: 'clear-copy',
     lightweight: true,
+    richFlora: true,
   });
   const positions = [[-16, 8], [-3, 5], [10, -4]];
   const facilities = positions.map(([x, z], i) => {
@@ -227,7 +233,7 @@ function createMeadow(host, berryBubble, onBerryClick, onFirstFrame) {
     const motion = !paused && !dragging && !reducedMotion.matches;
     camera.position.x = THREE.MathUtils.lerp(camera.position.x, 25 + (motion ? pointer.x * 1.8 : 0), 0.025);
     camera.position.y = THREE.MathUtils.lerp(camera.position.y, 21 + (motion ? pointer.y * 0.8 : 0), 0.025);
-    camera.lookAt(target); renderer.render(scene, camera);
+    camera.lookAt(target); sky.position.copy(camera.position); renderer.render(scene, camera);
     if (!firstFrame) { firstFrame = true; onFirstFrame?.(); scheduleSculpture(); }
     berry.bubbleAnchor.getWorldPosition(berryAnchor); berryAnchor.y += 0.18; berryAnchor.project(camera);
     const bx = (berryAnchor.x * 0.5 + 0.5) * host.clientWidth;
