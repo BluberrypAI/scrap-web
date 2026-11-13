@@ -1,10 +1,10 @@
 import { CONCERN_CATEGORY, REVIEW_FINDING, REVIEW_STATUS } from './labels.js';
 
 // 공정 후보 업체 한 곳: 공개 근거, 거리, AI 검토 결과(있으면), 이어서 할 일(action)
-export function FacilityCard({ facility, review, action = null }) {
+export function FacilityCard({ facility, review, action = null, selected = false }) {
   const lotReview = review?.lot_review;
   return (
-    <li className="wf-facility">
+    <li className={`wf-facility${selected ? ' is-selected' : ''}`} id={`facility-${facility.facility_key}`}>
       <div className="wf-facility-head">
         <div>
           <strong>{facility.label}</strong>
@@ -86,7 +86,7 @@ export function FacilityCard({ facility, review, action = null }) {
 }
 
 // 다음 공정 하나(입력 형태 → 산출 형태)와 후보 업체 목록
-export function ProcessOption({ option, reviews, renderAction }) {
+export function ProcessOption({ option, reviews, renderAction, selectedKey = null }) {
   return (
     <section className="wf-option">
       <header>
@@ -103,6 +103,7 @@ export function ProcessOption({ option, reviews, renderAction }) {
               key={facility.capability_key}
               facility={facility}
               review={reviews?.[facility.capability_key]}
+              selected={facility.facility_key === selectedKey}
               action={renderAction?.(facility, reviews?.[facility.capability_key])}
             />
           ))}

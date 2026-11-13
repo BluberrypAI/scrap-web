@@ -3,6 +3,7 @@ import { useSession } from '../../hooks/useSession.js';
 import QRCode from 'qrcode';
 import { receiveUrl, workflowApi } from './api.js';
 import { ProcessOption } from './FacilityCard.jsx';
+import { FacilityMap } from './FacilityMap.jsx';
 import {
   LOT_STATUS,
   OFFER_STATUS,
@@ -234,6 +235,7 @@ function PhotoSection({ lot, photos, busy, onAdd }) {
 }
 
 function CandidateSection({ lot, busy, onReview, onOffer }) {
+  const [selectedKey, setSelectedKey] = useState(null);
   const review = lot.review;
   const next = review?.next_step;
   const sendable = (facility, result) =>
@@ -249,11 +251,15 @@ function CandidateSection({ lot, busy, onReview, onOffer }) {
         {busy === 'review' ? '업체를 검토하는 중…' : review ? '다시 검토' : '업체 검토 시작'}
       </button>
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
+      {next?.options?.length > 0 && (
+        <FacilityMap options={next.options} selectedKey={selectedKey} onSelect={setSelectedKey} />
+      )}
       {next?.options?.map((option) => (
         <ProcessOption
           key={option.transition_key}
           option={option}
           reviews={review.results}
+          selectedKey={selectedKey}
           renderAction={(facility, result) =>
             sendable(facility, result) ? (
               <button className="button button-quiet button-small" type="button" disabled={!!busy}

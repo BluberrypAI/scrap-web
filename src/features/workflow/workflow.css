@@ -54,6 +54,9 @@
 .wf-facility-head > div { display: grid; gap: 2px; }
 .wf-facility-head span { color: var(--color-text-secondary); font-size: 13px; }
 .wf-checks, .wf-sources { margin: 0; padding-left: 18px; font-size: 13px; }
+.wf-facility.is-selected { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-shadow); }
+.wf-map { position: relative; height: 420px; border-radius: 14px; overflow: hidden; background: #bcd9eb; }
+.wf-map-note { margin: 0; color: var(--color-text-secondary); font-size: 12px; }
 .wf-review { display: grid; gap: 4px; padding: 10px 12px; border-left: 3px solid var(--color-primary); background: var(--color-card); }
 .wf-review[data-status="model_unavailable"] { border-left-color: #b5651d; }
 .wf-review p, .wf-lot-review p { margin: 0; font-size: 13px; }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { workflowApi } from './api.js';
 import { ProcessOption } from './FacilityCard.jsx';
+import { FacilityMap } from './FacilityMap.jsx';
 import { LOT_INPUT_FORMS } from './labels.js';
 
 // 확정 문진 → 첫 처리 공정과 후보 업체.
@@ -11,6 +12,7 @@ export function CaseRoutePanel({ caseId, onLotCreated }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState(false);
+  const [selectedKey, setSelectedKey] = useState(null);
 
   useEffect(() => {
     let live = true;
@@ -81,8 +83,10 @@ export function CaseRoutePanel({ caseId, onLotCreated }) {
           <p className="wf-muted">
             {next.code_label} · 현재 {next.current_state?.label}. {next.message}
           </p>
+          <FacilityMap options={next.options} origin={context.origin} originLabel={context.origin_label}
+            selectedKey={selectedKey} onSelect={setSelectedKey} />
           {next.options.map((option) => (
-            <ProcessOption key={option.transition_key} option={option} reviews={reviews} />
+            <ProcessOption key={option.transition_key} option={option} reviews={reviews} selectedKey={selectedKey} />
           ))}
           <div className="wf-actions">
             <button className="button button-quiet" type="button" onClick={review} disabled={reviewing}>

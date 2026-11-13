@@ -25,7 +25,19 @@ function createCompassMarker(factory, onSelect) {
   return marker;
 }
 
-export function ResourceMapbox({ factories, selectedId, focusId, onSelect }) {
+// 출발 사업장 표시 (처리 경로 화면에서 씀). 순환자원지도 화면은 origin 없이 그대로 쓴다
+function createOriginMarker(origin) {
+  const marker = document.createElement('div');
+  marker.className = 'resource-origin-marker';
+  marker.setAttribute('aria-label', origin.label || '출발 사업장');
+  const dot = document.createElement('span');
+  const name = document.createElement('strong');
+  name.textContent = origin.label || '우리 사업장';
+  marker.append(dot, name);
+  return marker;
+}
+
+export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origin = null, label = '전국 순환자원 처리업체 위치 지도' }) {
   const hostRef = useRef(null);
   const mapRef = useRef(null);
   const markerRefs = useRef(new Map());
@@ -34,7 +46,7 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect }) {
   const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim();
   const signature = useMemo(() => factories.map((factory) => [
     factory.id, factory.longitude, factory.latitude,
-  ]).join(':'), [factories]);
+  ]).join(':') + (origin ? `|${origin.longitude},${origin.latitude}` : ''), [factories, origin]);
 
   onSelectRef.current = onSelect;
 
@@ -90,6 +102,12 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect }) {
         markerRefs.current.set(factory.id, { marker, element });
       });
 
+      if (origin) {
+        markers.push(new mapboxgl.Marker({ element: createOriginMarker(origin), anchor: 'bottom' })
+          .setLngLat([origin.longitude, origin.latitude])
+          .addTo(map));
+      }
+
       if (factories.length) {
         const bounds = factories.reduce((nextBounds, factory) => nextBounds.extend([
           factory.longitude, factory.latitude,
@@ -97,10 +115,11 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect }) {
           [factories[0].longitude, factories[0].latitude],
           [factories[0].longitude, factories[0].latitude],
         ));
-        if (factories.length >= 5) bounds.extend(DOKDO_COORDINATE);
+        if (origin) bounds.extend([origin.longitude, origin.latitude]);
+        if (factories.length >= 5 && !origin) bounds.extend(DOKDO_COORDINATE);
         map.fitBounds(bounds, {
           padding: { top: 80, right: 80, bottom: 80, left: 80 },
-          maxZoom: factories.length === 1 ? 11 : 7.8,
+          maxZoom: factories.length === 1 && !origin ? 11 : origin ? 10 : 7.8,
           duration: 700,
         });
       } else {
@@ -150,7 +169,7 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect }) {
 
   return <div className="resource-mapbox" data-load-state={loadState}>
     <div className="resource-mapbox-canvas" ref={hostRef}
-      aria-label="전국 순환자원 처리업체 위치 지도" />
+      aria-label={label} />
     {loadState !== 'ready' && <div className="resource-map-state" role="status">
       <span />
       <p>{stateMessage}</p>
