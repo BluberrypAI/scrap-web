@@ -37,7 +37,7 @@ function createOriginMarker(origin) {
   return marker;
 }
 
-export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origin = null, label = '전국 순환자원 처리업체 위치 지도' }) {
+export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origin = null, label = '전국 순환자원 처리업체 위치 지도', onStateChange }) {
   const hostRef = useRef(null);
   const mapRef = useRef(null);
   const markerRefs = useRef(new Map());
@@ -49,12 +49,9 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
   ]).join(':') + (origin ? `|${origin.longitude},${origin.latitude}` : ''), [factories, origin]);
 
   onSelectRef.current = onSelect;
+  useEffect(() => { onStateChange?.(loadState); }, [loadState, onStateChange]);
 
   useEffect(() => {
-    if (!accessToken) {
-      setLoadState('missing-token');
-      return undefined;
-    }
     if (!mapboxgl.supported()) {
       setLoadState('unsupported');
       return undefined;
@@ -64,12 +61,18 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
     let loaded = false;
     let resizeObserver;
     const markers = [];
-    mapboxgl.accessToken = accessToken;
+    mapboxgl.accessToken = accessToken || '';
     setLoadState('loading');
 
     const map = new mapboxgl.Map({
       container: hostRef.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
+      style: accessToken ? 'mapbox://styles/mapbox/streets-v12' : {
+        version: 8,
+        sources: { osm: { type: 'raster', tileSize: 256, maxzoom: 19,
+          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors' } },
+        layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
+      },
       center: KOREA_CENTER,
       zoom: 5.8,
       minZoom: 5.3,
@@ -82,7 +85,7 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
     mapRef.current = map;
     markerRefs.current = new Map();
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
+    map.addControl(new mapboxgl.AttributionControl({ compact: false }), 'bottom-left');
 
     const handleError = (event) => {
       if (event?.error) console.error('Resource map error:', event.error);
@@ -91,8 +94,7 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
     map.on('error', handleError);
     map.on('load', () => {
       if (cancelled) return;
-      hideRoadNumberShields(map);
-      styleKoreaMapContext(map);
+      if (accessToken) { hideRoadNumberShields(map); styleKoreaMapContext(map); }
       factories.forEach((factory) => {
         const element = createCompassMarker(factory, (id) => onSelectRef.current?.(id));
         const marker = new mapboxgl.Marker({ element, anchor: 'bottom', offset: [0, -3] })
@@ -164,7 +166,7 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
     loading: '지도를 불러오는 중이에요.',
     'missing-token': 'Mapbox 공개 액세스 토큰을 설정해 주세요.',
     unsupported: '이 브라우저에서는 지도를 표시할 수 없어요.',
-    error: '지도를 불러오지 못했어요. 토큰과 네트워크를 확인해 주세요.',
+    error: '지도를 불러오지 못했어요. 아래 업체 목록을 이용해 주세요.',
   }[loadState];
 
   return <div className="resource-mapbox" data-load-state={loadState}>

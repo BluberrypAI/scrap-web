@@ -45,7 +45,22 @@ export const workflowApi = {
       body: { revision: lot.revision, capability_key: capabilityKey },
     }),
   getOffer: (offerId) => apiFetch(`/workflow/offers/${enc(offerId)}`),
-  decide: (lot, offerId, { accept, note, scopeChecked, intakeChecked }) =>
+  saveIntakeAnswers: (lot, capabilityKey, answers) => apiFetch(`/workflow/lots/${enc(lot.id)}/intake-answers`, {
+    method: 'POST', body: { revision: lot.revision, capability_key: capabilityKey, answers },
+  }),
+  directory: (lot, transitionKey, cursor = null) => apiFetch(`/workflow/lots/${enc(lot.id)}/directory`, {
+    method: 'POST', body: { revision: lot.revision, transition_key: transitionKey, cursor, page_size: 10 },
+  }),
+  saveDirectoryInquiry: (lot, transitionKey, listingId, cursor, answers) => apiFetch(`/workflow/lots/${enc(lot.id)}/directory-inquiries`, {
+    method: 'POST', body: { revision: lot.revision, transition_key: transitionKey, listing_id: listingId, cursor, page_size: 10, answers },
+  }),
+  setConditions: (lot, offerId, conditions, note) => apiFetch(`/workflow/offers/${enc(offerId)}/conditions`, {
+    method: 'POST', body: { revision: lot.revision, conditions, note },
+  }),
+  respondConditions: (lot, offerId, responses) => apiFetch(`/workflow/offers/${enc(offerId)}/condition-responses`, {
+    method: 'POST', body: { revision: lot.revision, responses },
+  }),
+  decide: (lot, offerId, { accept, note, scopeChecked, intakeChecked, resolvedConditionIds = [] }) =>
     apiFetch(`/workflow/offers/${enc(offerId)}/decision`, {
       method: 'POST',
       body: {
@@ -54,6 +69,7 @@ export const workflowApi = {
         note,
         scope_checked: scopeChecked,
         intake_checked: intakeChecked,
+        resolved_condition_ids: resolvedConditionIds,
       },
     }),
   /** 입고 QR 발급. 토큰 원문은 이 응답에만 있고 서버에는 해시만 남는다 */

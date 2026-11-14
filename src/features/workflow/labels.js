@@ -4,6 +4,7 @@
 export const LOT_STATUS = {
   ready: '업체 선택 전',
   offered: '인수 요청 중',
+  conditional: '조건부 수락 · 자료 확인 중',
   accepted: '인수 수락 · 입고 대기',
   processing: '처리 중',
   processed: '처리 결과 기록됨',
@@ -14,6 +15,7 @@ export const LOT_STATUS = {
 /** 인수 요청 status → 화면 문구 */
 export const OFFER_STATUS = {
   pending: '응답 대기',
+  conditional: '조건부 수락',
   accepted: '수락',
   rejected: '거절',
   received: '입고 확인',
@@ -32,6 +34,11 @@ export const STATE_LABEL = {
   'pe-washed': 'PE 세척 플레이크',
   'pe-pellet': 'PE 재생 펠렛',
   'pe-compound': 'PE 컴파운드',
+  'pet-bottle': 'PET병',
+  'pet-sorted': 'PET 선별품',
+  'pet-washed': 'PET 세척품',
+  'pet-flake': 'PET 플레이크',
+  'pet-pellet': 'PET 펠렛',
   'al-used-can': '사용 후 알루미늄 음료캔',
   'al-sheet': '재활용 알루미늄 판재',
   'al-sheet-ingot': '알루미늄 잉곳',
@@ -60,12 +67,12 @@ export const LOT_INPUT_FORMS = [
   ['pp', 'shredded', 'pp-shredded', 'PP 파쇄품'],
   ['pe', 'film', 'pe-scrap', 'PE 필름'],
   ['aluminium', 'can', 'al-used-can', '사용 후 알루미늄 음료캔'],
-  // PET병: 문진은 51-03-01, 서버 첫 공정은 51-03-07만 받아 아직 인계 불가 → 분류번호 정리 후 다시 열기
-  // ['pet', 'bottle', 'pet-bottle', '사용 후 PET병'],
+  // 서버 context가 확정 코드·형태를 확인한 경우만 등록. 일반 PET(51-03-01)는 계속 보류.
+  ['pet', 'bottle', 'pet-bottle', '사용 후 PET병'],
 ];
 
-export function canRegisterLot(material, form) {
-  return LOT_INPUT_FORMS.some(([m, f]) => m === material && f === form);
+export function canRegisterLot(material, form, wasteCode) {
+  return (material !== 'pet' || wasteCode === '51-03-07') && LOT_INPUT_FORMS.some(([m, f]) => m === material && f === form);
 }
 
 /** 기존 PP 로트는 재질 값이 없을 수 있어 pp로 본다 */
@@ -115,7 +122,9 @@ export function formatDateTime(iso) {
 
 /** 로트에서 처리 건 이름 (처음 등록한 형태) */
 export function lotTitle(lot) {
-  return STATE_LABEL[lot.data?.initial?.input_form === 'shredded' ? 'pp-shredded' : 'pp-scrap'];
+  const initial = lot.data?.initial;
+  const form = LOT_INPUT_FORMS.find(([material, value]) => material === lotMaterial(lot) && value === initial?.input_form);
+  return form?.[3] || `${initial?.material?.toUpperCase() || ''} 자원순환`;
 }
 
 /** 자원 경로 목록에 보일 "받은 인계" 카드 (다른 기업이 등록한 물량 중 우리가 요청받았거나 처리 중인 것) */
