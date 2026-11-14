@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canRegisterLot, formatKg, lotCardStatus, lotCardText, lotProgress, lotTitle, lotToWaste } from './labels.js';
+import { canRegisterLot, stateLabel, formatKg, lotCardStatus, lotCardText, lotProgress, lotTitle, lotToWaste } from './labels.js';
 
 const lot = {
   id: '0819348d-95ec-4946-9dd8-7a5cc0893ff3',
@@ -44,10 +44,26 @@ test('우리 몫이 끝났는지: 받는 쪽 입고 확인 뒤에만 전달 완�
   assert.equal(lotProgress({ ...received, status: 'completed' }, 'A').kind, 'completed');
 });
 
-test('인계 등록은 문진·처리경로가 함께 지원하는 재질·형태만', () => {
-  assert.equal(canRegisterLot('pp', 'scrap'), true);
-  assert.equal(canRegisterLot('pe', 'film'), true);
-  assert.equal(canRegisterLot('aluminium', 'can'), true);
-  assert.equal(canRegisterLot('pp', 'film'), false);
-  assert.equal(canRegisterLot('pet', 'bottle'), false);
+test('서버가 확인한 소재·번호·형태를 등록하며 로컬 PP 메뉴로 제한하지 않는다', () => {
+  for (const [material, form, code] of [
+    ['pp', 'film', '51-03-01'], ['pet', 'bottle', '51-03-01'],
+    ['abs', 'flake', '51-03-01'], ['pvc', 'wallpaper', '51-03-03'],
+    ['eps', 'ingot', '51-03-06'], ['pa6', 'net', '51-03-08'],
+  ]) {
+    const context = { status: 'ready', route_input: { material, input_form: form, waste_code: code }, available_forms: [{ value: form }] };
+    assert.equal(canRegisterLot(context, form), true);
+    assert.equal(canRegisterLot({ ...context, status: 'review_required' }, form), false);
+    assert.equal(canRegisterLot({ ...context, available_forms: [] }, form), false);
+    assert.equal(canRegisterLot(context, 'different-form'), false);
+  }
+  assert.equal(canRegisterLot(null, 'scrap'), false);
+  assert.equal(canRegisterLot({ status: 'ready' }, 'scrap'), false);
+});
+
+test('추가 수지의 입고·완료 이름은 서버 공정 이름을 우선한다', () => {
+  assert.equal(stateLabel(lot, 'eps-ingot'), 'EPS 감용 인고트');
+  assert.equal(stateLabel(lot, 'pa6-net'), 'PA6 폐어망');
+  const updated = { ...lot, output_states: [{ key: 'abs-pellet', label: '검수된 ABS 원료' }] };
+  assert.equal(stateLabel(updated, 'abs-pellet'), '검수된 ABS 원료');
+  assert.equal(stateLabel(lot, null), '형태 미확인');
 });
