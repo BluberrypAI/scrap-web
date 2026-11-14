@@ -39,6 +39,29 @@ export const STATE_LABEL = {
   'pet-washed': 'PET 세척품',
   'pet-flake': 'PET 플레이크',
   'pet-pellet': 'PET 펠렛',
+  'pp-bale': 'PP 압축 베일',
+  'pe-bale': 'PE 압축 베일',
+  'pet-bale': '선별·압축 PET 베일',
+  'abs-scrap': 'ABS 경질·스크랩',
+  'abs-flake': 'ABS 분쇄품',
+  'abs-pellet': 'ABS 재생 펠릿',
+  'ps-scrap': 'PS 경질·스크랩',
+  'ps-flake': 'PS 분쇄품',
+  'ps-bale': 'PS 압축 베일',
+  'ps-pellet': 'PS 재생 펠릿',
+  'san-scrap': 'SAN 경질·스크랩',
+  'san-flake': 'SAN 분쇄품',
+  'san-pellet': 'SAN 재생 펠릿',
+  'pvc-wallpaper': 'PVC 벽지 잔재',
+  'pvc-recovered': 'PVC 회수 원료',
+  'eps-ingot': 'EPS 감용 인고트',
+  'eps-ps-pellet': 'EPS에서 회수한 PS 펠릿',
+  'pa6-net': 'PA6 폐어망',
+  'pa6-resin': 'PA6 재생 원료',
+  'pa66-flake': 'PA66 분쇄품',
+  'pa66-compound': 'PA66 컴파운드',
+  'pcabs-flake': 'PC/ABS 분쇄품',
+  'pcabs-compound': 'PC/ABS 컴파운드',
   'al-used-can': '사용 후 알루미늄 음료캔',
   'al-sheet': '재활용 알루미늄 판재',
   'al-sheet-ingot': '알루미늄 잉곳',
@@ -59,7 +82,7 @@ export const FINISH_STATES = {
 };
 
 /**
- * 처리 건을 만들 수 있는 처음 재질·형태 (서버 CreateLot.input_form, 문진·처리경로 교집합)
+ * 기존 처리 건의 표시용 이름. 등록 가능 여부는 서버 context로 확인한다.
  * [재질, 형태, 처음 상태, 화면 문구]
  */
 export const LOT_INPUT_FORMS = [
@@ -67,12 +90,19 @@ export const LOT_INPUT_FORMS = [
   ['pp', 'shredded', 'pp-shredded', 'PP 파쇄품'],
   ['pe', 'film', 'pe-scrap', 'PE 필름'],
   ['aluminium', 'can', 'al-used-can', '사용 후 알루미늄 음료캔'],
-  // 서버 context가 확정 코드·형태를 확인한 경우만 등록. 일반 PET(51-03-01)는 계속 보류.
   ['pet', 'bottle', 'pet-bottle', '사용 후 PET병'],
 ];
 
-export function canRegisterLot(material, form, wasteCode) {
-  return (material !== 'pet' || wasteCode === '51-03-07') && LOT_INPUT_FORMS.some(([m, f]) => m === material && f === form);
+export function canRegisterLot(context, form) {
+  const input = context?.route_input;
+  return Boolean(context?.status === 'ready' && form && input?.material &&
+    /^\d{2}-\d{2}-\d{2}$/.test(input?.waste_code || '') && input?.input_form === form &&
+    context.available_forms?.some((option) => option.value === form));
+}
+
+/** 현재 서버의 공정 이름을 우선 표시한다. 화면에서 공정 적합성을 판정하지 않는다. */
+export function stateLabel(lot, key) {
+  return lot?.output_states?.find((state) => state.key === key)?.label || STATE_LABEL[key] || key || '형태 미확인';
 }
 
 /** 기존 PP 로트는 재질 값이 없을 수 있어 pp로 본다 */

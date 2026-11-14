@@ -46,7 +46,7 @@ export function CaseRoutePanel({ caseId, onLotCreated }) {
 
   const next = context.next_step;
   const reviews = context.reviews?.results;
-  const canRegister = context.status === 'ready' && canRegisterLot(context.route_input?.material, form, context.route_input?.waste_code);
+  const canRegister = !loading && canRegisterLot(context, form);
 
   return (
     <div className="wf-panel">
@@ -96,8 +96,8 @@ export function CaseRoutePanel({ caseId, onLotCreated }) {
             <LotRegisterForm caseId={caseId} inputForm={form} onCreated={onLotCreated} />
           ) : (
             <p className="wf-card wf-muted">
-              업체에 인수 요청을 보내고 QR로 인계하는 기능은 PP 사출 잔재·파쇄품, PE 필름, 사용 후 알루미늄 음료캔만
-              지원해요. 이 물량은 후보 업체와 공개 근거까지 확인할 수 있어요.
+              분류 결과와 현재 형태를 확인한 뒤 처리 건을 등록할 수 있어요.
+              업체의 실제 인수 여부는 업체 검토와 수신 기업 확인을 거쳐 결정돼요.
             </p>
           )}
         </>

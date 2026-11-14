@@ -8,7 +8,7 @@ import { currentRoute, navigate } from '../../lib/router.js';
 import { workflowApi } from './api.js';
 import { CaseRoutePanel } from './CaseRoutePanel.jsx';
 import { LotPanel } from './LotPanel.jsx';
-import { LOT_STATUS, STATE_LABEL, formatKg } from './labels.js';
+import { LOT_STATUS, stateLabel, formatKg } from './labels.js';
 import './workflow.css';
 
 export function CaseDetailPage({ caseId }) {
@@ -124,7 +124,7 @@ export function ReceivePage({ lotId, offerId }) {
             {lot.companies[offer.sender_id]} → {lot.companies[offer.recipient_id]}
           </p>
           <p>
-            받을 물량: {STATE_LABEL[offer.data.current?.state_key]} {formatKg(offer.data.current?.mass_kg)}
+            받을 물량: {stateLabel(lot, offer.data.current?.state_key)} {formatKg(offer.data.current?.mass_kg)}
           </p>
           <p className="wf-muted">{offer.data.current?.condition}</p>
           {offer.can_receive ? (
