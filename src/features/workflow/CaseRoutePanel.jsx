@@ -46,7 +46,7 @@ export function CaseRoutePanel({ caseId, onLotCreated }) {
 
   const next = context.next_step;
   const reviews = context.reviews?.results;
-  const canRegister = context.status === 'ready' && canRegisterLot(context.route_input?.material, form);
+  const canRegister = context.status === 'ready' && canRegisterLot(context.route_input?.material, form, context.route_input?.waste_code);
 
   return (
     <div className="wf-panel">

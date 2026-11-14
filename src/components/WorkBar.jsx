@@ -6,7 +6,7 @@ export function WorkBar({ waste, saveState, onExit }) {
       </button>
       <strong>{waste.name}</strong>
       <span className={saveState === 'saving' ? 'is-saving' : ''}>
-        {saveState === 'saving' ? '저장 중...' : '자동 저장됨'}
+        {{ saving: '저장 중…', saved: '자동 저장됨', creating: '문진 준비 중…', draft: '문진 시작 전 · 미저장' }[saveState] || '자동 저장됨'}
       </span>
     </header>
   );

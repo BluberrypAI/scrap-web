@@ -26,7 +26,7 @@ function ProtectedShell({ path }) {
     );
   }
   if (session.status === 'loading' || session.redirecting) {
-    return <main className="session-gate" aria-busy="true" />;
+    return <main className="session-gate" role="status" aria-busy="true">로그인 정보를 확인하고 있어요…</main>;
   }
   return <AppShell path={path} />;
 }

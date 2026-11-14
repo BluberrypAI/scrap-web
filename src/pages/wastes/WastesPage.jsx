@@ -220,7 +220,7 @@ export function WastesPage() {
         setProblem(error?.message || '폐기물 목록을 불러오지 못했어요.');
       });
   }, []);
-  if (wastes === null) return <div className="home-content" aria-busy="true" />;
+  if (wastes === null) return <div className="home-content" role="status" aria-busy="true">폐기물과 처리 현황을 불러오는 중이에요…</div>;
   const variant = params.get('variant') === 'empty' || !wastes.length ? 'empty' : 'list';
   return (
     <>
