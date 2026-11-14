@@ -7,10 +7,12 @@ import { FacilityMap } from './FacilityMap.jsx';
 import {
   LOT_STATUS,
   OFFER_STATUS,
+  FINISH_STATES,
   OUTPUT_STATES,
   STATE_LABEL,
   formatDateTime,
   formatKg,
+  lotMaterial,
   lotProgress,
 } from './labels.js';
 
@@ -57,7 +59,8 @@ export function LotPanel({ lotId, initialLot = null }) {
   const acceptedOffer = lot.offers.find((o) => o.status === 'accepted');
   const name = (id) => lot.companies[id] || '알 수 없는 기업';
   const manage = lot.can_manage;
-  const canFinish = manage && lot.status === 'processed' && ['pp-pellet', 'pp-compound'].includes(current.state_key);
+  const material = lotMaterial(lot);
+  const canFinish = manage && lot.status === 'processed' && (FINISH_STATES[material] || []).includes(current.state_key);
 
   const progress = lotProgress(lot, me);
   const summary = (
@@ -98,7 +101,7 @@ export function LotPanel({ lotId, initialLot = null }) {
             onReview={() => run('review', () => workflowApi.reviewCandidates(lot))}
             onOffer={(key) => run('offer', () => workflowApi.sendOffer(lot, key))}
           />
-          {canFinish && <FinishForm busy={busy} onFinish={(v) => run('finish', () => workflowApi.finish(lot, v))} />}
+          {canFinish && <FinishForm material={material} busy={busy} onFinish={(v) => run('finish', () => workflowApi.finish(lot, v))} />}
         </>
       )}
 
@@ -125,7 +128,7 @@ export function LotPanel({ lotId, initialLot = null }) {
       )}
 
       {manage && lot.status === 'processing' && (
-        <OutputForm current={current} busy={busy} onSubmit={(v) => run('output', () => workflowApi.recordOutput(lot, v))} />
+        <OutputForm material={material} current={current} busy={busy} onSubmit={(v) => run('output', () => workflowApi.recordOutput(lot, v))} />
       )}
 
       <History lot={lot} name={name} />
@@ -357,7 +360,7 @@ function QrIssue({ lot, offer, busy, run }) {
   );
 }
 
-function OutputForm({ current, busy, onSubmit }) {
+function OutputForm({ material, current, busy, onSubmit }) {
   const [state, setState] = useState('');
   const [mass, setMass] = useState('');
   const [purity, setPurity] = useState('');
@@ -380,7 +383,7 @@ function OutputForm({ current, busy, onSubmit }) {
       <label>산출물 형태
         <select required value={state} onChange={(e) => setState(e.target.value)}>
           <option value="">선택</option>
-          {OUTPUT_STATES.map((key) => <option key={key} value={key}>{STATE_LABEL[key]}</option>)}
+          {(OUTPUT_STATES[material] || []).map((key) => <option key={key} value={key}>{STATE_LABEL[key]}</option>)}
         </select>
       </label>
       <label>중량(kg)<input type="number" min="0.1" step="0.1" required value={mass} onChange={(e) => setMass(e.target.value)} /></label>
@@ -394,7 +397,7 @@ function OutputForm({ current, busy, onSubmit }) {
   );
 }
 
-function FinishForm({ busy, onFinish }) {
+function FinishForm({ material, busy, onFinish }) {
   const [reference, setReference] = useState('');
   const [use, setUse] = useState('');
   const [confirmed, setConfirmed] = useState(false);
@@ -405,7 +408,9 @@ function FinishForm({ busy, onFinish }) {
       onFinish({ reference: reference.trim(), intendedUse: use.trim() });
     }}>
       <h3>재활용 완료</h3>
-      <p className="wf-muted">펠렛·컴파운드 산출물까지 기록한 물량만 완료할 수 있어요.</p>
+      <p className="wf-muted">
+        {material === 'aluminium' ? '판재·잉곳' : '펠렛·컴파운드'} 산출물까지 기록한 물량만 완료할 수 있어요.
+      </p>
       <label>완료 근거(출고·판매 기록 번호 등)<input maxLength={300} value={reference} onChange={(e) => setReference(e.target.value)} /></label>
       <label>용도<input maxLength={500} placeholder="예) 자동차 내장재 원료" value={use} onChange={(e) => setUse(e.target.value)} /></label>
       <label className="wf-check"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> 실제 산출물과 완료 근거를 확인했어요</label>

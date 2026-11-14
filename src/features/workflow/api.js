@@ -1,6 +1,6 @@
 // 처리 경로·기업 간 인계 API (server).
 //  - 문진 연계 처리 경로: /api/v1/diagnosis/cases/{id}/treatment/* (분류번호·재질·위치는 서버가 확정 문진에서 읽음)
-//  - 기업 간 인계(PP): /api/v1/workflow/* (로트·사진·업체 검토·인수 요청·QR 입고·산출물·완료)
+//  - 기업 간 인계(PP·PE 필름·알루미늄캔): /api/v1/workflow/* (로트·사진·업체 검토·인수 요청·QR 입고·산출물·완료)
 import { apiFetch } from '../../lib/api.js';
 
 const enc = encodeURIComponent;

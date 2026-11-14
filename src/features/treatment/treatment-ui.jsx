@@ -6,15 +6,19 @@ import { createEvidenceUI } from './treatment-evidence-ui.jsx';
 import { navigate } from '../../lib/router.js';
 import './treatment.css';
 
+// 문진(scrap-diagnosis)·처리경로(scrap-route)가 함께 지원하는 처음 형태만 보인다.
+// 주석 처리한 항목은 화면에는 있었지만 서버 첫 공정이 받지 않아 동작하지 않던 것(지원되면 다시 연다).
 const forms = {
-  PP: [['scrap', '사출 잔재·스크랩'], ['rigid', '경질 조각'], ['film', '필름'],
-    ['shredded', '파쇄품'], ['pellet', '펠렛']],
-  PE: [['scrap', '스크랩'], ['rigid', '경질 조각'], ['film', '필름'],
-    ['shredded', '파쇄품'], ['pellet', '펠렛']],
-  PET: [['bottle', 'PET 병'], ['bale', '압축 베일'], ['flake', '플레이크']],
+  PP: [['scrap', '사출 잔재·스크랩'], ['shredded', '파쇄품']],
+  // PP: ['rigid', '경질 조각'], ['film', '필름'], ['pellet', '펠렛']
+  PE: [['film', '필름']],
+  // PE: ['scrap', '스크랩'], ['rigid', '경질 조각'], ['shredded', '파쇄품'], ['pellet', '펠렛']
+  // PET: 문진 분류번호(51-03-01)와 서버 첫 공정(51-03-07)이 맞지 않아 숨김
+  // PET: [['bottle', 'PET 병'], ['bale', '압축 베일'], ['flake', '플레이크']],
   aluminium: [['can', '사용 후 알루미늄 캔']],
 };
 const materialLabels = { PP: 'PP', PE: 'PE', PET: 'PET', aluminium: '알루미늄' };
+const wasteCodes = { aluminium: '51-29-03' };
 
 function stamp(value) {
   return new Date(value).toLocaleString('ko-KR');
@@ -57,7 +61,7 @@ export function createTreatmentUI(React) {
       event.preventDefault();
       onAnswer({ material, input_form: form });
     }}>
-      <h2>어떤 수지이고 어떤 형태인가요?</h2>
+      <h2>어떤 재질이고 어떤 형태인가요?</h2>
       <p>같은 폐합성수지 분류 안에서도 재질과 형태에 따라 이어지는 공정이 달라요.</p>
       <div className="treatment-fields">
         <label>재질<select required value={material} onChange={(e) => {
@@ -65,7 +69,8 @@ export function createTreatmentUI(React) {
           setForm('');
         }}>
           <option value="">선택</option>
-          {['PP', 'PE', 'PET'].map((key) => <option key={key} value={key}>{materialLabels[key]}</option>)}
+          {/* PET는 숨김: ['PP', 'PE', 'PET'] */}
+          {Object.keys(forms).map((key) => <option key={key} value={key}>{materialLabels[key]}</option>)}
         </select></label>
         <label>현재 형태<select required value={form} disabled={!material} onChange={(e) => setForm(e.target.value)}>
           <option value="">선택</option>
@@ -89,7 +94,7 @@ export function createTreatmentUI(React) {
             ? formLabel
             : `폐합성수지 · ${materialLabels[material]} ${formLabel}`;
           storeCase(newCase(id, caseName, {
-            ...input, waste_code: input.waste_code || '51-03-01', ...demoWorkplace.routeOrigin,
+            ...input, waste_code: input.waste_code || wasteCodes[material] || '51-03-01', ...demoWorkplace.routeOrigin,
           }));
         }
         navigate(`/wastes?created=${encodeURIComponent(id)}`);
