@@ -6,7 +6,7 @@ import { OnboardingPage } from './pages/auth/OnboardingPage.jsx';
 import { LandingPage } from './pages/landing/LandingPage.jsx';
 import { preloadMeadowShowcase } from './pages/landing/ShowcaseHome.jsx';
 import { BerrySiteTour } from './components/BerrySiteTour.jsx';
-import { useRequireSession } from './hooks/useSession.js';
+import { useRequireSession, useResumeReturnPath } from './hooks/useSession.js';
 import * as React from 'react';
 import { createWasteTracking } from './waste-tracking.jsx';
 
@@ -54,7 +54,9 @@ export function App() {
   }, [route.path]);
 
   let e = route.path.replace(/\/+$/, '') || '/';
-  const page = e.startsWith('/track/') ? (
+  // 소셜 로그인 뒤 랜딩으로 돌아왔을 때 입고 QR처럼 저장해 둔 화면으로 이어 간다
+  useResumeReturnPath(e === '/');
+  const page =e.startsWith('/track/') ? (
     <TrackingPage wasteId={decodeURIComponent(e.slice('/track/'.length))} />
   ) : e === '/about' ? (
     <AboutPage />

@@ -27,16 +27,51 @@ export const STATE_LABEL = {
   'pp-washed': 'PP 세척 플레이크',
   'pp-pellet': 'PP 재생 펠렛',
   'pp-compound': 'PP 컴파운드',
+  'pe-scrap': 'PE 필름·스크랩',
+  'pe-shredded': 'PE 파쇄품',
+  'pe-washed': 'PE 세척 플레이크',
+  'pe-pellet': 'PE 재생 펠렛',
+  'pe-compound': 'PE 컴파운드',
+  'al-used-can': '사용 후 알루미늄 음료캔',
+  'al-sheet': '재활용 알루미늄 판재',
+  'al-sheet-ingot': '알루미늄 잉곳',
 };
 
-/** 산출물로 기록할 수 있는 형태 (서버 Output.state_key) */
-export const OUTPUT_STATES = ['pp-shredded', 'pp-washed', 'pp-pellet', 'pp-compound'];
+/** 재질별로 산출물로 기록할 수 있는 형태 (서버가 로트 재질의 등록 상태인지 확인) */
+export const OUTPUT_STATES = {
+  pp: ['pp-shredded', 'pp-washed', 'pp-pellet', 'pp-compound'],
+  pe: ['pe-shredded', 'pe-washed', 'pe-pellet', 'pe-compound'],
+  aluminium: ['al-sheet', 'al-sheet-ingot'],
+};
 
-/** 처리 건을 만들 수 있는 처음 형태 (서버 CreateLot.input_form) */
+/** 재질별로 완료할 수 있는 실제 산출물 (파쇄품은 완료로 보지 않음) */
+export const FINISH_STATES = {
+  pp: ['pp-pellet', 'pp-compound'],
+  pe: ['pe-pellet', 'pe-compound'],
+  aluminium: ['al-sheet', 'al-sheet-ingot'],
+};
+
+/**
+ * 처리 건을 만들 수 있는 처음 재질·형태 (서버 CreateLot.input_form, 문진·처리경로 교집합)
+ * [재질, 형태, 처음 상태, 화면 문구]
+ */
 export const LOT_INPUT_FORMS = [
-  ['scrap', 'PP 사출 잔재·스크랩'],
-  ['shredded', 'PP 파쇄품'],
+  ['pp', 'scrap', 'pp-scrap', 'PP 사출 잔재·스크랩'],
+  ['pp', 'shredded', 'pp-shredded', 'PP 파쇄품'],
+  ['pe', 'film', 'pe-scrap', 'PE 필름'],
+  ['aluminium', 'can', 'al-used-can', '사용 후 알루미늄 음료캔'],
+  // PET병: 문진은 51-03-01, 서버 첫 공정은 51-03-07만 받아 아직 인계 불가 → 분류번호 정리 후 다시 열기
+  // ['pet', 'bottle', 'pet-bottle', '사용 후 PET병'],
 ];
+
+export function canRegisterLot(material, form) {
+  return LOT_INPUT_FORMS.some(([m, f]) => m === material && f === form);
+}
+
+/** 기존 PP 로트는 재질 값이 없을 수 있어 pp로 본다 */
+export function lotMaterial(lot) {
+  return lot.data?.initial?.material || 'pp';
+}
 
 /** 업체 AI 검토 결과(status·finding) → 문구 */
 export const REVIEW_STATUS = {

@@ -50,6 +50,35 @@ export function useRequireSession(path) {
   return { ...session, redirecting: Boolean(target) };
 }
 
+// 소셜 로그인은 서버가 랜딩(/)으로 돌려보내므로, 저장해 둔 화면(입고 QR 등)이 있을 때만
+// 로그인 상태를 확인해 그 화면으로 이어 간다. 저장된 화면이 없으면 아무것도 부르지 않는다.
+export function useResumeReturnPath(enabled) {
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const target = peekReturnPath();
+    if (!target) return undefined;
+    let active = true;
+    cached ??= loadSession().then((session) => {
+      rememberSession(session);
+      return session;
+    });
+    cached
+      .then((session) => {
+        if (!active || session.status === 'signed-out') return;
+        // 기업 등록 전이면 등록 화면에서 /wastes로 넘어갈 때 이어 간다
+        if (session.status === 'onboarding') return navigate('/onboarding');
+        clearReturnPath();
+        navigate(target);
+      })
+      .catch(() => {
+        cached = null;
+      });
+    return () => {
+      active = false;
+    };
+  }, [enabled]);
+}
+
 const RETURN_KEY = 'scrap-return-to';
 
 function saveReturnPath(value) {

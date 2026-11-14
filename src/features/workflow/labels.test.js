@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatKg, lotCardStatus, lotCardText, lotProgress, lotTitle, lotToWaste } from './labels.js';
+import { canRegisterLot, formatKg, lotCardStatus, lotCardText, lotProgress, lotTitle, lotToWaste } from './labels.js';
 
 const lot = {
   id: '0819348d-95ec-4946-9dd8-7a5cc0893ff3',
@@ -42,4 +42,12 @@ test('우리 몫이 끝났는지: 받는 쪽 입고 확인 뒤에만 전달 완�
   assert.deepEqual(lotCardText(received, 'A'), { displayStatus: '전달 완료', message: '처리 추적 중' });
   assert.equal(lotCardText(received, 'B').message, '우리 기업이 처리할 차례예요');
   assert.equal(lotProgress({ ...received, status: 'completed' }, 'A').kind, 'completed');
+});
+
+test('인계 등록은 문진·처리경로가 함께 지원하는 재질·형태만', () => {
+  assert.equal(canRegisterLot('pp', 'scrap'), true);
+  assert.equal(canRegisterLot('pe', 'film'), true);
+  assert.equal(canRegisterLot('aluminium', 'can'), true);
+  assert.equal(canRegisterLot('pp', 'film'), false);
+  assert.equal(canRegisterLot('pet', 'bottle'), false);
 });

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { workflowApi } from './api.js';
 import { ProcessOption } from './FacilityCard.jsx';
 import { FacilityMap } from './FacilityMap.jsx';
-import { LOT_INPUT_FORMS } from './labels.js';
+import { canRegisterLot } from './labels.js';
 
 // 확정 문진 → 첫 처리 공정과 후보 업체.
 // 분류번호·재질·사업장 위치는 서버가 확정 문진과 기업 정보에서 읽고, 화면은 현재 형태만 고른다.
@@ -46,8 +46,7 @@ export function CaseRoutePanel({ caseId, onLotCreated }) {
 
   const next = context.next_step;
   const reviews = context.reviews?.results;
-  const canRegister = context.status === 'ready' && context.route_input?.material === 'pp'
-    && LOT_INPUT_FORMS.some(([value]) => value === form);
+  const canRegister = context.status === 'ready' && canRegisterLot(context.route_input?.material, form);
 
   return (
     <div className="wf-panel">
@@ -97,9 +96,8 @@ export function CaseRoutePanel({ caseId, onLotCreated }) {
             <LotRegisterForm caseId={caseId} inputForm={form} onCreated={onLotCreated} />
           ) : (
             <p className="wf-card wf-muted">
-              {context.route_input?.material !== 'pp'
-                ? '업체에 인수 요청을 보내고 QR로 인계하는 기능은 아직 PP(폴리프로필렌)만 지원해요. 이 물량은 후보 업체와 공개 근거까지 확인할 수 있어요.'
-                : '업체에 인계하려면 지금 물량이 사출 잔재·스크랩이나 파쇄품이어야 해요.'}
+              업체에 인수 요청을 보내고 QR로 인계하는 기능은 PP 사출 잔재·파쇄품, PE 필름, 사용 후 알루미늄 음료캔만
+              지원해요. 이 물량은 후보 업체와 공개 근거까지 확인할 수 있어요.
             </p>
           )}
         </>
@@ -108,7 +106,7 @@ export function CaseRoutePanel({ caseId, onLotCreated }) {
   );
 }
 
-// PP는 실제 물량을 등록하면 업체에 인수 요청을 보내고 QR로 인계할 수 있다
+// 지원 재질·형태는 실제 물량을 등록하면 업체에 인수 요청을 보내고 QR로 인계할 수 있다
 function LotRegisterForm({ caseId, inputForm, onCreated }) {
   const [mass, setMass] = useState('');
   const [condition, setCondition] = useState('');
@@ -147,7 +145,7 @@ function LotRegisterForm({ caseId, inputForm, onCreated }) {
           minLength={3}
           maxLength={1500}
           rows={3}
-          placeholder="예) 사출 런너·불량품 혼합, 이물질 거의 없음, 마대 20개"
+          placeholder="예) 이물질 거의 없음, 마대 20개, 일부 라벨·오염 있음"
           value={condition}
           onChange={(e) => setCondition(e.target.value)}
         />
