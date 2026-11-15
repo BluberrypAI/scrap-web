@@ -4,7 +4,8 @@ import { useSession } from '../../hooks/useSession.js';
 import QRCode from 'qrcode';
 import { receiveUrl, workflowApi } from './api.js';
 import { ProcessOption } from './FacilityCard.jsx';
-import { FacilityMap } from './FacilityMap.jsx';
+import { NearbyCandidates } from './NearbyCandidates.jsx';
+import { RouteOutcome } from './RouteOutcome.jsx';
 import { IntakeQuestions, ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
 import {
   LOT_STATUS,
@@ -261,10 +262,11 @@ function CandidateSection({ lot, busy, onReview, onOffer, onAnswers, onDirectory
       </button>
       {review && review.analysis_version !== 'isolated-vision-v2' && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
-      {next?.options?.length > 0 && (
-        <FacilityMap options={next.options} selectedKey={selectedKey} onSelect={setSelectedKey} />
-      )}
-      {next?.options?.map((option) => (
+      {review && <RouteOutcome next={next}
+        currentLabel={stateLabel(lot, lot.data?.current?.state_key)} code={lot.data?.handoff?.waste_code} />}
+      {next && <NearbyCandidates options={next.options} origin={review?.origin} originLabel={review?.origin_label}
+        selectedKey={selectedKey} onSelect={setSelectedKey}>
+      {(option) => (
         <div key={option.transition_key}><ProcessOption
           key={option.transition_key}
           option={option}
@@ -283,7 +285,8 @@ function CandidateSection({ lot, busy, onReview, onOffer, onAnswers, onDirectory
             ) : null}</>
           }
         /><DirectoryCandidates lot={lot} transitionKey={option.transition_key} onSave={(listing, cursor, answers) => onDirectorySave(option.transition_key, listing, cursor, answers)} /></div>
-      ))}
+      )}
+      </NearbyCandidates>}
     </section>
   );
 }

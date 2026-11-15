@@ -1,4 +1,5 @@
 import { CONCERN_CATEGORY, REVIEW_FINDING, REVIEW_STATUS } from './labels.js';
+import { ProcessDiscovery } from './ProcessDiscovery.jsx';
 
 // 공정 후보 업체 한 곳: 공개 근거, 거리, AI 검토 결과(있으면), 이어서 할 일(action)
 export function FacilityCard({ facility, review, action = null, selected = false }) {
@@ -109,8 +110,15 @@ export function ProcessOption({ option, reviews, renderAction, selectedKey = nul
           ))}
         </ul>
       ) : (
-        <p className="wf-muted">이 공정의 후보 업체가 아직 없어요.</p>
+        <>
+          <p className="wf-muted">이 공정의 후보 업체가 아직 없어요.</p>
+          {option.checks?.length > 0 && <ul className="wf-warnings">{option.checks.map(check => <li key={check}>{check}</li>)}</ul>}
+          {option.sources?.length > 0 && <details className="wf-more"><summary>공정 근거</summary>
+            <ul>{option.sources.map((source, index) => <li key={index}><a href={source.url} target="_blank" rel="noreferrer">{source.publisher}</a> · {source.locator}</li>)}</ul>
+          </details>}
+        </>
       )}
+      <ProcessDiscovery key={`${option.transition_key}-${option.web_search_form}`} option={option} />
     </section>
   );
 }

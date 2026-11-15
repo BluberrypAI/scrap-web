@@ -65,7 +65,7 @@ export function CaseDetailPage({ caseId }) {
       ) : lot ? (
         <LotPanel lotId={lot.id} initialLot={lot} />
       ) : (
-        <CaseRoutePanel caseId={caseId} onLotCreated={setLot} />
+        <CaseRoutePanel key={caseId} caseId={caseId} caseTitle={kase.summary?.title} wasteCode={code} onLotCreated={setLot} />
       )}
     </main>
   );
