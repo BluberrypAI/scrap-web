@@ -1,4 +1,4 @@
-import { CONCERN_CATEGORY, REVIEW_FINDING, REVIEW_STATUS } from './labels.js';
+import { EVIDENCE_GAP, CONCERN_CATEGORY, REVIEW_FINDING, REVIEW_STATUS } from './labels.js';
 import { ProcessDiscovery } from './ProcessDiscovery.jsx';
 
 // 공정 후보 업체 한 곳: 공개 근거, 거리, AI 검토 결과(있으면), 이어서 할 일(action)
@@ -38,6 +38,11 @@ export function FacilityCard({ facility, review, action = null, selected = false
             <strong>{REVIEW_STATUS[review.status] || review.status}</strong>
             {review.finding && ` · ${REVIEW_FINDING[review.finding] || review.finding}`}
           </p>
+          {review.evidence_gaps?.length > 0 && (
+            <ul className="wf-checks">{review.evidence_gaps.map((gap) => (
+              <li key={gap}>{EVIDENCE_GAP[gap] || '반입 근거를 더 확인해야 해요'}</li>
+            ))}</ul>
+          )}
           {review.quote && <blockquote>{review.quote}</blockquote>}
           {review.next_check && <p className="wf-muted">다음 확인: {review.next_check}</p>}
           {review.source && (

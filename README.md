@@ -87,6 +87,10 @@ server의 플라스틱 확장 버전은 문진 handoff의 재질이 `pet`, 상�
 
 빌드한 정적 파일을 nginx로 서빙합니다. `/api/` 요청은 `SCRAP_SERVER_URL`(기본값 `http://host.docker.internal:8000`)로 그대로 전달합니다.
 
+여러 업체를 순서대로 AI 검토할 때 기본 60초 제한으로 504가 나던 문제를 수정했습니다. 프록시 응답 대기는 600초이며, 실제 모델 호출은 서버·route의 더 짧은 개별 제한을 따릅니다. 이 설정은 Docker 이미지를 다시 빌드해야 적용됩니다.
+
+기업 등록과 기업 데이터 관리 화면에서 사업장 위치를 지도에 찍어 저장할 수 있습니다. 주소를 바꾸면 좌표를 다시 확인해야 합니다. 위치가 확인된 후보 최대 5곳은 **직선거리** 순이며 도로 거리·허가 확인을 뜻하지 않습니다. 나머지 업체도 목록과 AI 검토에 포함됩니다. 후보 카드의 근거 부족 사유는 서버의 `evidence_gaps`를 표시합니다.
+
 ```bash
 docker build -t scrap-web .
 docker run --rm -p 8080:80 -e SCRAP_SERVER_URL=http://host.docker.internal:8000 scrap-web

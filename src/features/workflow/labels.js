@@ -41,6 +41,12 @@ export const STATE_LABEL = {
   'pet-pellet': 'PET 펠렛',
   'pp-bale': 'PP 압축 베일',
   'pe-bale': 'PE 압축 베일',
+  'pe-film-bale': 'PE 폐비닐 압축 베일',
+  'pe-film-recovered-product': '폐비닐 유래 성형물 · 실제 조성 확인',
+  'eps-buoy': 'EPS 스티로폼 폐부표',
+  'eps-reduced': 'EPS 감용물 · 인고트 형태 미확인',
+  'steel-used-drum': '200L 폐철드럼',
+  'steel-reconditioned-drum': '검수된 재생 철드럼',
   'pet-bale': '선별·압축 PET 베일',
   'abs-scrap': 'ABS 경질·스크랩',
   'abs-flake': 'ABS 분쇄품',
@@ -90,6 +96,9 @@ export const LOT_INPUT_FORMS = [
   ['pp', 'scrap', 'pp-scrap', 'PP 사출 잔재·스크랩'],
   ['pp', 'shredded', 'pp-shredded', 'PP 파쇄품'],
   ['pe', 'film', 'pe-scrap', 'PE 필름'],
+  ['pe', 'film-bale', 'pe-film-bale', 'PE 폐비닐 압축 베일'],
+  ['eps', 'buoy', 'eps-buoy', 'EPS 스티로폼 폐부표'],
+  ['ferrous', 'drum', 'steel-used-drum', '200L 폐철드럼'],
   ['aluminium', 'can', 'al-used-can', '사용 후 알루미늄 음료캔'],
   ['aluminium', 'scrap', 'al-scrap', '알루미늄 스크랩'],
   ['pet', 'bottle', 'pet-bottle', '사용 후 PET병'],
@@ -203,3 +212,15 @@ export function lotCardText(lot, me) {
   }
   return { displayStatus: LOT_STATUS[lot.status] || lot.status, message: '상대 기업 응답 대기' };
 }
+
+export const EVIDENCE_GAP = {
+  source_missing: '검토할 공개 자료가 없어요',
+  site_scope_unverified: '이 사업장에서 수행하는 공정인지 확인이 필요해요',
+  input_form_unproven: '현재 형태를 원료로 받는다는 근거가 부족해요',
+  material_unproven: '이 재질을 처리한다는 근거가 부족해요',
+  output_only: '생산품 설명만 있어 투입 가능한 원료는 확인해야 해요',
+  process_unproven: '필요한 공정을 수행하는지 확인해야 해요',
+  source_context_conflict: '자료의 제한 조건이나 상충 내용을 확인해야 해요',
+  citation_invalid: '검토 결과의 인용을 확인하지 못했어요',
+  unspecified: '반입 근거를 더 확인해야 해요',
+};

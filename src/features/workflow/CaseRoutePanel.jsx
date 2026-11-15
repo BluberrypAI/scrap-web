@@ -120,7 +120,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, onLotCreated }) {
           </NearbyCandidates>
           {next.status === 'candidates' && hasFacilities(next) && <div className="wf-actions">
             <button className="button button-quiet" type="button" onClick={review} disabled={reviewing}>
-              {reviewing ? '공개 근거를 검토하는 중… (최대 1~2분)' : reviews ? '업체 근거 다시 검토' : '업체 공개 근거 AI 검토'}
+              {reviewing ? '업체별 공개 근거를 차례로 검토하는 중…' : reviews ? '업체 근거 다시 검토' : '업체 공개 근거 AI 검토'}
             </button>
           </div>}
           {canRegister ? (

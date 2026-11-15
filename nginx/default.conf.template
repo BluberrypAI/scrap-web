@@ -7,6 +7,10 @@ server {
 
     # 화면 코드는 같은 출처의 /api 만 호출하므로 서버 API로 그대로 전달
     location /api/ {
+        # 여러 업체의 순차 AI 검토가 기본 60초에 잘리지 않게 한다.
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 600s;
         proxy_pass ${SCRAP_SERVER_URL};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
