@@ -9,26 +9,26 @@ const enc = encodeURIComponent;
 export const workflowApi = {
   // ---- 문진 연계 처리 경로 ----
   /** 확정 문진의 첫 공정 후보. inputForm이 없으면 needs_input과 선택지(available_forms)를 돌려준다 */
-  caseNextStep: (caseId, inputForm = null, solidConfirmed = false) =>
+  caseNextStep: (caseId, inputForm = null, solidConfirmed = false, materialDetail = null) =>
     apiFetch(`/diagnosis/cases/${enc(caseId)}/treatment/next-step`, {
       method: 'POST',
-      body: { ...(inputForm ? { input_form: inputForm } : {}), solid_confirmed: solidConfirmed },
+      body: { ...(inputForm ? { input_form: inputForm } : {}), solid_confirmed: solidConfirmed, material_detail: materialDetail },
     }),
   /** 후보 업체 전체의 공개 근거 AI 검토 (Azure 호출, 수십 초 걸릴 수 있음) */
-  caseIntakeReviews: (caseId, inputForm, solidConfirmed = false) =>
+  caseIntakeReviews: (caseId, inputForm, solidConfirmed = false, materialDetail = null) =>
     apiFetch(`/diagnosis/cases/${enc(caseId)}/treatment/intake-reviews`, {
       method: 'POST',
-      body: { input_form: inputForm, solid_confirmed: solidConfirmed },
+      body: { input_form: inputForm, solid_confirmed: solidConfirmed, material_detail: materialDetail },
     }),
 
   // ---- 기업 간 인계 ----
   listLots: () => apiFetch('/workflow/lots'),
   getLot: (lotId) => apiFetch(`/workflow/lots/${enc(lotId)}`),
   /** 확정 문진으로 처리 건 등록. 같은 문진으로 이미 만든 건이 있으면 그 건을 돌려준다 */
-  createLot: ({ diagnosisId, inputForm, massKg, condition, solidConfirmed = false }) =>
+  createLot: ({ diagnosisId, inputForm, massKg, condition, solidConfirmed = false, materialDetail = null }) =>
     apiFetch('/workflow/lots', {
       method: 'POST',
-      body: { diagnosis_id: diagnosisId, input_form: inputForm, mass_kg: massKg, condition, solid_confirmed: solidConfirmed },
+      body: { diagnosis_id: diagnosisId, input_form: inputForm, mass_kg: massKg, condition, solid_confirmed: solidConfirmed, material_detail: materialDetail },
     }),
   addPhoto: (lotId, file) => {
     const form = new FormData();

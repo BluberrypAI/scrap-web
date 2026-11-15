@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import * as maplibregl from 'maplibre-gl';
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { DOKDO_COORDINATE, hideRoadNumberShields, styleKoreaMapContext } from '../../lib/mapbox-style.js';
 
 const KOREA_CENTER = [128.25, 36.25];
+// MapLibre v6 workers must be emitted by Vite, including the worker's imports.
+maplibregl.setWorkerUrl(maplibreWorkerUrl);
 const KOREA_BOUNDS = [[124.5, 32.8], [132.35, 39.4]];
 const KOREA_VIEW = [[125.5, 33.05], [132.15, 38.55]];
 

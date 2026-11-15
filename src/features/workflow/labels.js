@@ -63,6 +63,7 @@ export const STATE_LABEL = {
   'pcabs-flake': 'PC/ABS 분쇄품',
   'pcabs-compound': 'PC/ABS 컴파운드',
   'al-used-can': '사용 후 알루미늄 음료캔',
+  'al-scrap': '재질 확인된 알루미늄 스크랩',
   'al-sheet': '재활용 알루미늄 판재',
   'al-sheet-ingot': '알루미늄 잉곳',
 };
@@ -90,6 +91,7 @@ export const LOT_INPUT_FORMS = [
   ['pp', 'shredded', 'pp-shredded', 'PP 파쇄품'],
   ['pe', 'film', 'pe-scrap', 'PE 필름'],
   ['aluminium', 'can', 'al-used-can', '사용 후 알루미늄 음료캔'],
+  ['aluminium', 'scrap', 'al-scrap', '알루미늄 스크랩'],
   ['pet', 'bottle', 'pet-bottle', '사용 후 PET병'],
 ];
 

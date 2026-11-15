@@ -7,9 +7,10 @@ import { RouteOutcome } from './RouteOutcome.jsx';
 import { hasFacilities, routeOutcome } from './route-result.js';
 
 // 확정 문진 → 첫 처리 공정과 후보 업체.
-// 분류번호·재질·사업장 위치는 서버가 확정 문진과 기업 정보에서 읽고, 화면은 현재 형태만 고른다.
+// 분류번호·사업장 위치는 서버에서 읽고, 문진에 빠진 세부 재질과 현재 형태만 보충한다.
 export function CaseRoutePanel({ caseId, caseTitle, wasteCode, onLotCreated }) {
   const [form, setForm] = useState(null);
+  const [materialDetail, setMaterialDetail] = useState(null);
   const [solidConfirmed, setSolidConfirmed] = useState(false);
   const [context, setContext] = useState(null);
   const [error, setError] = useState('');
@@ -26,20 +27,20 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, onLotCreated }) {
     setContext(null);
     setSelectedKey(null);
     workflowApi
-      .caseNextStep(caseId, form, solidConfirmed)
+      .caseNextStep(caseId, form, solidConfirmed, materialDetail)
       .then((next) => live && setContext(next))
       .catch((e) => live && setError(e.message))
       .finally(() => live && setLoading(false));
     return () => {
       live = false;
     };
-  }, [caseId, form, solidConfirmed, reload]);
+  }, [caseId, form, solidConfirmed, materialDetail, reload]);
 
   async function review() {
     setReviewing(true);
     setError('');
     try {
-      setContext(await workflowApi.caseIntakeReviews(caseId, form, solidConfirmed));
+      setContext(await workflowApi.caseIntakeReviews(caseId, form, solidConfirmed, materialDetail));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -67,6 +68,20 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, onLotCreated }) {
       <RouteOutcome status={context.status} next={next} message={context.status !== 'ready' ? context.message : undefined}
         currentLabel={next?.current_state?.label || caseTitle || (typeof material === 'string' ? material.toUpperCase() : undefined)}
         code={context.handoff?.waste_code || wasteCode} caseId={caseId} onRetry={retry} busy={reviewing} />
+      {context.available_materials?.length > 0 && (
+        <fieldset className="wf-forms" disabled={reviewing}>
+          <legend>확인된 세부 재질</legend>
+          <p className="wf-muted">분류번호는 그대로 유지해요. 재질 표시나 성적서로 확인한 값만 선택하세요.</p>
+          {[...context.available_materials, { value: 'unknown', label: '모름 · 혼합물이거나 목록에 없음' }].map(option => (
+            <label key={option.value}>
+              <input type="radio" name="material-detail" value={option.value}
+                checked={materialDetail === option.value}
+                onChange={() => { setForm(null); setMaterialDetail(option.value); }} />
+              {option.label}
+            </label>
+          ))}
+        </fieldset>
+      )}
       {context.available_forms?.length > 0 && (
         <fieldset className="wf-forms" disabled={reviewing}>
           <legend>지금 물량의 형태</legend>
@@ -109,7 +124,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, onLotCreated }) {
             </button>
           </div>}
           {canRegister ? (
-            <LotRegisterForm caseId={caseId} inputForm={form} solidConfirmed={solidConfirmed} onCreated={onLotCreated} />
+            <LotRegisterForm caseId={caseId} inputForm={form} materialDetail={materialDetail} solidConfirmed={solidConfirmed} onCreated={onLotCreated} />
           ) : (
             <p className="wf-card wf-muted">
               분류 결과와 현재 형태를 확인한 뒤 처리 건을 등록할 수 있어요.
@@ -123,7 +138,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, onLotCreated }) {
 }
 
 // 지원 재질·형태는 실제 물량을 등록하면 업체에 인수 요청을 보내고 QR로 인계할 수 있다
-function LotRegisterForm({ caseId, inputForm, solidConfirmed, onCreated }) {
+function LotRegisterForm({ caseId, inputForm, solidConfirmed, materialDetail, onCreated }) {
   const [mass, setMass] = useState('');
   const [condition, setCondition] = useState('');
   const [busy, setBusy] = useState(false);
@@ -138,6 +153,7 @@ function LotRegisterForm({ caseId, inputForm, solidConfirmed, onCreated }) {
           diagnosisId: caseId,
           inputForm,
           solidConfirmed,
+          materialDetail,
           massKg: Number(mass),
           condition: condition.trim(),
         }),
