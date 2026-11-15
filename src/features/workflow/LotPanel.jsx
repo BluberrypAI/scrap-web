@@ -258,7 +258,7 @@ function CandidateSection({ lot, busy, onReview, onOffer, onAnswers, onDirectory
     <section className="wf-card">
       <h3>다음 처리 업체</h3>
       <RecyclingTypes assessment={lot.data.recycling} followUp={lot.data.completed.length > 0} />
-      {!review && <p className="wf-muted">현재 물량·사진으로 다음 공정 후보 업체를 모두 검토해요. 1~2분 걸릴 수 있어요.</p>}
+      {!review && <p className="wf-muted">현재 물량·사진으로 다음 공정 후보 업체를 모두 검토해요. 후보 수와 AI 응답에 따라 시간이 걸릴 수 있어요.</p>}
       <button className="button button-primary" type="button" onClick={onReview} disabled={!!busy}>
         {busy === 'review' ? '업체를 검토하는 중…' : review ? '다시 검토' : '업체 검토 시작'}
       </button>
