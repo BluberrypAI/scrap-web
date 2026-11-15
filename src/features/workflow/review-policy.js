@@ -4,6 +4,7 @@ export function canRequestIntake(review, facility, result) {
     && review?.version === 'lot-vision-v1'
     && review?.analysis_version === 'isolated-vision-v2'
     && review?.conditions_version === 'intake-questions-v1'
+    && review?.recycling_checksum
     && review?.reference_checksum && review?.conditions_checksum
     && ['reviewed', 'needs_evidence'].includes(result?.status)
     && result?.finding !== 'restriction_mentioned'

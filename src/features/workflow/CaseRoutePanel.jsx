@@ -1,3 +1,4 @@
+import { RecyclingTypes } from './RecyclingTypes.jsx';
 import { useEffect, useState } from 'react';
 import { workflowApi } from './api.js';
 import { ProcessOption } from './FacilityCard.jsx';
@@ -99,6 +100,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, onLotCreated }) {
           ))}
         </fieldset>
       )}
+      <RecyclingTypes assessment={context.recycling} />
       {context.origin_label && <p className="wf-muted">출발 사업장: {context.origin_label}</p>}
       {context.warnings?.length > 0 && (
         <details className="wf-more" open={context.status === 'review_required' ? true : undefined}>
