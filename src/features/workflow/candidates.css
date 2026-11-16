@@ -8,15 +8,6 @@
 .wf-page .waste-identity .detail-stage { color: var(--identity-ink); font-size: 11px; font-weight: 700; letter-spacing: .08em; }
 .waste-identity-main { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; margin-top: 18px; }
 .waste-identity-actions { display: flex; align-items: flex-start; justify-content: flex-end; flex-wrap: wrap; gap: 16px; }
-.waste-identity-qr:empty { display: none; }
-.waste-identity-qr .wf-qr { max-width: 190px; gap: 7px; }
-.waste-identity-qr .wf-qr img { width: 156px; height: 156px; }
-.waste-identity-qr .wf-qr .wf-muted { font-size: 11px; line-height: 1.45; }
-.waste-identity-qr .wf-qr .wf-actions { gap: 5px; }
-.waste-identity-qr .wf-qr .button { font-size: 11px; }
-.wf-record-qr { display: grid; justify-items: center; gap: 5px; margin: 0; }
-.wf-record-qr img { width: 156px; height: 156px; padding: 5px; border: 1px solid #e6e0eb; border-radius: 10px; background: #fff; }
-.wf-record-qr figcaption { color: #766b80; font-size: 11px; font-weight: 600; }
 .waste-identity-label { color: #817989; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
 .wf-page .waste-identity h1 { margin: 5px 0 0; font-size: clamp(22px, 2.5vw, 30px); letter-spacing: -.7px; }
 .wf-page .waste-identity .wf-code { margin: 0; background: none; padding: 0; border: 0; }

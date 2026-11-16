@@ -92,9 +92,26 @@
 }
 .wf-form .wf-check { display: flex; align-items: center; gap: 8px; }
 .wf-form > .button { justify-self: start; }
+.wf-form-errors { padding: 11px 14px; border: 1px solid #ebcda8; border-radius: 9px; background: #fff8ee; color: #784d26; font-size: 12px; line-height: 1.6; }
+.wf-form-errors strong { display: block; margin-bottom: 3px; }
+.wf-form-errors ul { margin: 0; padding-left: 18px; }
 
 .wf-qr { display: grid; gap: 8px; justify-items: start; }
 .wf-qr img { border: 1px solid var(--color-border-light); border-radius: 8px; background: #fff; }
+.wf-qr-preview { display: grid; justify-items: center; gap: 6px; padding: 6px; border: 1px solid #e5ddec; border-radius: 10px; background: #fff; color: #68537e; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.wf-qr-preview:hover { border-color: #a98abc; background: #faf7fd; }
+.wf-qr-preview:focus-visible { outline: 3px solid #a98abc; outline-offset: 2px; }
+.wf-qr-preview img { display: block; width: 156px; height: 156px; border: 0; }
+.wf-qr-modal-backdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 20px; background: #1e1729a8; }
+.wf-qr-dialog { display: grid; justify-items: center; gap: 15px; width: min(100%, 390px); max-height: calc(100dvh - 40px); overflow: auto; padding: 22px; border-radius: 16px; background: #fff; box-shadow: 0 20px 65px #130d2080; color: #30283b; }
+.wf-qr-dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; width: 100%; }
+.wf-qr-dialog-head span { color: #796d87; font-size: 11px; font-weight: 700; }
+.wf-qr-dialog-head h2 { margin: 4px 0 0; font-size: 19px; }
+.wf-qr-dialog-head button { border: 0; background: none; color: #5f566a; font-size: 26px; line-height: 1; cursor: pointer; }
+.wf-qr-dialog > img { display: block; width: min(100%, 280px); height: auto; padding: 8px; border: 1px solid #e9e2ef; border-radius: 10px; background: #fff; }
+.wf-qr-dialog > p { margin: 0; color: #625a6c; font-size: 13px; line-height: 1.55; text-align: center; }
+.wf-qr-dialog-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
+.wf-qr-dialog-actions button, .wf-qr-dialog-actions a { padding: 9px 13px; border: 1px solid #d9cce5; border-radius: 8px; background: #fff; color: #684b88; font: inherit; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; }
 .wf-steps, .wf-events { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
 .wf-progress-status { padding: 27px 30px 22px; border: 1px solid #e6dded; border-radius: 22px; background: #fff; }
 .wf-progress-status > span { color: #7959a4; font-size: 12px; font-weight: 700; }

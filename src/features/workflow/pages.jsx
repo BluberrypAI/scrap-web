@@ -3,7 +3,6 @@
 //  - /lots/<처리 건 ID>                                    : 처리 건 (요청받은 업체도 여기서 봄)
 //  - /lots/<처리 건 ID>/receive/<요청 ID>?t=<QR 토큰>       : 입고 QR을 스캔하면 열리는 입고 확인
 import { useEffect, useState } from 'react';
-import QRCode from 'qrcode';
 import { diagnosisApi } from '../diagnosis/index.jsx';
 import { currentRoute, navigate } from '../../lib/router.js';
 import { workflowApi } from './api.js';
@@ -60,9 +59,6 @@ export function CaseDetailPage({ caseId }) {
             </div>
             <div className="waste-identity-actions">
               <div className="detail-code wf-code"><strong>분류번호 {code || '미정'}</strong></div>
-              {tracking && <div id="case-qr-slot" className="waste-identity-qr" aria-label="QR">
-                {lot && ['processing', 'processed', 'review_required', 'completed'].includes(lot.status) && <RecordQr caseId={caseId} />}
-              </div>}
             </div>
           </div>
         </div>
@@ -87,28 +83,13 @@ export function CaseDetailPage({ caseId }) {
       ) : lot === undefined ? (
         <p className="wf-muted">불러오는 중…</p>
       ) : lot ? (
-        <>{registered && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>{preferredFacility ? `${preferredFacility.label}을 검토 후보로 선택했어요. ` : ''}사진을 첨부하고 업체를 검토한 뒤 인수를 요청해 주세요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} showRecycling={false} view="progress" onLotChange={setLot} qrTargetId="case-qr-slot" /></>
+        <>{registered && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>{preferredFacility ? `${preferredFacility.label}을 검토 후보로 선택했어요. ` : ''}사진을 첨부하고 업체를 검토한 뒤 인수를 요청해 주세요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} showRecycling={false} view="progress" onLotChange={setLot} /></>
       ) : null}
       </div>
       {tracking && lot && activeTab === 'info' && <LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} showRecycling={false} view="info" />}
       {confirmed && lot !== undefined && !tracking && <CaseRoutePanel caseId={caseId} caseTitle={kase.summary?.title} wasteCode={code} classification={kase.summary?.result_label || kase.summary?.status_label} lotRecycling={lot?.data.recycling} recyclingFollowUp={lot?.data.completed?.length > 0} view={activeTab} hasLot={!!lot} onLotCreated={(created, preferred) => { setPreferredFacility(preferred); setRegistered(true); setLot(created); setActiveTab('route'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />}
     </main>
   );
-}
-
-function RecordQr({ caseId }) {
-  const [image, setImage] = useState('');
-  useEffect(() => {
-    let live = true;
-    const url = `${location.origin}/#/wastes/case-${encodeURIComponent(caseId)}`;
-    QRCode.toDataURL(url, { width: 240, margin: 2, errorCorrectionLevel: 'M' })
-      .then((next) => { if (live) setImage(next); });
-    return () => { live = false; };
-  }, [caseId]);
-  return image && <figure className="wf-record-qr">
-    <img src={image} alt="이 폐기물의 진행 기록을 여는 QR" width="156" height="156" />
-    <figcaption>진행 기록 QR</figcaption>
-  </figure>;
 }
 
 export function LotPage({ lotId }) {
