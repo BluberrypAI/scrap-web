@@ -6,9 +6,12 @@ server {
     index index.html;
 
     # 화면 코드는 같은 출처의 /api 만 호출하므로 서버 API로 그대로 전달
+    # Host는 server 주소로 넘김: Azure App Service는 Host로 앱을 찾으므로 화면 주소를 넘기면 server에 닿지 않음
     location /api/ {
         proxy_pass ${SCRAP_SERVER_URL};
-        proxy_set_header Host $host;
+        proxy_set_header Host $proxy_host;
+        # server가 https 주소일 때 TLS 이름(SNI)을 같이 보냄
+        proxy_ssl_server_name on;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
