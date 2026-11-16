@@ -2,7 +2,7 @@
 
 /** 로트 status → 화면 문구 */
 export const LOT_STATUS = {
-  ready: '업체 선택 전',
+  ready: '처리 건 등록됨',
   offered: '인수 요청 중',
   conditional: '조건부 수락 · 자료 확인 중',
   accepted: '인수 수락 · 입고 대기',
@@ -178,6 +178,7 @@ export function lotToWaste(lot, myCompanyId) {
   return {
     id: `lot-${lot.id}`,
     lotId: lot.id,
+    lot,
     caseId: null,
     name: `${lotTitle(lot)} · ${lot.companies[lot.owner_company_id] || '다른 기업'}`,
     code: lot.data?.handoff?.waste_code,
@@ -223,6 +224,9 @@ export function lotCardText(lot, me) {
     return { displayStatus, message: offer.status === 'accepted'
       ? '입고 QR을 발급해 물량과 함께 보내 주세요'
       : offer.status === 'conditional' ? '업체가 요청한 추가 자료를 제출해 주세요' : '상대 기업 응답 대기' };
+  }
+  if (lot.status === 'ready' && lot.current_company_id === me) {
+    return { displayStatus: '처리 건 등록됨', message: '사진을 첨부하고 업체를 검토한 뒤 인수를 요청해 주세요' };
   }
   if (lot.current_company_id === me) {
     return { displayStatus: LOT_STATUS[lot.status] || lot.status, message: '우리 기업이 처리할 차례예요' };

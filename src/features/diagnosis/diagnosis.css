@@ -359,6 +359,16 @@
 .review-item[data-state="unread"] { border-color: var(--wd-warn); background: color-mix(in srgb, var(--wd-warn) 6%, var(--color-card)); }
 .review-conv { grid-column: 1 / -1; margin: 0; padding: 6px 8px; border-radius: var(--wd-radius-sm); color: var(--wd-warn); background: color-mix(in srgb, var(--wd-warn) 8%, var(--color-card)); }
 .final-reason p { margin: 4px 0 0; }
+.final-evidence { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid #ded2ea; border-left: 3px solid #7c59a1; border-radius: 10px; background: #faf8fd; }
+.final-evidence-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; color: #483657; font-size: 14px; }
+.final-evidence-heading span { color: #735a87; font-size: 11px; font-weight: 700; }
+.final-evidence .plain { gap: 0; }
+.final-evidence .plain li { display: grid; gap: 4px; padding: 9px 0; color: #504657; font-size: 13px; line-height: 1.6; }
+.final-evidence .plain li + li { border-top: 1px solid #e9e1f0; }
+.final-evidence .plain li:first-child { padding-top: 0; }
+.final-evidence .plain li:last-child { padding-bottom: 0; }
+.final-evidence .plain li > strong { color: #65438a; }
+.final-evidence .plain li > p { margin: 0; }
 .final-assumptions summary { cursor: pointer; color: var(--color-text-secondary); }
 }
 

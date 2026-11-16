@@ -337,9 +337,12 @@ export function FinalCard({ turn, confirmed, handoff, busy, onConfirm, onRecheck
         <ul className="plain">{v.conditions.map((c, i) => <li key={i}>{MARK[c.satisfied] || '○'} {c.text}</li>)}</ul>
       )}
       {v.rationale.length > 0 && (
-        <details><summary>근거 보기</summary><ul className="plain">{v.rationale.map((x, i) => (
-          <li key={i}>{typeof x === 'string' ? x : <><strong>{x.ref}</strong>{x.excerpt && <> — “{x.excerpt}”</>}</>}</li>
-        ))}</ul></details>
+        <section className="final-evidence" aria-label={confirmed ? '분류 확정 근거' : '분류 판정 근거'}>
+          <div className="final-evidence-heading"><strong>{confirmed ? '분류 확정 근거' : '분류 판정 근거'}</strong><span>{v.rationale.length}건</span></div>
+          <ul className="plain">{v.rationale.map((x, i) => (
+            <li key={i}>{typeof x === 'string' ? <p>{x}</p> : <><strong>{x.ref}</strong>{x.excerpt && <p>“{x.excerpt}”</p>}</>}</li>
+          ))}</ul>
+        </section>
       )}
       {!confirmed && (
         <>

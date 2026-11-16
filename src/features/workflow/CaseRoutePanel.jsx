@@ -11,7 +11,7 @@ import { hasFacilities } from './route-result.js';
 
 // 확정 문진 → 첫 처리 공정과 후보 업체.
 // 분류번호·재질·사업장 위치는 서버가 확정 문진과 기업 정보에서 읽고, 화면은 현재 형태만 고른다.
-export function CaseRoutePanel({ caseId, caseTitle, wasteCode, onLotCreated, view = 'route', hasLot = false }) {
+export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, lotRecycling, recyclingFollowUp = false, onLotCreated, view = 'route', hasLot = false }) {
   const [form, setForm] = useState(null);
   const [materialDetail, setMaterialDetail] = useState(null);
   const [solidConfirmed, setSolidConfirmed] = useState(false);
@@ -75,16 +75,25 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, onLotCreated, vie
   return (
     <div className="wf-panel route-recommendations" aria-busy={loading || reviewing}>
       <div hidden={view !== 'info'}>
-      <section className="route-context-card route-criteria" aria-labelledby="route-criteria-title"><div className="route-context-icon"><Icon name="spark" size={18} /></div><div className="route-context-body"><h2 id="route-criteria-title">추천 기준과 확인 사항</h2><p>{context.message}</p>
-      {context.warnings?.length > 0 && (
-        <ul className="wf-warnings route-criteria-warnings">
-          {context.warnings.map((w) => (
-            <li key={w}>{w}</li>
-          ))}
-        </ul>
-      )}
-      {next && <p className="wf-muted">{next.code_label} · {next.current_state?.label}. {next.message}</p>}
-      </div></section>
+        <div className="wf-evidence-page-head"><span>분류 · 법적 근거</span><h2>확인 사항과 판단 근거</h2><p>확정 분류, 법령표의 재활용 유형, 다음 공정의 확인 사항을 구분해 확인하세요.</p></div>
+        <div className="route-evidence-layout" aria-label="분류·확인 사항">
+          <div className="route-evidence-main">
+            <section className="wf-evidence-panel route-classification-status">
+              <div className="wf-evidence-panel-head"><div><span>확정 분류</span><h3>분류 정보와 문진 기록</h3></div><strong>{context.handoff?.waste_code || wasteCode || '분류번호 미정'}</strong></div>
+              <p>{classification}</p>
+              <div className="route-info-links"><a href={`/wastes/case-${caseId}/survey`}>문진 대화</a><a href={`/wastes/case-${caseId}/history`}>판정 기록</a></div>
+            </section>
+            {(hasLot || context.recycling) && <section className="wf-evidence-panel"><div className="wf-evidence-panel-head"><div><span>법령표 근거</span><h3>재활용 유형과 분석 조건</h3></div></div>
+              <RecyclingTypes assessment={hasLot ? lotRecycling || context.recycling : context.recycling} followUp={recyclingFollowUp} compact />
+            </section>}
+          </div>
+          <aside className="wf-evidence-panel route-review-basis" aria-label="추천 기준과 확인 사항">
+            <div className="wf-evidence-panel-head"><div><span>업체 추천 근거</span><h3>추천 기준과 확인 사항</h3></div></div>
+            {context.warnings?.length > 0 && <div className="wf-evidence-alert"><strong>확인 필요 · {context.warnings.length}건</strong><ul>{context.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
+            <p>{context.message}</p>
+            {next && <div className="route-info-detail"><span>다음 공정 판단</span><strong>{next.code_label} · {next.current_state?.label}</strong><p>{next.message}</p></div>}
+          </aside>
+        </div>
       </div>
       <div hidden={view !== 'route' || hasLot} className="route-recommendations-main">
       {context.requires_solid_confirmation && <label className="wf-card"><input type="checkbox" checked={solidConfirmed} disabled={reviewing} onChange={(event) => { setSolidConfirmed(event.target.checked); setForm(null); }} />현재 물량은 내용물을 비운 고체이며 액체·슬러지가 섞이지 않았어요.</label>}
@@ -109,7 +118,6 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, onLotCreated, vie
           </fieldset>
         </section>
       )}
-      <RecyclingTypes assessment={context.recycling} />
       {context.origin_label && <p className="wf-muted">출발 사업장: {context.origin_label}</p>}
       {error && <p className="wf-alert" role="alert">{error}</p>}
       {loading && <p className="wf-muted" role="status">선택한 형태의 공정과 업체를 불러오고 있어요…</p>}

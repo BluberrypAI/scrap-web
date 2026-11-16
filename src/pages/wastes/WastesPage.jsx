@@ -191,14 +191,17 @@ function WasteList({ variant, onCreate, creating, createdWasteId, wastes }) {
 // 우리 문진으로 만든 처리 건은 그 문진 카드에 진행 상태를 덮고,
 // 다른 기업이 보낸 처리 건(우리가 요청받았거나 지금 처리 중)은 별도 카드로 넣는다
 function mergeLots(cards, lots, myCompanyId) {
-  const byCase = new Map(lots.filter((l) => l.owner_company_id === myCompanyId).map((l) => [l.data?.handoff?.case_id, l]));
+  // 문진 목록은 이미 로그인 기업 소유로 제한된다. 기업 프로필 조회가 실패해도
+  // 같은 case_id의 처리 건은 카드에 연결해야 STEP 3 경로가 사라지지 않는다.
+  const byCase = new Map(lots.filter((l) => l.data?.handoff?.case_id).map((l) => [l.data.handoff.case_id, l]));
   const merged = cards.map((card) => {
     const lot = byCase.get(card.caseId);
     return lot
-      ? { ...card, status: lotCardStatus(lot.status), ...lotCardText(lot, myCompanyId), href: `/wastes/${card.id}` }
+      ? { ...card, lot, status: lotCardStatus(lot.status), ...lotCardText(lot, myCompanyId), href: `/wastes/${card.id}` }
       : card;
   });
-  const received = lots.filter((l) => l.owner_company_id !== myCompanyId).map((l) => lotToWaste(l, myCompanyId));
+  const cardCaseIds = new Set(cards.map((card) => card.caseId));
+  const received = lots.filter((l) => !cardCaseIds.has(l.data?.handoff?.case_id)).map((l) => lotToWaste(l, myCompanyId));
   return [...received, ...merged];
 }
 
@@ -212,7 +215,7 @@ export function WastesPage() {
     // 처리 건(기업 간 인계)은 목록을 못 불러와도 문진 카드는 보여 준다
     Promise.all([
       api.diagnosis.listCases(),
-      workflowApi.listLots().catch(() => []),
+      workflowApi.listLots().catch(() => { setProblem('처리 건을 불러오지 못해 진행 경로를 표시할 수 없어요. 새로고침해 주세요.'); return []; }),
       api.myCompany().catch(() => null),
     ])
       .then(([page, lots, company]) => setWastes(mergeLots(page.items.map(caseToWaste), lots, company?.id)))
