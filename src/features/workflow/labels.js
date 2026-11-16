@@ -212,6 +212,18 @@ export function lotCardText(lot, me) {
   const progress = lotProgress(lot, me);
   if (progress.kind === 'completed') return { displayStatus: '재활용 완료', message: '처리 과정 보기' };
   if (progress.kind === 'handed_off') return { displayStatus: '전달 완료', message: '처리 추적 중' };
+  const offer = (lot.offers || []).find((o) => ['pending', 'conditional', 'accepted'].includes(o.status));
+  const displayStatus = LOT_STATUS[lot.status] || lot.status;
+  if (offer?.recipient_id === me) {
+    return { displayStatus, message: offer.status === 'accepted'
+      ? '도착한 물량의 QR로 입고를 확인해 주세요'
+      : offer.status === 'conditional' ? '추가 자료 확인 후 수락해 주세요' : '받은 인수 요청을 검토해 주세요' };
+  }
+  if (offer?.sender_id === me) {
+    return { displayStatus, message: offer.status === 'accepted'
+      ? '입고 QR을 발급해 물량과 함께 보내 주세요'
+      : offer.status === 'conditional' ? '업체가 요청한 추가 자료를 제출해 주세요' : '상대 기업 응답 대기' };
+  }
   if (lot.current_company_id === me) {
     return { displayStatus: LOT_STATUS[lot.status] || lot.status, message: '우리 기업이 처리할 차례예요' };
   }

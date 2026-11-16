@@ -18,7 +18,7 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
       if (sort === 'name') return a.label.localeCompare(b.label, 'ko');
       return 0;
     }),
-  }));
+  })).filter((option) => !term || option.facilities.length > 0);
   const count = new Set(visible.flatMap((o) => o.facilities.map((f) => f.facility_key))).size;
   const mapOptions = candidateMapOptions(visible, origin, selectedKey);
   const hasMap = validLocation(origin) || mapFactories(mapOptions).length > 0;

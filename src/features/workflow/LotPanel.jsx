@@ -22,7 +22,7 @@ import {
 
 // 처리 건(로트) 하나. 지금 물량을 가진 기업(can_manage)과 요청받은 기업이 각자 할 일을 본다.
 // 모든 변경은 revision을 함께 보내고, 다른 화면에서 바뀌었으면(409) 새로 불러온다.
-export function LotPanel({ lotId, initialLot = null, preferredFacility = null }) {
+export function LotPanel({ lotId, initialLot = null, preferredFacility = null, onLotChange }) {
   const [lot, setLot] = useState(initialLot);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
@@ -36,6 +36,11 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null })
   useEffect(() => {
     if (!initialLot) reload();
   }, [initialLot, reload]);
+
+  // 상세 페이지의 단계 제목도 수락·입고·완료 결과와 함께 갱신한다.
+  useEffect(() => {
+    if (lot) onLotChange?.(lot);
+  }, [lot, onLotChange]);
 
   // 서버 호출 공통: 잠금, 오류 문구, 충돌이면 새로 불러오기
   async function run(label, call) {

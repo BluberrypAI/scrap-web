@@ -84,7 +84,7 @@ export function CaseDetailPage({ caseId }) {
       ) : lot === undefined ? (
         <p className="wf-muted">불러오는 중…</p>
       ) : lot ? (
-        <>{registered && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>{preferredFacility ? `${preferredFacility.label}을 검토 후보로 선택했어요. ` : ''}아래에서 업체 검토를 진행하면 인수 요청 가능 여부를 확인할 수 있어요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} /></>
+        <>{registered && lot.status === 'ready' && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>{preferredFacility ? `${preferredFacility.label}을 검토 후보로 선택했어요. ` : ''}아래에서 업체 검토를 진행하면 인수 요청 가능 여부를 확인할 수 있어요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} onLotChange={setLot} /></>
       ) : null}
       </div>
       {confirmed && lot !== undefined && <CaseRoutePanel caseId={caseId} caseTitle={kase.summary?.title} wasteCode={code} view={activeTab} hasLot={!!lot} onLotCreated={(created, preferred) => { setPreferredFacility(preferred); setRegistered(true); setLot(created); setActiveTab('route'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />}
