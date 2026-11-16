@@ -4772,6 +4772,7 @@
 .social-login-list .dev-login-group > .dev-login-button,
 .social-login-list > .dev-login-button {
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: center;
   text-align: center;

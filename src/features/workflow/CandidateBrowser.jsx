@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
 import { ProcessOption } from './FacilityCard.jsx';
-import { FacilityMap, mapFactories } from './FacilityMap.jsx';
+import { FacilityMap } from './FacilityMap.jsx';
 import './candidates.css';
 
 // The map and cards use the same filtered set; counts refer to distinct facilities.
@@ -19,10 +19,10 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
     }),
   }));
   const count = new Set(visible.flatMap((o) => o.facilities.map((f) => f.facility_key))).size;
-  const hasMap = mapFactories(visible).length > 0;
+  const hasMap = count > 0;
   return (
     <section className="candidate-browser" aria-label="처리 업체 후보">
-      <div className="candidate-heading"><div><span className="candidate-eyebrow">처리 경로 · 업체 후보</span><h2>다음 공정의 업체 <span>{count}곳</span></h2><p>실제 반입 가능 여부는 업체 검토와 확인을 거쳐 결정됩니다.</p></div></div>
+      <div className="candidate-heading"><div><span className="candidate-eyebrow">처리 경로 · 업체 후보</span><h2>다음 공정 {options.length}개 · 후보 업체 <span>{count}곳</span></h2><p>한 공정에 여러 업체가 연결될 수 있어요. 지도 핀은 공정이 아닌 업체 위치를 나타냅니다. 실제 반입 가능 여부는 업체 검토 후 결정돼요.</p></div></div>
       <div className="candidate-browser-toolbar"><div className="candidate-controls">
         <label className="candidate-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg><input aria-label="업체명 또는 지역 검색" placeholder="업체명 또는 지역으로 검색" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
         <select aria-label="업체 정렬" value={sort} onChange={(e) => setSort(e.target.value)}><option value="default">기본 순</option><option value="distance">가까운 순 · 직선거리</option><option value="name">이름 순</option></select>

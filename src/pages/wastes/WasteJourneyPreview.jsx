@@ -16,7 +16,9 @@ const messages = {
 
 export function WasteJourneyPreview({ waste, active }) {
   const berryOnly = !hasConfirmedCode(waste);
-  const journey = wasteJourneyState(waste, getTreatmentCase(waste), readFieldChecks(waste.id));
+  const journey = waste.caseId || waste.lotId
+    ? wasteJourneyState(waste, waste.lot || null)
+    : wasteJourneyState(waste, getTreatmentCase(waste), readFieldChecks(waste.id));
   const message = messages[waste.status] || wasteStatusMessage(waste);
   return <>
     <header className="waste-journey-heading">
