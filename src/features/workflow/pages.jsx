@@ -18,6 +18,7 @@ export function CaseDetailPage({ caseId }) {
   const [error, setError] = useState('');
   const [registered, setRegistered] = useState(false);
   const [preferredFacility, setPreferredFacility] = useState(null);
+  const [activeTab, setActiveTab] = useState('route');
 
   useEffect(() => {
     let live = true;
@@ -53,14 +54,28 @@ export function CaseDetailPage({ caseId }) {
             </div>
             <div className="detail-code wf-code"><strong>분류번호 {code || '미정'}</strong></div>
           </div>
-          <details className="waste-identity-details"><summary>분류 정보와 문진 기록</summary><p>{kase.summary?.result_label || kase.summary?.status_label}</p><div className="wf-actions">
+        </div>
+      </header>
+      <div className="route-detail-tabs" role="group" aria-label="자원 경로 상세 보기">
+        <button type="button" aria-pressed={activeTab === 'route'} onClick={() => setActiveTab('route')}>공정·업체 추천</button>
+        <button type="button" aria-pressed={activeTab === 'info'} onClick={() => setActiveTab('info')}>분류·확인 사항</button>
+      </div>
+      <div hidden={activeTab !== 'info'}>
+      <section className="route-context-card" aria-labelledby="route-classification-title">
+        <div className="route-context-icon"><Icon name="check" size={18} /></div>
+        <div className="route-context-body">
+          <h2 id="route-classification-title">분류 정보와 문진 기록</h2>
+          <p>{kase.summary?.result_label || kase.summary?.status_label}</p>
+          <div className="wf-actions">
             <a className="button button-quiet button-small" href={`/wastes/case-${caseId}/survey`}>
               {confirmed ? '문진 대화' : '문진 이어서 하기'}
             </a>
             <a className="button button-quiet button-small" href={`/wastes/case-${caseId}/history`}>판정 기록</a>
-          </div></details>
+          </div>
         </div>
-      </header>
+      </section>
+      </div>
+      <div hidden={activeTab !== 'route'}>
       {!confirmed ? (
         <section className="wf-card">
           <p>분류를 확정하면 처리 경로를 볼 수 있어요.</p>
@@ -70,9 +85,9 @@ export function CaseDetailPage({ caseId }) {
         <p className="wf-muted">불러오는 중…</p>
       ) : lot ? (
         <>{registered && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>{preferredFacility ? `${preferredFacility.label}을 검토 후보로 선택했어요. ` : ''}아래에서 업체 검토를 진행하면 인수 요청 가능 여부를 확인할 수 있어요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} /></>
-      ) : (
-        <CaseRoutePanel caseId={caseId} onLotCreated={(created, preferred) => { setPreferredFacility(preferred); setRegistered(true); setLot(created); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
-      )}
+      ) : null}
+      </div>
+      {confirmed && lot !== undefined && <CaseRoutePanel caseId={caseId} view={activeTab} hasLot={!!lot} onLotCreated={(created, preferred) => { setPreferredFacility(preferred); setRegistered(true); setLot(created); setActiveTab('route'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />}
     </main>
   );
 }

@@ -84,7 +84,7 @@ export function lotMaterial(lot) {
 export const REVIEW_STATUS = {
   reviewed: '공개 근거 확인',
   needs_evidence: '근거 추가 확인 필요',
-  model_unavailable: '검토 미완료',
+  model_unavailable: 'AI 검토 결과 없음',
 };
 export const REVIEW_FINDING = {
   form_mentioned: '이 형태의 반입 근거가 공개 자료에 있음',

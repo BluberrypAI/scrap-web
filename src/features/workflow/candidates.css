@@ -109,3 +109,67 @@
   .candidate-browser .wf-facility { padding: 18px; }
   .candidate-layout { gap: 20px; }
 }
+
+/* Route context stays visible before the user confirms the physical form. */
+.route-context-card { display: flex; align-items: flex-start; gap: 14px; margin: 0 0 20px; padding: 20px 22px; border: 1px solid #e5deeb; border-radius: 16px; background: #fff; }
+.route-context-icon { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 10px; background: #f1ebf7; color: #795699; }
+.route-context-body { min-width: 0; flex: 1; }
+.route-context-body h2 { margin: 0 0 7px; font-size: 15px; letter-spacing: -.3px; }
+.route-context-body p { margin: 0 0 12px; color: #756d7d; font-size: 13px; line-height: 1.65; }
+.route-context-body .wf-actions { gap: 7px; }
+.route-context-body .wf-muted { margin: 10px 0 0; }
+.route-criteria { margin: 0; background: #faf8fc; }
+.route-criteria-warnings { margin: 8px 0; padding-left: 18px; }
+.route-form-choice { display: flex; align-items: center; gap: 10px; padding: 20px 22px !important; border-radius: 16px !important; background: #fff; }
+.route-form-choice legend { font-size: 15px !important; font-weight: 700; }
+.route-form-choice > p { width: 100%; margin: 0 0 8px; color: #756d7d; font-size: 12px; line-height: 1.6; }
+.route-form-choice label { min-width: 105px; justify-content: center; }
+.candidate-browser { padding: 24px; border: 1px solid #e5deeb; border-radius: 20px; background: #fff; }
+.candidate-heading { margin: 0 0 20px; padding-bottom: 19px; border-bottom: 1px solid #eee9f2; }
+.candidate-eyebrow { color: #806397; font-size: 11px; letter-spacing: .06em; }
+.candidate-heading h2 { margin: 6px 0 5px; font-size: 23px; }
+.candidate-heading h2 > span { border-radius: 999px; font-size: 12px; }
+.candidate-browser-toolbar { margin: 0 0 24px; padding: 15px; border: 1px solid #ece6f1; border-radius: 15px; background: #faf8fc; }
+.candidate-controls { margin-bottom: 12px; }
+.candidate-filters { margin-bottom: 0; }
+.candidate-filters button { background: #fff; }
+.candidate-layout { gap: 20px; }
+.candidate-results { gap: 18px; }
+.candidate-results > div { padding: 18px; border: 1px solid #eee8f2; border-radius: 16px; background: #fcfbfd; }
+.candidate-browser .wf-facility { border-radius: 14px; }
+.candidate-map-panel { border-radius: 16px; }
+@media (max-width: 640px) { .candidate-browser { padding: 16px; } .candidate-results > div { padding: 12px; } .route-context-card { padding: 16px; } }
+.route-detail-tabs { display: flex; flex-wrap: wrap; gap: 12px 30px; margin: 0 0 20px; border-bottom: 1px solid #e6e0eb; background: transparent; }
+.route-detail-tabs button { padding: 8px 0; border: 0; background: transparent; color: #55545a; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.route-detail-tabs button:hover { color: #76529a; }
+.route-detail-tabs button[aria-pressed='true'] { color: #76529a; font-weight: 700; }
+.route-detail-tabs button:focus-visible { outline: 2px solid #9471af; outline-offset: 2px; }
+.route-recommendations-main { display: grid; gap: 24px; }
+.route-recommendations-main[hidden] { display: none; }
+.route-recommendations > div[hidden] { display: none; }
+@media (max-width: 640px) { .route-detail-tabs { gap: 8px 20px; } .route-detail-tabs button { text-align: left; font-size: 12px; } }
+.lot-registration > .wf-form > .register-submit { justify-self: end; min-height: 44px; padding: 10px 20px; border: 1px solid #73518d; border-radius: 10px; background: #73518d; color: #fff; font-weight: 700; box-shadow: none; cursor: pointer; }
+.lot-registration > .wf-form > .register-submit:hover:not(:disabled) { background: #62447a; border-color: #62447a; }
+.lot-registration > .wf-form > .register-submit:disabled { opacity: .55; cursor: wait; }
+.route-form-card { padding: 22px 24px; border: 1px solid #e5deeb; border-radius: 18px; background: #fff; }
+.route-form-heading { display: flex; align-items: flex-start; gap: 13px; margin-bottom: 17px; }
+.route-form-heading > span { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 10px; background: #f0eaf5; color: #785699; font-size: 12px; font-weight: 800; }
+.route-form-heading h2 { margin: 0 0 5px; font-size: 17px; letter-spacing: -.4px; }
+.route-form-heading p { margin: 0; color: #7b7282; font-size: 12px; }
+.route-recommendations .route-form-choice { padding: 0 !important; border: 0; background: transparent; }
+.route-recommendations .route-form-choice label { min-width: 125px; min-height: 42px; border-radius: 12px; background: #faf9fb; }
+.route-recommendations .route-form-choice label:has(:checked) { border-color: #906eb0; background: #f2ebf8; color: #60417c; box-shadow: 0 0 0 2px #d9c8e9; }
+.route-candidate-anchor { scroll-margin-top: 88px; }
+.candidate-review-bar { margin-top: 0; }
+.candidate-review-unavailable { width: 100%; margin: 0; padding: 11px 13px; border-radius: 9px; background: #fff8ed; color: #805c29; font-size: 12px; line-height: 1.6; }
+@media (max-width: 640px) { .route-form-card { padding: 18px; } .route-form-heading h2 { font-size: 15px; } }
+.route-form-card { padding: 10px 0 16px; border: 0; border-radius: 0; background: transparent; }
+.route-form-heading { align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.route-form-heading > img { width: 38px; height: 38px; flex: none; object-fit: contain; }
+.route-form-speech { position: relative; max-width: 560px; padding: 14px 18px; border: 1px solid #e9e2ef; border-radius: 5px 17px 17px 17px; background: #fff; }
+.route-form-speech h2 { margin: 0 0 5px; font-size: 16px; }
+.route-form-speech p { margin: 0; color: #766e7e; font-size: 12px; line-height: 1.6; }
+.route-recommendations .route-form-choice { margin-left: 50px; gap: 8px; }
+.route-recommendations .route-form-choice label { min-width: 0; min-height: 0; padding: 8px 13px; border: 1px solid transparent; border-radius: 999px; background: #f1eef5; color: #514a59; }
+.route-recommendations .route-form-choice label:has(:checked) { border-color: #a98bc4; border-radius: 999px; background: #e9ddf4; color: #60417c; box-shadow: none; }
+@media (max-width: 640px) { .route-form-card { padding: 8px 0 16px; } .route-recommendations .route-form-choice { margin-left: 0; } }
