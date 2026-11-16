@@ -1,5 +1,6 @@
 import { navItems } from '../data/navigation.js';
 import { AuthenticatedAccount } from './AuthenticatedAccount.jsx';
+import { NotificationInbox } from './NotificationInbox.jsx';
 
 export function AppTopNav({ path }) {
   let r =
@@ -26,7 +27,7 @@ export function AppTopNav({ path }) {
             </a>
           ))}
         </nav>
-        <AuthenticatedAccount />
+        <div className="app-account"><NotificationInbox /><AuthenticatedAccount /></div>
       </div>
     </header>
   );

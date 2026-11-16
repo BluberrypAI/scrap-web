@@ -1,0 +1,38 @@
+.notification-inbox { position: relative; flex: none; }
+.notification-trigger { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid #e8e3ec; border-radius: 12px; background: #fff; color: #41384c; cursor: pointer; }
+.notification-trigger:hover, .notification-trigger[aria-expanded='true'] { border-color: #c9b8df; background: #f7f3fa; color: #744eac; }
+.notification-trigger:focus-visible, .notification-panel button:focus-visible, .notification-item:focus-visible { outline: 2px solid #8059b4; outline-offset: 2px; }
+.notification-count { position: absolute; top: -6px; right: -7px; min-width: 19px; height: 19px; padding: 0 4px; display: grid; place-items: center; border: 2px solid #fff; border-radius: 999px; background: #744eac; color: #fff; font-size: 10px; font-weight: 700; }
+.notification-panel { position: absolute; z-index: 100; top: calc(100% + 14px); right: -78px; width: min(420px, calc(100vw - 24px)); overflow: hidden; border: 1px solid #e7e2ec; border-radius: 18px; background: #fff; box-shadow: 0 20px 55px #2b183326; color: #292331; }
+.notification-panel-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 22px 22px 12px; }
+.notification-eyebrow { color: #8b769d; font-size: 10px; font-weight: 700; letter-spacing: .11em; }
+.notification-panel h2 { margin: 5px 0 0; font-size: 21px; letter-spacing: -.04em; }
+.notification-panel h2 span { margin-left: 5px; color: #7956a8; font-size: 14px; }
+.notification-close { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: #81798a; cursor: pointer; }
+.notification-close:hover { background: #f4f1f7; }
+.notification-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 22px 12px; border-bottom: 1px solid #eeeaf1; }
+.notification-filters { display: flex; gap: 16px; }
+.notification-filters button, .notification-mark-all { padding: 5px 0; border: 0; background: transparent; color: #81798a; font-size: 12px; cursor: pointer; }
+.notification-filters button.selected { color: #714c9e; font-weight: 700; }
+.notification-mark-all { color: #71539a; white-space: nowrap; }
+.notification-list { max-height: min(480px, 60vh); overflow-y: auto; }
+.notification-item { display: flex; gap: 12px; padding: 16px 22px; border-bottom: 1px solid #f0edf3; color: inherit; text-decoration: none; }
+.notification-item:hover { background: #f8f6fa; }
+.notification-item.unread { background: #fbf8ff; }
+.notification-item.unread:hover { background: #f4eefb; }
+.notification-item-icon { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 10px; background: #ece4f7; color: #744ba7; }
+.notification-item-icon[data-kind='accepted'], .notification-item-icon[data-kind='received'], .notification-item-icon[data-kind='completed'] { background: #e8f4ed; color: #327854; }
+.notification-item-icon[data-kind='rejected'] { background: #faebeb; color: #b65050; }
+.notification-item-content { display: grid; gap: 5px; min-width: 0; flex: 1; }
+.notification-item-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.notification-item-top strong { font-size: 13px; }
+.notification-item-top time { flex: none; color: #948b9d; font-size: 11px; }
+.notification-item-body { color: #575060; font-size: 12px; line-height: 1.55; }
+.notification-item-content small { color: #948b9d; font-size: 11px; }
+.notification-unread-dot { flex: none; width: 6px; height: 6px; margin-top: 7px; border-radius: 50%; background: #8459b5; }
+.notification-empty { display: grid; justify-items: center; gap: 8px; padding: 56px 20px; color: #998ba7; text-align: center; }
+.notification-empty strong { color: #4b4255; font-size: 14px; }
+.notification-empty span, .notification-error { font-size: 12px; }
+.notification-error { margin: 12px 20px; padding: 12px; border-radius: 9px; background: #fff0ee; color: #a23e39; }
+.notification-panel-footer { padding: 12px 22px; background: #fbfafc; color: #958b9c; font-size: 11px; }
+@media (max-width: 720px) { .notification-panel { position: fixed; top: 96px; left: 12px; right: 12px; width: auto; } }
