@@ -5,6 +5,7 @@ import { resetSession, useRequireSession } from '../../hooks/useSession.js';
 import { ApiError, api } from '../../lib/api.js';
 import { rememberSession } from '../../lib/auth.js';
 import { navigate } from '../../lib/router.js';
+import { SiteLocationPicker } from '../../components/SiteLocationPicker.jsx';
 
 const facilityOptions = ['폐수처리시설', '혼합시설', '세척시설', '반응시설', '건조시설', '저장시설'];
 // 서버와 같은 형식 검사 (companies/schemas.py EMAIL_PATTERN)
@@ -24,6 +25,7 @@ function stepProblem(step, values) {
 }
 
 export function OnboardingPage() {
+  const [sitePoint, setSitePoint] = useState(null);
   let [e, t] = useState(0),
     [n, r] = useState(''),
     [i, a] = useState(''),
@@ -68,6 +70,8 @@ export function OnboardingPage() {
           industry: n,
           site_name: workplaceName.trim(),
           site_address: i.trim(),
+          site_latitude: sitePoint?.latitude ?? null,
+          site_longitude: sitePoint?.longitude ?? null,
           site_facilities: o,
           main_products: withPending(c, f),
           main_waste_types: withPending(mainWastes, wasteInput).map((category) => ({ category })),
@@ -187,11 +191,12 @@ export function OnboardingPage() {
                 <input
                   type="text"
                   value={i}
-                  onChange={(event) => a(event.target.value)}
+                  onChange={(event) => { a(event.target.value); setSitePoint(null); }}
                   placeholder="사업장 주소를 입력하세요"
                   autoComplete="street-address"
                 />
               </label>
+              <SiteLocationPicker value={sitePoint} onChange={setSitePoint} disabled={submitting} />
             </section>
           )}
           {e === 1 && (

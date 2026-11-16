@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
+import * as maplibregl from 'maplibre-gl';
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { DOKDO_COORDINATE, hideRoadNumberShields, styleKoreaMapContext } from '../../lib/mapbox-style.js';
 
 const KOREA_CENTER = [128.25, 36.25];
+// MapLibre v6 workers must be emitted by Vite, including the worker's imports.
+maplibregl.setWorkerUrl(maplibreWorkerUrl);
 const KOREA_BOUNDS = [[124.5, 32.8], [132.35, 39.4]];
 const KOREA_VIEW = [[125.5, 33.05], [132.15, 38.55]];
 
@@ -37,11 +42,13 @@ function createOriginMarker(origin) {
   return marker;
 }
 
-export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origin = null, label = '전국 순환자원 처리업체 위치 지도', onStateChange }) {
+export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origin = null, onPick, label = '전국 순환자원 처리업체 위치 지도', onStateChange }) {
   const hostRef = useRef(null);
   const mapRef = useRef(null);
   const markerRefs = useRef(new Map());
   const onSelectRef = useRef(onSelect);
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
   const [loadState, setLoadState] = useState('loading');
   const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim();
   const signature = useMemo(() => factories.map((factory) => [
@@ -52,7 +59,7 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
   useEffect(() => { onStateChange?.(loadState); }, [loadState, onStateChange]);
 
   useEffect(() => {
-    if (!mapboxgl.supported()) {
+    if (accessToken && !mapboxgl.supported()) {
       setLoadState('unsupported');
       return undefined;
     }
@@ -61,10 +68,12 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
     let loaded = false;
     let resizeObserver;
     const markers = [];
+    // Mapbox GL authenticates even custom raster styles. Use MapLibre for OSM without a token.
+    const mapgl = accessToken ? mapboxgl : maplibregl;
     mapboxgl.accessToken = accessToken || '';
     setLoadState('loading');
 
-    const map = new mapboxgl.Map({
+    const map = new mapgl.Map({
       container: hostRef.current,
       style: accessToken ? 'mapbox://styles/mapbox/streets-v12' : {
         version: 8,
@@ -84,8 +93,14 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
     });
     mapRef.current = map;
     markerRefs.current = new Map();
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
-    map.addControl(new mapboxgl.AttributionControl({ compact: false }), 'bottom-left');
+    map.addControl(new mapgl.NavigationControl({ showCompass: false }), 'top-right');
+    map.addControl(new mapgl.AttributionControl({ compact: false }), 'bottom-left');
+    if (onPickRef.current) {
+      map.on('click', (event) => onPickRef.current?.({
+        latitude: event.lngLat.lat, longitude: event.lngLat.lng,
+      }));
+      map.getCanvas().style.cursor = 'crosshair';
+    }
 
     const handleError = (event) => {
       if (event?.error) console.error('Resource map error:', event.error);
@@ -97,7 +112,7 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
       if (accessToken) { hideRoadNumberShields(map); styleKoreaMapContext(map); }
       factories.forEach((factory) => {
         const element = createCompassMarker(factory, (id) => onSelectRef.current?.(id));
-        const marker = new mapboxgl.Marker({ element, anchor: 'bottom', offset: [0, -3] })
+        const marker = new mapgl.Marker({ element, anchor: 'bottom', offset: [0, -3] })
           .setLngLat([factory.longitude, factory.latitude])
           .addTo(map);
         markers.push(marker);
@@ -105,15 +120,20 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
       });
 
       if (origin) {
-        markers.push(new mapboxgl.Marker({ element: createOriginMarker(origin), anchor: 'bottom' })
+        const marker = new mapgl.Marker({ element: createOriginMarker(origin), anchor: 'bottom', draggable: !!onPickRef.current })
           .setLngLat([origin.longitude, origin.latitude])
-          .addTo(map));
+          .addTo(map);
+        marker.on('dragend', () => {
+          const point = marker.getLngLat();
+          onPickRef.current?.({ latitude: point.lat, longitude: point.lng });
+        });
+        markers.push(marker);
       }
 
       if (factories.length) {
         const bounds = factories.reduce((nextBounds, factory) => nextBounds.extend([
           factory.longitude, factory.latitude,
-        ]), new mapboxgl.LngLatBounds(
+        ]), new mapgl.LngLatBounds(
           [factories[0].longitude, factories[0].latitude],
           [factories[0].longitude, factories[0].latitude],
         ));
@@ -124,6 +144,8 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
           maxZoom: factories.length === 1 && !origin ? 11 : origin ? 10 : 7.8,
           duration: 700,
         });
+      } else if (origin) {
+        map.jumpTo({ center: [origin.longitude, origin.latitude], zoom: 10 });
       } else {
         map.fitBounds(KOREA_VIEW, { padding: 50, duration: 0 });
       }
