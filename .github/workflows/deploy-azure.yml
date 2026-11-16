@@ -1,0 +1,54 @@
+# main에 병합되면 이미지를 빌드해 ACR에 :main 태그로 올림
+# ACR 웹훅이 App Service에 알려 새 이미지로 다시 시작함 (scrap-infra docs/deploy-azure.md)
+# 필요한 값 (Settings → Secrets and variables → Actions)
+#   vars:    ACR_LOGIN_SERVER, ACR_USERNAME
+#   secrets: ACR_PASSWORD, DISCORD_WEBHOOK_URL (배포 실패 알림)
+#            VITE_MAPBOX_ACCESS_TOKEN (지도, 빌드할 때 들어감)
+# ACR_LOGIN_SERVER가 없으면 건너뜀
+
+name: Deploy Azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-azure
+  cancel-in-progress: false
+
+env:
+  APP: scrap-web
+
+jobs:
+  deploy:
+    if: vars.ACR_LOGIN_SERVER != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ACR 로그인
+        env:
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+        run: echo "$ACR_PASSWORD" | docker login "${{ vars.ACR_LOGIN_SERVER }}" -u "${{ vars.ACR_USERNAME }}" --password-stdin
+
+      - name: 이미지 빌드·push (:main과 커밋 태그)
+        env:
+          REGISTRY: ${{ vars.ACR_LOGIN_SERVER }}
+          MAPBOX: ${{ secrets.VITE_MAPBOX_ACCESS_TOKEN }}
+        run: |
+          image="$REGISTRY/$APP"
+          docker build -t "$image:${GITHUB_SHA::12}" -t "$image:main" --build-arg VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX" --build-arg VITE_ENABLE_DEV_LOGIN=false .
+          docker push "$image:${GITHUB_SHA::12}"
+          docker push "$image:main"
+
+      - name: 실패 알림 (Discord)
+        if: failure()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [ -n "$WEBHOOK" ] || exit 0
+          msg="배포 실패: ${GITHUB_REPOSITORY} (${GITHUB_SHA::7}) $RUN_URL"
+          curl -fsS -H "Content-Type: application/json" -d "{\"content\": \"$msg\"}" "$WEBHOOK"
