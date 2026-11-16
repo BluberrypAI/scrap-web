@@ -194,3 +194,36 @@
     .composer-caption { display: none; }
   }
 }
+
+/* Separate decision areas follow the progress, candidates, facts, documents flow. */
+.dx .conversation-page .board { padding: 12px; gap: 10px; background: #f7f5fa; }
+.dx .conversation-page .board h3 { margin: 4px 6px 2px; }
+.dx .conversation-page .board h4 { margin: 0; font-size: 13px; }
+.dx .conversation-page .board-section { padding: 16px; border: 1px solid #e7e1ed; border-radius: 16px; background: #fff; box-shadow: 0 2px 8px #39234e04; }
+.dx .conversation-page .board-section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.dx .conversation-page .board-section-head > strong { color: #70518e; font-size: 19px; }
+.dx .conversation-page .board-count { padding: 3px 8px; border-radius: 7px; background: #f1ebf7; color: #74558c; font-size: 11px; font-weight: 700; }
+.dx .conversation-page .board-progress-track { height: 8px; overflow: hidden; border-radius: 999px; background: #eee9f2; }
+.dx .conversation-page .board-progress-track > span { display: block; height: 100%; border-radius: inherit; background: #8b67aa; transition: width .2s; }
+.dx .conversation-page .board-progress p, .dx .conversation-page .board-empty { margin-top: 9px; color: #817989; font-size: 11px; }
+.dx .conversation-page .board-candidates, .dx .conversation-page .board-documents, .dx .conversation-page .board-facts { display: grid; gap: 8px; }
+.dx .conversation-page .board-candidates li, .dx .conversation-page .board-documents li { display: grid; gap: 2px; padding: 9px 11px; border-radius: 10px; background: #f8f6fa; }
+.dx .conversation-page .board-candidates li strong { color: #71528b; font-size: 12px; }
+.dx .conversation-page .board-candidates li span, .dx .conversation-page .board-documents li span { color: #77707e; font-size: 11px; }
+.dx .conversation-page .board-facts { gap: 0; }
+.dx .conversation-page .board-fact { padding: 10px 0; border-bottom: 1px solid #f0edf3; }
+.dx .conversation-page .board-fact:last-child { border-bottom: 0; }
+.dx .conversation-page .board-fact-main { display: flex; align-items: center; gap: 9px; }
+.dx .conversation-page .board-check { display: grid; place-items: center; width: 17px; height: 17px; flex: none; border: 1.5px solid #c9bfce; border-radius: 5px; color: #fff; font-size: 11px; line-height: 1; }
+.dx .conversation-page .board-check.is-done { border-color: #8b67aa; background: #8b67aa; }
+.dx .conversation-page .board-fact-copy { display: grid; min-width: 0; flex: 1; gap: 1px; }
+.dx .conversation-page .board-fact-copy > span { color: #817989; font-size: 11px; }
+.dx .conversation-page .board-fact-copy strong { margin: 0; color: #342d3b; font-size: 12px; }
+.dx .conversation-page .board-fact.is-pending .board-fact-copy strong { color: #9a929f; font-weight: 500; }
+.dx .conversation-page .board-source { max-width: 42%; padding: 3px 7px; border-radius: 6px; background: #f4f0f8; color: #75588b; font-size: 10px; text-align: right; }
+.dx .conversation-page .board-fact-copy small { color: #8b8293; font-size: 10px; }
+.dx .conversation-page .board-actions { flex: none; margin-left: auto; gap: 2px; }
+.dx .conversation-page .board-actions .button { padding: 3px 4px; font-size: 10px; white-space: nowrap; }
+.dx .conversation-page .composer { padding: 10px 16px 8px; gap: 4px; }
+.dx .conversation-page .composer textarea.wd-input { min-height: 26px; max-height: 100px; }
+@media (max-width: 640px) { .dx .conversation-page .composer { padding: 9px 12px 7px; } }

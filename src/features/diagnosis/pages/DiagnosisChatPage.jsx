@@ -235,7 +235,7 @@ export default function DiagnosisChatPage({ id, afterConfirm = null }) {
             </>
           ) : (
             <form className="composer" onSubmit={(e) => { e.preventDefault(); if (!busy && text.trim()) sendText(text.trim()); }}>
-              <textarea ref={composer} className="wd-input" rows={2} disabled={busy} aria-label="메시지" placeholder="폐기물에 대해 편하게 이야기해 주세요" maxLength={4000}
+              <textarea ref={composer} className="wd-input" rows={1} disabled={busy} aria-label="메시지" placeholder="폐기물에 대해 편하게 이야기해 주세요" maxLength={4000}
                 value={text} onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); if (text.trim()) sendText(text.trim()); } }} />
               <div className="composer-tools">
