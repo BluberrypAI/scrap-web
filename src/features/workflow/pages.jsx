@@ -8,7 +8,7 @@ import { currentRoute, navigate } from '../../lib/router.js';
 import { workflowApi } from './api.js';
 import { CaseRoutePanel } from './CaseRoutePanel.jsx';
 import { LotPanel } from './LotPanel.jsx';
-import { LOT_STATUS, STATE_LABEL, formatKg } from './labels.js';
+import { LOT_STATUS, stateLabel, formatKg } from './labels.js';
 import { Icon } from '../../components/Icon.jsx';
 import './workflow.css';
 
@@ -87,7 +87,7 @@ export function CaseDetailPage({ caseId }) {
         <>{registered && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>{preferredFacility ? `${preferredFacility.label}을 검토 후보로 선택했어요. ` : ''}아래에서 업체 검토를 진행하면 인수 요청 가능 여부를 확인할 수 있어요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} /></>
       ) : null}
       </div>
-      {confirmed && lot !== undefined && <CaseRoutePanel caseId={caseId} view={activeTab} hasLot={!!lot} onLotCreated={(created, preferred) => { setPreferredFacility(preferred); setRegistered(true); setLot(created); setActiveTab('route'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />}
+      {confirmed && lot !== undefined && <CaseRoutePanel caseId={caseId} caseTitle={kase.summary?.title} wasteCode={code} view={activeTab} hasLot={!!lot} onLotCreated={(created, preferred) => { setPreferredFacility(preferred); setRegistered(true); setLot(created); setActiveTab('route'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />}
     </main>
   );
 }
@@ -145,7 +145,7 @@ export function ReceivePage({ lotId, offerId }) {
             {lot.companies[offer.sender_id]} → {lot.companies[offer.recipient_id]}
           </p>
           <p>
-            받을 물량: {STATE_LABEL[offer.data.current?.state_key]} {formatKg(offer.data.current?.mass_kg)}
+            받을 물량: {stateLabel(lot, offer.data.current?.state_key)} {formatKg(offer.data.current?.mass_kg)}
           </p>
           <p className="wf-muted">{offer.data.current?.condition}</p>
           {offer.can_receive ? (

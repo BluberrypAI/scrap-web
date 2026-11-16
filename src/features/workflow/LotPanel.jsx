@@ -4,6 +4,7 @@ import { useSession } from '../../hooks/useSession.js';
 import QRCode from 'qrcode';
 import { receiveUrl, workflowApi } from './api.js';
 import { CandidateBrowser } from './CandidateBrowser.jsx';
+import { RouteOutcome } from './RouteOutcome.jsx';
 import { IntakeQuestions, ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
 import {
   LOT_STATUS,
@@ -257,12 +258,14 @@ function CandidateSection({ lot, busy, onReview, onOffer, onAnswers, onDirectory
     <section className="wf-card">
       <h3>다음 처리 업체</h3>
       {preferredFacility && <p className="wf-muted">선택한 검토 후보: <strong>{preferredFacility.label}</strong></p>}
+      <RecyclingTypes assessment={lot.data.recycling} followUp={lot.data.completed.length > 0} />
       {!review && <p className="wf-muted">현재 물량·사진으로 다음 공정 후보 업체를 모두 검토해요. 1~2분 걸릴 수 있어요.</p>}
       <button className="button button-primary" type="button" onClick={onReview} disabled={!!busy}>
         {busy === 'review' ? '업체를 검토하는 중…' : review ? '다시 검토' : '업체 검토 시작'}
       </button>
       {review && review.analysis_version !== 'isolated-vision-v2' && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
+      {review && <RouteOutcome next={next} currentLabel={stateLabel(lot, lot.data?.current?.state_key)} code={lot.data?.handoff?.waste_code} />}
       {next?.options && (
         <CandidateBrowser
           options={next.options}

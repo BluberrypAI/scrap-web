@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
-import { useSession } from '../../hooks/useSession.js';
+import { resetSession, useSession } from '../../hooks/useSession.js';
+import { SiteLocationPicker } from '../../components/SiteLocationPicker.jsx';
 import { ApiError, api } from '../../lib/api.js';
 import { currentRoute } from '../../lib/router.js';
 import { AnimatedContent } from '../landing/LandingMotion.jsx';
@@ -93,6 +94,7 @@ export function CompanyDataPage() {
   const [savedAt, setSavedAt] = useState('');
   const [draft, setDraft] = useState(() => toDraft(null));
   const [isEditing, setIsEditing] = useState(false);
+  const [sitePoint, setSitePoint] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const displayName = session.user?.name || session.user?.email || '';
@@ -125,6 +127,11 @@ export function CompanyDataPage() {
         changes[key] = toServerValue(company, key, value);
       }
     }
+    if ((sitePoint?.latitude ?? null) !== (company.site_latitude ?? null) ||
+        (sitePoint?.longitude ?? null) !== (company.site_longitude ?? null) || changes.site_address) {
+      changes.site_latitude = sitePoint?.latitude ?? null;
+      changes.site_longitude = sitePoint?.longitude ?? null;
+    }
     if (Object.keys(changes).length === 0) {
       setSaveError('');
       setIsEditing(false);
@@ -133,7 +140,8 @@ export function CompanyDataPage() {
     setSaving(true);
     try {
       const result = await api.updateCompany(company.profile_version, changes);
-      setCompany((value) => ({ ...value, ...changes, profile_version: result.profile_version }));
+      setCompany(await api.myCompany());
+      resetSession();
       if (result.changed_fields.length > 0) setSavedAt(new Date().toLocaleDateString('ko-KR'));
       setSaveError('');
       setIsEditing(false);
@@ -191,7 +199,7 @@ export function CompanyDataPage() {
                 </div>
                 <div className="workplace-header-actions">
                   <span className="verified-badge">
-                    <Icon name="check" size={14} /> 인증 완료
+                    <Icon name="check" size={14} /> 정보 등록됨
                   </span>
                   <button
                     className="workplace-edit-button"
@@ -202,6 +210,8 @@ export function CompanyDataPage() {
                         setSaveError('');
                       } else {
                         setDraft(toDraft(company));
+                        setSitePoint(company.site_latitude != null && company.site_longitude != null
+                          ? { latitude: company.site_latitude, longitude: company.site_longitude } : null);
                         setSaveError('');
                         setIsEditing(true);
                       }
@@ -220,7 +230,10 @@ export function CompanyDataPage() {
                         <input
                           type="text"
                           value={draft[key]}
-                          onChange={(event) => setDraft((value) => ({ ...value, [key]: event.target.value }))}
+                          onChange={(event) => {
+                            setDraft((value) => ({ ...value, [key]: event.target.value }));
+                            if (key === 'site_address') setSitePoint(null);
+                          }}
                           maxLength={key === 'site_address' ? 500 : isList ? 1000 : 100}
                           placeholder={isList ? '쉼표(,)로 나눠 입력' : undefined}
                           required={required}
@@ -228,6 +241,7 @@ export function CompanyDataPage() {
                       </label>
                     ))}
                   </div>
+                  <SiteLocationPicker value={sitePoint} onChange={setSitePoint} disabled={saving} />
                   <div className="workplace-edit-footer">
                     <span>저장하면 서버의 기업 정보가 바뀝니다.</span>
                     <button className="button button-primary" type="submit" disabled={saving || !company}>
@@ -251,6 +265,7 @@ export function CompanyDataPage() {
                 </div>
               )}
               <div className="workplace-update-row">
+                <span>{company?.site_latitude != null ? '거리 비교용 사업장 위치 등록됨' : '거리 비교를 위해 정보 수정에서 사업장 위치를 지정해 주세요.'}</span>
                 <span>{savedAt ? `마지막 수정 ${savedAt}` : '등록 후 수정 이력 없음'}</span>
                 <span>사업장 정보는 폐기물 분류와 업체 추천에 활용됩니다.</span>
               </div>
