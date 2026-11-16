@@ -121,7 +121,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, onLotCreated, vie
           </div>
           {next.status === 'candidates' && hasFacilities(next) && <section className="candidate-review-bar" aria-label="공개 근거 AI 검토"><div><Icon name="spark" size={19} /><span><strong>공개 근거 AI 검토</strong><small>업체 후보의 공개 자료에서 반입 형태와 제한 조건을 다시 확인합니다. 실제 인수 승인과는 별개예요.</small></span></div>
             <button className="button button-quiet" type="button" onClick={review} disabled={reviewing}>
-              {reviewing ? '검토 중… (최대 1~2분)' : reviewUnavailable ? 'AI 검토 다시 시도' : reviews ? '공개 근거 다시 확인' : 'AI 검토 시작'}
+              {reviewing ? '업체별 공개 근거를 검토하는 중…' : reviewUnavailable ? 'AI 검토 다시 시도' : reviews ? '공개 근거 다시 확인' : 'AI 검토 시작'}
             </button>
             {reviewUnavailable && <p className="candidate-review-unavailable" role="status">AI 검토 결과를 받지 못했어요. 업체의 반입 불가 판정은 아니며, 공개 자료는 각 업체 카드에서 확인할 수 있어요.</p>}
           </section>}
@@ -129,8 +129,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, onLotCreated, vie
             <div ref={registerSection} className="lot-registration"><LotRegisterForm caseId={caseId} inputForm={form} solidConfirmed={solidConfirmed} materialDetail={materialDetail} preferred={preferred} onCreated={onLotCreated} /></div>
           ) : (
             <p className="wf-card wf-muted">
-              업체에 인수 요청을 보내고 QR로 인계하는 기능은 PP 사출 잔재·파쇄품, PE 필름, 사용 후 알루미늄 음료캔만
-              지원해요. 이 물량은 후보 업체와 공개 근거까지 확인할 수 있어요.
+              현재 선택한 재질·형태는 처리 건 등록을 지원하지 않아요. 이 물량은 후보 업체와 공개 근거까지 확인할 수 있어요.
             </p>
           )}
         </>

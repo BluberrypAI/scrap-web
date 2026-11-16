@@ -4,6 +4,7 @@ import { useSession } from '../../hooks/useSession.js';
 import QRCode from 'qrcode';
 import { receiveUrl, workflowApi } from './api.js';
 import { CandidateBrowser } from './CandidateBrowser.jsx';
+import { RecyclingTypes } from './RecyclingTypes.jsx';
 import { RouteOutcome } from './RouteOutcome.jsx';
 import { IntakeQuestions, ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
 import {
@@ -14,6 +15,7 @@ import {
   STATE_LABEL,
   formatDateTime,
   formatKg,
+  stateLabel,
   lotMaterial,
   lotProgress,
 } from './labels.js';
@@ -74,7 +76,7 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null })
           </button>
         </div>
         <dl className="wf-facts">
-          <div><dt>현재 물량</dt><dd>{STATE_LABEL[current.state_key] || current.state_key} · {formatKg(current.mass_kg)}</dd></div>
+          <div><dt>현재 물량</dt><dd>{stateLabel(lot, current.state_key)} · {formatKg(current.mass_kg)}</dd></div>
           <div><dt>지금 담당</dt><dd>{name(lot.current_company_id)}{manage && ' (우리 기업)'}</dd></div>
           <div><dt>처음 배출</dt><dd>{name(lot.owner_company_id)}</dd></div>
           {current.purity_percent != null && <div><dt>순도</dt><dd>{current.purity_percent}%</dd></div>}
@@ -191,7 +193,7 @@ function HandedOffCard({ lot, offer, name, onReload, busy }) {
       <dl className="wf-facts">
         <div><dt>받은 기업</dt><dd>{name(offer.recipient_id)}</dd></div>
         <div><dt>입고 확인</dt><dd>{received ? formatDateTime(received.at) : '-'}</dd></div>
-        <div><dt>전달 물량</dt><dd>{STATE_LABEL[sent?.state_key] || sent?.state_key} · {formatKg(sent?.mass_kg)}</dd></div>
+        <div><dt>전달 물량</dt><dd>{stateLabel(lot, sent?.state_key)} · {formatKg(sent?.mass_kg)}</dd></div>
         <div><dt>지금 진행</dt><dd>{name(lot.current_company_id)} · {LOT_STATUS[lot.status] || lot.status}</dd></div>
       </dl>
       <p className="wf-muted">우리 기업이 할 일은 끝났어요. 최종 처리까지는 아래에서 확인할 수 있어요.</p>
@@ -207,7 +209,7 @@ function CompletedCard({ lot, name }) {
       <div className="wf-summary-head">
         <span className="wf-status" data-status="completed">재활용 완료</span>
       </div>
-      <h3>{STATE_LABEL[current.state_key] || current.state_key} {formatKg(current.mass_kg)}로 재활용됐어요</h3>
+      <h3>{stateLabel(lot, current.state_key)} {formatKg(current.mass_kg)}로 재활용됐어요</h3>
       <dl className="wf-facts">
         <div><dt>완료 업체</dt><dd>{name(lot.current_company_id)}</dd></div>
         <div><dt>완료 일시</dt><dd>{finished ? formatDateTime(finished.at) : '-'}</dd></div>
@@ -259,16 +261,18 @@ function CandidateSection({ lot, busy, onReview, onOffer, onAnswers, onDirectory
       <h3>다음 처리 업체</h3>
       {preferredFacility && <p className="wf-muted">선택한 검토 후보: <strong>{preferredFacility.label}</strong></p>}
       <RecyclingTypes assessment={lot.data.recycling} followUp={lot.data.completed.length > 0} />
-      {!review && <p className="wf-muted">현재 물량·사진으로 다음 공정 후보 업체를 모두 검토해요. 1~2분 걸릴 수 있어요.</p>}
+      {!review && <p className="wf-muted">현재 물량·사진으로 다음 공정 후보 업체를 모두 검토해요. 후보 수와 AI 응답에 따라 시간이 걸릴 수 있어요.</p>}
       <button className="button button-primary" type="button" onClick={onReview} disabled={!!busy}>
         {busy === 'review' ? '업체를 검토하는 중…' : review ? '다시 검토' : '업체 검토 시작'}
       </button>
-      {review && review.analysis_version !== 'isolated-vision-v2' && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
+      {review && (review.analysis_version !== 'isolated-vision-v2' || !review.recycling_checksum) && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
       {review && <RouteOutcome next={next} currentLabel={stateLabel(lot, lot.data?.current?.state_key)} code={lot.data?.handoff?.waste_code} />}
       {next?.options && (
         <CandidateBrowser
           options={next.options}
+          origin={review.origin}
+          originLabel={review.origin_label}
           reviews={review.results}
           selectedKey={selectedKey}
           onSelect={setSelectedKey}
@@ -304,7 +308,7 @@ function OfferCard({ lot, offer, name, children }) {
         {data.synthetic && ' · 로컬 시험용 계정'}
       </p>
       <p>
-        보낸 물량: {STATE_LABEL[data.current?.state_key] || data.current?.state_key} {formatKg(data.current?.mass_kg)} · {data.current?.condition}
+        보낸 물량: {stateLabel(lot, data.current?.state_key)} {formatKg(data.current?.mass_kg)} · {data.current?.condition}
       </p>
       {photos.length > 0 && (
         <div className="wf-photos">
@@ -461,7 +465,7 @@ function History({ lot, name }) {
         <ol className="wf-steps">
           {lot.data.completed.map((step, i) => (
             <li key={i}>
-              <strong>{step.facility}</strong> · {STATE_LABEL[step.output.state_key] || step.output.state_key} {formatKg(step.output.mass_kg)}
+              <strong>{step.facility}</strong> · {stateLabel(lot, step.output.state_key)} {formatKg(step.output.mass_kg)}
               <span className="wf-muted"> (근거: {step.output.evidence})</span>
             </li>
           ))}

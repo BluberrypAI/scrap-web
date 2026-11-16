@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
 import { ProcessOption } from './FacilityCard.jsx';
 import { FacilityMap, mapFactories } from './FacilityMap.jsx';
+import { candidateMapOptions, validLocation } from './route-result.js';
 import './candidates.css';
 
 // The map and cards use the same filtered set; counts refer to distinct facilities.
@@ -19,7 +20,8 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
     }),
   }));
   const count = new Set(visible.flatMap((o) => o.facilities.map((f) => f.facility_key))).size;
-  const hasMap = mapFactories(visible).length > 0;
+  const mapOptions = candidateMapOptions(visible, origin, selectedKey);
+  const hasMap = validLocation(origin) || mapFactories(mapOptions).length > 0;
   return (
     <section className="candidate-browser" aria-label="처리 업체 후보">
       <div className="candidate-heading"><div><span className="candidate-eyebrow">처리 경로 · 업체 후보</span><h2>다음 공정의 업체 <span>{count}곳</span></h2><p>실제 반입 가능 여부는 업체 검토와 확인을 거쳐 결정됩니다.</p></div></div>
@@ -39,7 +41,7 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
             {renderExtra?.(option)}
           </div>)}
         </div>
-        {hasMap && <aside className="candidate-map-panel"><div className="candidate-map-heading"><Icon name="map" size={18} /><strong>업체 위치</strong></div><FacilityMap options={visible} origin={origin} originLabel={originLabel} selectedKey={selectedKey} onSelect={onSelect} />{originLabel && <p className="candidate-origin"><Icon name="building" size={16} />출발 사업장 · {originLabel}</p>}</aside>}
+        {hasMap && <aside className="candidate-map-panel"><div className="candidate-map-heading"><Icon name="map" size={18} /><strong>업체 위치</strong></div><p className="wf-muted">{validLocation(origin) ? '현재 검색 결과에서 가까운 최대 5곳 · 직선거리 기준' : '위치가 확인된 최대 5곳 · 거리 순위 없음'}{selectedKey && ' · 선택한 업체 포함'}. 목록과 AI 검토에는 나머지 후보도 포함돼요.</p><FacilityMap options={mapOptions} candidateCount={count} origin={origin} originLabel={originLabel} selectedKey={selectedKey} onSelect={onSelect} />{originLabel && <p className="candidate-origin"><Icon name="building" size={16} />출발 사업장 · {originLabel}</p>}</aside>}
       </div>
     </section>
   );

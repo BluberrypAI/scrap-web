@@ -76,3 +76,28 @@ export function facilityMapData(options = []) {
     })),
   };
 }
+
+/** Limit only map markers. All filtered candidates remain in cards and AI review. */
+export function candidateMapOptions(options = [], origin, selectedKey) {
+  const sites = new Map();
+  for (const option of options) for (const site of option.facilities || []) {
+    if (validLocation(site.location) && !sites.has(site.facility_key)) {
+      sites.set(site.facility_key, site);
+    }
+  }
+  const ranked = validLocation(origin);
+  const eligible = [...sites.values()].filter(site => !ranked ||
+    (Number.isFinite(site.straight_line_distance_km) && site.straight_line_distance_km >= 0));
+  if (ranked) eligible.sort((a, b) => a.straight_line_distance_km - b.straight_line_distance_km ||
+    a.facility_key.localeCompare(b.facility_key));
+  const shown = eligible.slice(0, 5);
+  const selected = sites.get(selectedKey);
+  if (selected && !shown.some(site => site.facility_key === selectedKey)) {
+    if (shown.length === 5) shown.pop();
+    shown.push(selected);
+  }
+  const keys = new Set(shown.map(site => site.facility_key));
+  return options.map(option => ({ ...option,
+    facilities: (option.facilities || []).filter(site => keys.has(site.facility_key)),
+  })).filter(option => option.facilities.length);
+}
