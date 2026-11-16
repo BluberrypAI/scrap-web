@@ -9,6 +9,7 @@ import { Icon } from '../../../components/Icon.jsx';
 import Board from '../components/Board.jsx';
 import { AutoReadNotes, autoReadNoteRows, unreadReasons, ConflictCard, EvidenceCard, FinalCard, PendingReview, UnsupportedCard } from '../components/BranchCards.jsx';
 import AssistBubble from '../components/AssistBubble.jsx';
+import BerrySpeech from '../components/BerrySpeech.jsx';
 import './conversation.css';
 import ReviewDialog from '../components/ReviewDialog.jsx';
 import { saveDocumentFile } from '../lib/docStore.js';
@@ -26,7 +27,7 @@ const REVIEWER = '화면 검수';
 
 /** 대화 응답과 작은 아바타. */
 function BerryRow({ children }) {
-  return <div className="berry-say"><img className="conversation-avatar" src={berry} alt="" /><div className="conversation-response">{children}</div></div>;
+  return <div className="berry-say"><span className="conversation-avatar" aria-hidden="true"><img src={berry} alt="" /></span><div className="conversation-response">{children}</div></div>;
 }
 
 export default function DiagnosisChatPage({ id, afterConfirm = null }) {
@@ -38,6 +39,7 @@ export default function DiagnosisChatPage({ id, afterConfirm = null }) {
   const [docs, setDocs] = useState([]);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState(''); // 처리 중 베리 말풍선 문구(SSE 진행 이벤트가 생기면 여기로 넣는다)
+  const [talking, setTalking] = useState(false);
   const [err, setErr] = useState(null);
   const [retry, setRetry] = useState(null);
   const [upload, setUpload] = useState(false);
@@ -52,6 +54,13 @@ export default function DiagnosisChatPage({ id, afterConfirm = null }) {
     const box = chatEnd.current?.parentElement;
     if (box) box.scrollTop = box.scrollHeight;
   }, [conv.length, busy]);
+  useEffect(() => {
+    const last = conv[conv.length - 1];
+    if (last?.role !== 'assistant') return undefined;
+    setTalking(true);
+    const timer = setTimeout(() => setTalking(false), Math.min(800 + (last.text || '').length * 35, 3500));
+    return () => clearTimeout(timer);
+  }, [conv]);
 
   useEffect(() => {
     if (!data) return;
@@ -202,6 +211,13 @@ export default function DiagnosisChatPage({ id, afterConfirm = null }) {
         <button type="button" className="conversation-exit" onClick={() => navigate('/wastes')}><Icon name="close" size={16} />나가기</button>
       </header>
       <div className="case-main">
+        <aside className="conversation-berry-stage" aria-label="문진 도우미 베리" data-busy={busy ? 'true' : 'false'}>
+          <BerrySpeech mode={busy ? 'thinking' : 'idle'} text={busy ? status || '확인하고 있어요' : confirmed ? '분류가 완료됐어요' : asking ? '아래에서 고르거나 편하게 말씀해 주세요' : '폐기물 문진을 도와드려요'} />
+          <div className="berry-figure" data-talking={talking || busy ? 'true' : 'false'}>
+            <img src={berry} alt="베리" />
+            <span className="berry-mouth-cover" aria-hidden="true"><svg className="berry-mouth" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M2 8 L98 8 A48 88 0 0 1 2 8 Z" /></svg></span>
+          </div>
+        </aside>
         <div className="chat-col">
           <div className="chat" role="log" aria-label="문진 대화" aria-live="polite">
             {conv.map((m, i) => (

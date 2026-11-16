@@ -223,6 +223,17 @@
 .dx .conversation-page .board-source { max-width: 42%; padding: 3px 7px; border-radius: 6px; background: #f4f0f8; color: #75588b; font-size: 10px; text-align: right; }
 .dx .conversation-page .board-fact-copy small { color: #8b8293; font-size: 10px; }
 .dx .conversation-page .board-actions { flex: none; margin-left: auto; gap: 2px; }
+.dx .conversation-page .case-main { grid-template-columns: 160px minmax(0, 1fr) 320px; gap: 18px; }
+.dx .conversation-page .conversation-berry-stage { align-self: start; position: sticky; top: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; padding-top: 30px; }
+.dx .conversation-page .conversation-berry-stage .berry-speech { width: 100%; padding: 10px 12px; font-size: 12px; text-align: center; }
+.dx .conversation-page .conversation-berry-stage .berry-figure { width: 150px; flex: none; }
+.dx .conversation-page .conversation-berry-stage .berry-figure img { display: block; width: 100%; height: auto; }
+.dx .conversation-page .conversation-avatar { display: block; width: 34px; height: 34px; overflow: hidden; border-radius: 50%; background: #e9e3f4; }
+.dx .conversation-page .conversation-avatar img { display: block; width: 68px; height: 68px; max-width: none; transform: translate(-17px, -8px); }
+.dx .conversation-page .conversation-berry-stage[data-busy='true'] .berry-figure { animation: berry-bob 1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .dx .conversation-page .conversation-berry-stage[data-busy='true'] .berry-figure { animation: none; } }
+@media (max-width: 1000px) { .dx .conversation-page .case-main { grid-template-columns: minmax(0, 1fr); gap: 0; } .dx .conversation-page .conversation-berry-stage { position: static; flex-direction: row-reverse; justify-content: flex-end; padding: 8px 16px 0; gap: 12px; } .dx .conversation-page .conversation-berry-stage .berry-speech { width: auto; max-width: min(460px, 80%); } .dx .conversation-page .conversation-berry-stage .berry-speech::before, .dx .conversation-page .conversation-berry-stage .berry-speech::after { display: none; } .dx .conversation-page .conversation-berry-stage .berry-figure { width: 66px; } }
+@media (max-width: 640px) { .dx .conversation-page .conversation-berry-stage .berry-figure { width: 48px; } .dx .conversation-page .conversation-avatar { width: 26px; height: 26px; } .dx .conversation-page .conversation-avatar img { width: 52px; height: 52px; transform: translate(-13px, -6px); } }
 .dx .conversation-page .board-actions .button { padding: 3px 4px; font-size: 10px; white-space: nowrap; }
 .dx .conversation-page .composer { padding: 10px 16px 8px; gap: 4px; }
 .dx .conversation-page .composer textarea.wd-input { min-height: 26px; max-height: 100px; }
