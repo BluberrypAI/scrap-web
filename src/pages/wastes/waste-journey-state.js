@@ -22,7 +22,8 @@ export function wasteJourneyState(waste, treatment, checks = {}) {
       mapLabel: activeOffer.data.facility.label,
     }] : [];
     const completedKeys = new Set(completed.map((step) => step.facility_key));
-    const facilities = [{ facility_key: 'source', kind: 'source', mapLabel: '배출 사업장' }, ...completed, ...next.filter((step) => !completedKeys.has(step.facility_key))];
+    const completedLabels = new Set(completed.map((step) => step.mapLabel));
+    const facilities = [{ facility_key: 'source', kind: 'source', mapLabel: '배출 사업장' }, ...completed, ...next.filter((step) => !completedKeys.has(step.facility_key) && !completedLabels.has(step.mapLabel))];
     return { facilities, phase, activeIndex: facilities.length > 1 ? facilities.length - 1 : -1 };
   }
 

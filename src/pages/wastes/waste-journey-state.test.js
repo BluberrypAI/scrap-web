@@ -40,3 +40,14 @@ test('완료된 인계 업체를 다음 후보로 중복 표시하지 않는다'
   assert.deepEqual(journey.facilities.map((facility) => facility.mapLabel), ['배출 사업장', '세척 업체', '펠렛 업체']);
   assert.equal(journey.phase, 'complete');
 });
+
+test('처리가 끝난 이전 인수 요청은 다음 사업장으로 중복 표시하지 않는다', () => {
+  const waste = { id: 'case-1', caseId: '1', code: '51-03-01', status: '처리 진행' };
+  const lot = {
+    status: 'processed',
+    data: { completed: [{ facility: '중앙이엔비 공주 사업장' }] },
+    offers: [{ id: 'offer-1', status: 'processed', data: { facility: { facility_key: 'jungang-gongju', label: '중앙이엔비 공주 사업장' } } }],
+  };
+  const journey = wasteJourneyState(waste, lot);
+  assert.deepEqual(journey.facilities.map((facility) => facility.mapLabel), ['배출 사업장', '중앙이엔비 공주 사업장']);
+});

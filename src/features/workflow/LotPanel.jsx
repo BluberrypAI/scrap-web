@@ -1,10 +1,10 @@
 import { canRequestIntake } from './review-policy.js';
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../../hooks/useSession.js';
 import QRCode from 'qrcode';
 import { receiveUrl, workflowApi } from './api.js';
 import { CandidateBrowser } from './CandidateBrowser.jsx';
+import { QrPreview } from './QrPreview.jsx';
 import { RecyclingTypes } from './RecyclingTypes.jsx';
 import { RouteOutcome } from './RouteOutcome.jsx';
 import { IntakeQuestions, ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
@@ -26,11 +26,10 @@ const ResourceMapbox = lazy(() => import('../../pages/map/ResourceMapbox.jsx').t
 
 // 처리 건(로트) 하나. 지금 물량을 가진 기업(can_manage)과 요청받은 기업이 각자 할 일을 본다.
 // 모든 변경은 revision을 함께 보내고, 다른 화면에서 바뀌었으면(409) 새로 불러온다.
-export function LotPanel({ lotId, initialLot = null, preferredFacility = null, showRecycling = true, view = 'progress', onLotChange, qrTargetId }) {
+export function LotPanel({ lotId, initialLot = null, preferredFacility = null, showRecycling = true, view = 'progress', onLotChange }) {
   const [lot, setLot] = useState(initialLot);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
-  const [qrTarget, setQrTarget] = useState(null);
   const me = useSession().company?.id;
 
   const reload = useCallback(() => {
@@ -41,10 +40,6 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null, s
   useEffect(() => {
     if (!initialLot) reload();
   }, [initialLot, reload]);
-
-  useEffect(() => {
-    if (qrTargetId) setQrTarget(document.getElementById(qrTargetId));
-  }, [qrTargetId, lot?.status]);
 
   // 서버 호출 공통: 잠금, 오류 문구, 충돌이면 새로 불러오기
   async function run(label, call) {
@@ -146,9 +141,7 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null, s
 
       {acceptedOffer && (
         <OfferCard lot={lot} offer={acceptedOffer} name={name}>
-          {acceptedOffer.can_issue_qr && (qrTarget
-            ? createPortal(<QrIssue lot={lot} offer={acceptedOffer} busy={busy} run={run} />, qrTarget)
-            : <QrIssue lot={lot} offer={acceptedOffer} busy={busy} run={run} />)}
+          {acceptedOffer.can_issue_qr && <QrIssue lot={lot} offer={acceptedOffer} busy={busy} run={run} />}
           {acceptedOffer.can_receive && (
             <p className="wf-muted">물량이 도착하면 발송 기업이 준 입고 QR을 휴대전화로 스캔해 입고를 확인해 주세요.</p>
           )}
@@ -402,7 +395,7 @@ function QrIssue({ lot, offer, busy, run }) {
     <div className="wf-qr">
       {qr ? (
         <>
-          <img src={qr.image} alt="입고 QR" width="240" height="240" />
+          <QrPreview image={qr.image} url={qr.url} label="입고 QR" description="수신 기업이 실물을 받은 뒤 스캔해 입고를 확인하는 QR이에요. 7일 동안 유효합니다." />
           <p className="wf-muted">물량과 함께 보내 주세요. 7일 동안 유효하고, 다시 발급하면 이 QR은 쓸 수 없어요.</p>
           <div className="wf-actions">
             <button className="button button-quiet button-small" type="button" onClick={() => window.print()}>인쇄</button>
@@ -422,12 +415,23 @@ function OutputForm({ material, current, outputStates, busy, onSubmit }) {
   const [state, setState] = useState('');
   const [mass, setMass] = useState('');
   const [purity, setPurity] = useState('');
+  const [purityBadInput, setPurityBadInput] = useState(false);
   const [condition, setCondition] = useState('');
   const [evidence, setEvidence] = useState('');
-  const ok = state && Number(mass) > 0 && condition.trim().length >= 3 && evidence.trim().length >= 3;
+  const [attempted, setAttempted] = useState(false);
+  const errorRef = useRef(null);
+  const issues = [
+    !state && '산출물 형태를 선택해 주세요.',
+    !(Number(mass) > 0 && Number(mass) <= Number(current.mass_kg)) && `중량은 0kg보다 크고 입고 물량 ${formatKg(current.mass_kg)} 이하여야 해요.`,
+    (purityBadInput || (purity !== '' && !(Number(purity) >= 0 && Number(purity) <= 100))) && '순도는 0~100 사이 숫자로 적거나, 모르면 비워 주세요.',
+    condition.trim().length < 3 && '상태 설명을 3자 이상 적어 주세요.',
+    evidence.trim().length < 3 && '계량표·작업일지 번호 등 근거를 3자 이상 적어 주세요.',
+  ].filter(Boolean);
   return (
-    <form className="wf-card wf-form" onSubmit={(e) => {
+    <form className="wf-card wf-form" noValidate onSubmit={(e) => {
       e.preventDefault();
+      setAttempted(true);
+      if (issues.length) { requestAnimationFrame(() => errorRef.current?.focus()); return; }
       onSubmit({
         state_key: state,
         mass_kg: Number(mass),
@@ -438,17 +442,19 @@ function OutputForm({ material, current, outputStates, busy, onSubmit }) {
     }}>
       <h3>처리 결과(실제 산출물) 기록</h3>
       <p className="wf-muted">입고 물량 {formatKg(current.mass_kg)}을 넘을 수 없어요.</p>
+      <p className="wf-muted">상태 설명과 근거는 각각 3자 이상 적어 주세요. 순도를 모르면 비워 두면 됩니다.</p>
+      {attempted && issues.length > 0 && <div ref={errorRef} className="wf-form-errors" role="alert" tabIndex={-1}><strong>기록하기 전에 확인해 주세요</strong><ul>{issues.map((issue) => <li key={issue}>{issue}</li>)}</ul></div>}
       <label>산출물 형태
         <select required value={state} onChange={(e) => setState(e.target.value)}>
           <option value="">선택</option>
           {(outputStates || (OUTPUT_STATES[material] || []).map(key => ({ key, label: STATE_LABEL[key] }))).map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
         </select>
       </label>
-      <label>중량(kg)<input type="number" min="0.1" step="0.1" required value={mass} onChange={(e) => setMass(e.target.value)} /></label>
-      <label>순도(%, 모르면 비움)<input type="number" min="0" max="100" step="0.1" value={purity} onChange={(e) => setPurity(e.target.value)} /></label>
+      <label>중량(kg)<input type="number" min="0" step="any" required value={mass} onChange={(e) => setMass(e.target.value)} /></label>
+      <label>순도(%, 모르면 비움)<input type="number" min="0" max="100" step="any" value={purity} onChange={(e) => { setPurity(e.target.value); setPurityBadInput(e.target.validity.badInput); }} /></label>
       <label>상태 설명<textarea rows={2} maxLength={1500} value={condition} onChange={(e) => setCondition(e.target.value)} /></label>
       <label>근거(계량표·작업일지 번호 등)<input maxLength={300} value={evidence} onChange={(e) => setEvidence(e.target.value)} /></label>
-      <button className="button button-primary" type="submit" disabled={!!busy || !ok}>
+      <button className="button button-primary" type="submit" disabled={!!busy}>
         {busy === 'output' ? '기록하는 중…' : '처리 결과 기록'}
       </button>
     </form>

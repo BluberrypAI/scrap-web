@@ -48,8 +48,8 @@ test('최신 인계 UI가 조건부·QR·실제 산출물·완료 단계의 행�
     const offer = { id: 'handoff', status: 'accepted', sender_id: 'a', recipient_id: 'b', can_issue_qr: true,
       data: { current, facility: { label: 'B 시험사업장' } } };
     const render = (lot, props = {}) => renderToStaticMarkup(React.createElement(LotPanel, { lotId: lot.id, initialLot: lot, ...props }));
-    // 포털 영역이 아직 없거나 수신자 상세 페이지여도 QR 발급 행동이 사라지지 않는다.
-    const accepted = render({ ...base, offers: [offer] }, { qrTargetId: 'not-mounted-yet' });
+    // 최신 UI는 인수 요청 카드에서 발급한다. 별도 헤더 영역에 의존하지 않는다.
+    const accepted = render({ ...base, offers: [offer] });
     assert.match(accepted, /시험 B의 입고를 기다리고 있어요/);
     assert.match(accepted, /입고 QR 발급/);
     const conditional = render({ ...base, status: 'conditional', offers: [{
