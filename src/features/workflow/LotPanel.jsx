@@ -3,8 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSession } from '../../hooks/useSession.js';
 import QRCode from 'qrcode';
 import { receiveUrl, workflowApi } from './api.js';
-import { ProcessOption } from './FacilityCard.jsx';
-import { FacilityMap } from './FacilityMap.jsx';
+import { CandidateBrowser } from './CandidateBrowser.jsx';
 import { IntakeQuestions, ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
 import {
   LOT_STATUS,
@@ -20,7 +19,7 @@ import {
 
 // 처리 건(로트) 하나. 지금 물량을 가진 기업(can_manage)과 요청받은 기업이 각자 할 일을 본다.
 // 모든 변경은 revision을 함께 보내고, 다른 화면에서 바뀌었으면(409) 새로 불러온다.
-export function LotPanel({ lotId, initialLot = null }) {
+export function LotPanel({ lotId, initialLot = null, preferredFacility = null }) {
   const [lot, setLot] = useState(initialLot);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
@@ -81,9 +80,11 @@ export function LotPanel({ lotId, initialLot = null }) {
         </dl>
         <p className="wf-muted">상태 설명: {current.condition}</p>
         {lot.data.warnings?.length > 0 && (
+          <details className="route-notes"><summary>확인 사항 · {lot.data.warnings.length}건</summary>
           <ul className="wf-warnings">
             {lot.data.warnings.map((w) => <li key={w}>{w}</li>)}
           </ul>
+          </details>
         )}
       </section>
   );
@@ -99,6 +100,7 @@ export function LotPanel({ lotId, initialLot = null }) {
           <PhotoSection lot={lot} photos={stagePhotos} busy={busy} onAdd={(file) => run('photo', () => workflowApi.addPhoto(lot.id, file))} />
           <CandidateSection
             lot={lot}
+            preferredFacility={preferredFacility}
             busy={busy}
             onReview={() => run('review', () => workflowApi.reviewCandidates(lot))}
             onOffer={(key) => run('offer', () => workflowApi.sendOffer(lot, key))}
@@ -246,29 +248,27 @@ function PhotoSection({ lot, photos, busy, onAdd }) {
   );
 }
 
-function CandidateSection({ lot, busy, onReview, onOffer, onAnswers, onDirectorySave }) {
-  const [selectedKey, setSelectedKey] = useState(null);
+function CandidateSection({ lot, busy, onReview, onOffer, onAnswers, onDirectorySave, preferredFacility }) {
+  const [selectedKey, setSelectedKey] = useState(preferredFacility?.facility_key || null);
   const review = lot.review;
   const next = review?.next_step;
   const sendable = (facility, result) => canRequestIntake(review, facility, result);
   return (
     <section className="wf-card">
       <h3>다음 처리 업체</h3>
+      {preferredFacility && <p className="wf-muted">선택한 검토 후보: <strong>{preferredFacility.label}</strong></p>}
       {!review && <p className="wf-muted">현재 물량·사진으로 다음 공정 후보 업체를 모두 검토해요. 1~2분 걸릴 수 있어요.</p>}
       <button className="button button-primary" type="button" onClick={onReview} disabled={!!busy}>
         {busy === 'review' ? '업체를 검토하는 중…' : review ? '다시 검토' : '업체 검토 시작'}
       </button>
       {review && review.analysis_version !== 'isolated-vision-v2' && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
-      {next?.options?.length > 0 && (
-        <FacilityMap options={next.options} selectedKey={selectedKey} onSelect={setSelectedKey} />
-      )}
-      {next?.options?.map((option) => (
-        <div key={option.transition_key}><ProcessOption
-          key={option.transition_key}
-          option={option}
+      {next?.options && (
+        <CandidateBrowser
+          options={next.options}
           reviews={review.results}
           selectedKey={selectedKey}
+          onSelect={setSelectedKey}
           renderAction={(facility, result) => <>
             <IntakeQuestions key={facility.capability_key + lot.revision} form={facility.intake_conditions} busy={!!busy}
               onSave={(answers) => onAnswers(facility.capability_key, answers)} />
@@ -279,10 +279,11 @@ function CandidateSection({ lot, busy, onReview, onOffer, onAnswers, onDirectory
               </button>
             ) : result?.status === 'model_unavailable' || result?.lot_review?.status === 'model_unavailable' ? (
               <p className="wf-muted">AI 검토가 끝나지 않아 요청을 보낼 수 없어요. 다시 검토해 주세요.</p>
-            ) : null}</>
+            ) : <p className="wf-muted">{!facility.recipient ? '업체의 수신 계정 연결 후 인수 요청을 보낼 수 있어요.' : result?.finding === 'restriction_mentioned' ? '반입 제한이 확인되어 요청을 보낼 수 없어요.' : '필요한 답변을 입력하고 업체 검토를 완료해 주세요.'}</p>}</>
           }
-        /><DirectoryCandidates lot={lot} transitionKey={option.transition_key} onSave={(listing, cursor, answers) => onDirectorySave(option.transition_key, listing, cursor, answers)} /></div>
-      ))}
+          renderExtra={(option) => <DirectoryCandidates lot={lot} transitionKey={option.transition_key} onSave={(listing, cursor, answers) => onDirectorySave(option.transition_key, listing, cursor, answers)} />}
+        />
+      )}
     </section>
   );
 }

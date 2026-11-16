@@ -9,12 +9,15 @@ import { workflowApi } from './api.js';
 import { CaseRoutePanel } from './CaseRoutePanel.jsx';
 import { LotPanel } from './LotPanel.jsx';
 import { LOT_STATUS, STATE_LABEL, formatKg } from './labels.js';
+import { Icon } from '../../components/Icon.jsx';
 import './workflow.css';
 
 export function CaseDetailPage({ caseId }) {
   const [detail, setDetail] = useState(null);
   const [lot, setLot] = useState(undefined); // undefined: 불러오는 중, null: 처리 건 없음
   const [error, setError] = useState('');
+  const [registered, setRegistered] = useState(false);
+  const [preferredFacility, setPreferredFacility] = useState(null);
 
   useEffect(() => {
     let live = true;
@@ -38,21 +41,24 @@ export function CaseDetailPage({ caseId }) {
   return (
     <main className="wf-page waste-detail">
       <a className="detail-back" href="/wastes"><span>←</span> 자원 경로</a>
-      <header className="detail-header">
-        <div>
+      <header className="detail-header waste-identity" data-step={!confirmed ? '01' : lot ? '03' : '02'}>
+        <div className="waste-identity-copy">
           <span className="detail-stage">
             {!confirmed ? 'STEP 01 · 분류 확인' : lot ? `STEP 03 · ${LOT_STATUS[lot.status] || lot.status}` : 'STEP 02 · 경로 준비'}
           </span>
-          <h1>{kase.summary?.title || '폐기물'}</h1>
-          <p className="detail-meta">{kase.summary?.result_label || kase.summary?.status_label}</p>
-          {/* 분류 결과는 카드 위 문구로 충분하고, 근거는 문진 대화·판정 기록에서 본다 */}
-          <div className="detail-code wf-code">
-            <strong>분류번호 {code || '미정'}</strong>
+          <div className="waste-identity-main">
+            <div>
+              <span className="waste-identity-label">폐기물</span>
+              <h1>{kase.summary?.title || '폐기물'}</h1>
+            </div>
+            <div className="detail-code wf-code"><strong>분류번호 {code || '미정'}</strong></div>
+          </div>
+          <details className="waste-identity-details"><summary>분류 정보와 문진 기록</summary><p>{kase.summary?.result_label || kase.summary?.status_label}</p><div className="wf-actions">
             <a className="button button-quiet button-small" href={`/wastes/case-${caseId}/survey`}>
               {confirmed ? '문진 대화' : '문진 이어서 하기'}
             </a>
             <a className="button button-quiet button-small" href={`/wastes/case-${caseId}/history`}>판정 기록</a>
-          </div>
+          </div></details>
         </div>
       </header>
       {!confirmed ? (
@@ -63,9 +69,9 @@ export function CaseDetailPage({ caseId }) {
       ) : lot === undefined ? (
         <p className="wf-muted">불러오는 중…</p>
       ) : lot ? (
-        <LotPanel lotId={lot.id} initialLot={lot} />
+        <>{registered && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>{preferredFacility ? `${preferredFacility.label}을 검토 후보로 선택했어요. ` : ''}아래에서 업체 검토를 진행하면 인수 요청 가능 여부를 확인할 수 있어요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} /></>
       ) : (
-        <CaseRoutePanel caseId={caseId} onLotCreated={setLot} />
+        <CaseRoutePanel caseId={caseId} onLotCreated={(created, preferred) => { setPreferredFacility(preferred); setRegistered(true); setLot(created); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
       )}
     </main>
   );
