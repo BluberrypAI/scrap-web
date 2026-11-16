@@ -4769,7 +4769,7 @@
   border-radius: 10px;
   background: transparent;
 }
-.social-login-list .dev-login-button,
+.social-login-list .dev-login-group > .dev-login-button,
 .social-login-list > .dev-login-button {
   display: flex;
   align-items: center;

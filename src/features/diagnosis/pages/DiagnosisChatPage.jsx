@@ -1,15 +1,15 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { diagnosisApi as api } from '../lib/client.js';
 import { factLabel, getCatalog } from '../lib/normalize.js';
-import { STATUS_LABEL } from '../lib/labels.js';
 import { useLoad } from '../lib/useLoad.js';
 import { navigate } from '../../../lib/router.js';
 import { QuestionBody, QuestionOptions } from '../components/QuestionCard.jsx';
 import berry from '../../../assets/berry.png';
+import { Icon } from '../../../components/Icon.jsx';
 import Board from '../components/Board.jsx';
 import { AutoReadNotes, autoReadNoteRows, unreadReasons, ConflictCard, EvidenceCard, FinalCard, PendingReview, UnsupportedCard } from '../components/BranchCards.jsx';
 import AssistBubble from '../components/AssistBubble.jsx';
-import BerrySpeech from '../components/BerrySpeech.jsx';
+import './conversation.css';
 import ReviewDialog from '../components/ReviewDialog.jsx';
 import { saveDocumentFile } from '../lib/docStore.js';
 
@@ -24,28 +24,9 @@ function manualNote(facts) {
 // 검수한 사람 이름. 로그인이 붙으면 사용자 이름으로 바꾼다.
 const REVIEWER = '화면 검수';
 
-/** 베리가 하는 말 한 줄(말풍선이나 카드). 얼굴은 채팅창 밖 BerryStage에 하나만 둔다 */
+/** 대화 응답과 작은 아바타. */
 function BerryRow({ children }) {
-  return <div className="berry-say">{children}</div>;
-}
-
-/** 채팅창 왼쪽의 큰 베리(마스코트). 머리 위 개인 말풍선(BerrySpeech)으로 지금 하는 일을 말한다 */
-function BerryStage({ speech, talking }) {
-  return (
-    <aside className="berry-stage" data-busy={speech?.mode === 'idle' ? 'false' : 'true'} aria-label="문진 도우미 베리">
-      <BerrySpeech text={speech?.text} mode={speech?.mode} />
-      {/* 말하는 동안 두 장면을 번갈아 보인다: ① 원래 웃는 입 ② 몸 색으로 덮고 벌린 입(반달) */}
-      <div className="berry-figure" data-talking={talking ? 'true' : 'false'}>
-        <img src={berry} alt="베리" />
-        <span className="berry-mouth-cover" aria-hidden="true">
-          <svg className="berry-mouth" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M2 8 L98 8 A48 88 0 0 1 2 8 Z" />
-          </svg>
-        </span>
-      </div>
-      <strong>베리</strong>
-    </aside>
-  );
+  return <div className="berry-say"><img className="conversation-avatar" src={berry} alt="" /><div className="conversation-response">{children}</div></div>;
 }
 
 export default function DiagnosisChatPage({ id, afterConfirm = null }) {
@@ -57,7 +38,6 @@ export default function DiagnosisChatPage({ id, afterConfirm = null }) {
   const [docs, setDocs] = useState([]);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState(''); // 처리 중 베리 말풍선 문구(SSE 진행 이벤트가 생기면 여기로 넣는다)
-  const [talking, setTalking] = useState(false); // 베리 입 움직임
   const [err, setErr] = useState(null);
   const [retry, setRetry] = useState(null);
   const [upload, setUpload] = useState(false);
@@ -72,15 +52,6 @@ export default function DiagnosisChatPage({ id, afterConfirm = null }) {
     const box = chatEnd.current?.parentElement;
     if (box) box.scrollTop = box.scrollHeight;
   }, [conv.length, busy]);
-  // 베리가 새로 말하면(마지막 말풍선이 베리 것) 글 길이만큼 잠깐 입을 움직인다
-  useEffect(() => {
-    const last = conv[conv.length - 1];
-    if (!last || last.role !== 'assistant') return undefined;
-    setTalking(true);
-    const ms = Math.min(800 + (last.text || '').length * 35, 3500);
-    const t = setTimeout(() => setTalking(false), ms);
-    return () => clearTimeout(t);
-  }, [conv]);
 
   useEffect(() => {
     if (!data) return;
@@ -99,6 +70,7 @@ export default function DiagnosisChatPage({ id, afterConfirm = null }) {
 
   /** 서버 호출 공통: 잠금, 오류 처리(409 stale → 새로 불러오기, 네트워크 → 다시 보내기) */
   async function run(userText, call, again, doing = '답변을 확인하고 있어요') {
+    if (busy) return;
     setBusy(true);
     setStatus(doing);
     setErr(null);
@@ -186,7 +158,10 @@ export default function DiagnosisChatPage({ id, afterConfirm = null }) {
   }
   const onAction = (action, key) => {
     if (action === 'UPLOAD') setUpload(true);
-    else setHint(`오른쪽 판정 보드에서 '${key}' 항목을 고치거나 되돌려 주세요.`);
+    else {
+      setHint(`'${factLabel(key) || key}' 항목에서 바꿀 내용을 아래에 적어 주세요.`);
+      composer.current?.focus();
+    }
   };
 
   const pending = docs.flatMap((d) => (d.values || [])
@@ -213,23 +188,6 @@ export default function DiagnosisChatPage({ id, afterConfirm = null }) {
     if (showEvidence) card = <EvidenceCard docs={turn.ui.requested_documents} disabled={busy} onUpload={sendFile} onText={sendText} onClose={upload ? () => setUpload(false) : null} unread={unread} />;
   } else if (turn.ui.result) card = <FinalCard turn={turn} confirmed handoff={handoff} />;
 
-  // 베리 머리 위 말풍선: 처리 중이면 하는 일, 아니면 지금 단계 안내
-  let speech;
-  if (busy) speech = { mode: 'thinking', text: status || '확인하고 있어요' };
-  else if (confirmed) speech = { mode: 'idle', text: '확정됐어요. 기록에서 다시 볼 수 있어요' };
-  else if (pending.length > 0) {
-    // 표에서 자동으로 읽은 값이 있으면 '읽었어요', 직접 적은 값만 있으면 '받았어요'
-    const autoRead = pending.some(({ doc }) => doc.extracted_facts?.table_read);
-    speech = { mode: 'idle', text: autoRead ? '성적서에서 값을 읽었어요. 맞는지 확인해 주세요' : '적어 주신 서류 값을 받았어요. 맞는지 확인해 주세요' };
-  }
-  else if (asking) speech = { mode: 'idle', text: '아래에서 고르거나 편하게 말씀해 주세요' };
-  else if (turn.branch === 'FINAL_REVIEW') speech = { mode: 'idle', text: '결과를 보고 맞으면 확정해 주세요' };
-  else if (showEvidence && Object.keys(unread).some((k) => turn.ui.requested_documents.some((d) => (d.facts || []).includes(k)))) {
-    speech = { mode: 'idle', text: '성적서에서 못 읽은 값이 있어요. 칸에 직접 적어 주세요' };
-  } else if (showEvidence) speech = { mode: 'idle', text: '서류를 올려 주시면 값을 읽어 볼게요' };
-  else if (turn.branch === 'UNSUPPORTED') speech = { mode: 'idle', text: '남은 값을 적거나 편하게 말씀해 주시면 이어서 할게요' };
-  else speech = { mode: 'idle', text: '폐기물 문진을 도와드려요' };
-
   /** 베리의 말: 질문이면 질문 내용, 아니면 AI가 쓴 문장 */
   const berrySays = (m, i) => {
     const last = i === conv.length - 1;
@@ -239,19 +197,13 @@ export default function DiagnosisChatPage({ id, afterConfirm = null }) {
   };
 
   return (
-    <div className="case-layout">
-      {/* 제목 줄은 베리·채팅·보드 위에 한 줄로 걸친다 */}
-      <div className="case-head row between">
-        <h2>문진 <span className="status-badge" data-status={kase.status}>{kase.summary.status_label || STATUS_LABEL[kase.status]}</span></h2>
-        <span className="row">
-          <a className="button button-small button-quiet" href="/wastes">← 목록</a>
-          <a className="button button-small button-quiet" href={`/wastes/case-${id}/history`}>기록</a>
-        </span>
-      </div>
-      <BerryStage speech={speech} talking={talking || speech.mode === 'streaming'} />
+    <div className="conversation-page">
+      <header className="conversation-toolbar">
+        <button type="button" className="conversation-exit" onClick={() => navigate('/wastes')}><Icon name="close" size={16} />나가기</button>
+      </header>
       <div className="case-main">
         <div className="chat-col">
-          <div className="chat" aria-live="polite">
+          <div className="chat" role="log" aria-label="문진 대화" aria-live="polite">
             {conv.map((m, i) => (
               <Fragment key={i}>
                 {m.assist && <BerryRow><AssistBubble a={m.assist} /></BerryRow>}
@@ -267,34 +219,36 @@ export default function DiagnosisChatPage({ id, afterConfirm = null }) {
             {card && !busy && <BerryRow>{card}</BerryRow>}
             {/* 올린 서류에서 자동으로 읽은 값 안내도 베리가 말한다(검수 전 후보) */}
             {!confirmed && !busy && autoReadNoteRows(readDocs).length > 0 && <BerryRow><AutoReadNotes docs={readDocs} labels={readLabels} /></BerryRow>}
+            {asking && !busy && <div className="conversation-choices"><QuestionOptions key={q.key} question={q} disabled={busy} onSend={sendReply} /></div>}
+            {busy && <BerryRow><div className="conversation-thinking" role="status"><span className="berry-dots" aria-hidden="true"><i /><i /><i /></span>{status || '확인하고 있어요'}</div></BerryRow>}
             <span ref={chatEnd} />
           </div>
+          <div className="conversation-bottom">
           {hint && <p className="wd-alert is-info">{hint}</p>}
           {!confirmed && <PendingReview items={pending} unreadCount={Object.keys(unread).length} labels={pendingLabels} disabled={busy} onReview={() => setReviewing(true)} />}
           {err && <p className="wd-alert" role="alert">{err} {retry && <button type="button" className="button button-small" onClick={retry}>다시 보내기</button>}</p>}
-          {/* 선택지는 입력창 바로 위에 띄운다. 골라도 되고 직접 입력해도 된다 */}
-          {asking && !busy && <QuestionOptions key={q.key} question={q} disabled={busy} onSend={sendReply} />}
           {confirmed ? (
             <>
-              <div className="row">
-                <p className="muted">확정된 건입니다. 고치려면 기록에서 다시 여세요.</p>
-                <button type="button" className="button button-small button-quiet" onClick={() => navigate(`/wastes/case-${id}/history`)}>기록 보기</button>
-              </div>
+              <p className="conversation-complete"><Icon name="check" size={16} />분류가 완료되었어요.</p>
               {/* 확정 뒤 다음 단계(처리 경로 준비)는 scrap-web이 붙인다 */}
               {afterConfirm?.({ id, kase, result: turn.ui.result, handoff })}
             </>
           ) : (
-            <form className="composer" onSubmit={(e) => { e.preventDefault(); if (text.trim()) sendText(text.trim()); }}>
-              <textarea ref={composer} className="wd-input" rows={2} disabled={busy} aria-label="메시지" placeholder="자유롭게 입력하거나 위에서 고르세요…"
+            <form className="composer" onSubmit={(e) => { e.preventDefault(); if (!busy && text.trim()) sendText(text.trim()); }}>
+              <textarea ref={composer} className="wd-input" rows={2} disabled={busy} aria-label="메시지" placeholder="폐기물에 대해 편하게 이야기해 주세요" maxLength={4000}
                 value={text} onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); if (text.trim()) sendText(text.trim()); } }} />
-              <button type="submit" className="button button-primary" disabled={busy || !text.trim()}>보내기</button>
-              {!showEvidence && <button type="button" className="button button-quiet" disabled={busy} onClick={() => setUpload(true)}>서류 올리기</button>}
+              <div className="composer-tools">
+                {!showEvidence && <button type="button" className="composer-attach" disabled={busy} onClick={() => setUpload(true)}><Icon name="plus" size={18} />서류 첨부</button>}
+                <button type="submit" className="composer-send" aria-label="메시지 보내기" disabled={busy || !text.trim()}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6" /></svg></button>
+              </div>
             </form>
           )}
+          {!confirmed && <p className="composer-caption">Enter로 전송 · Shift + Enter로 줄바꿈</p>}
+          </div>
         </div>
+        <Board board={turn.ui.board} locked={confirmed || busy} onReply={sendReply} />
       </div>
-      <Board board={turn.ui.board} locked={confirmed || busy} onReply={sendReply} />
       {reviewing && !confirmed && (pending.length > 0 || unreadLeft) && (
         <ReviewDialog items={pending} docs={readDocs} resolvedKeys={resolvedKeys} labels={pendingLabels} busy={busy} onApply={applyReviewed} onClose={() => setReviewing(false)} />
       )}

@@ -216,7 +216,6 @@
 /* 두 장면 전환: 부드럽게 바꾸지 않고 steps로 뚝뚝 끊어 번갈아 보인다 */
 .berry-figure[data-talking="true"] .berry-mouth-cover { display: grid; animation: berry-talk 0.36s steps(1, end) infinite; }
 @media (prefers-reduced-motion: reduce) { .berry-figure[data-talking="true"] .berry-mouth-cover { display: none; } }
-.berry-stage strong { font-size: 1.25em; }
 /* 베리 개인 말풍선(머리 위, 꼬리가 아래 베리를 가리킴): 지금 하는 일을 말한다 */
 .berry-speech { position: relative; justify-self: stretch; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px;
   padding: 10px 14px; border: 2px solid var(--color-primary); border-radius: 18px; background: var(--color-card);
@@ -278,9 +277,8 @@
 @media (max-width: 1079px) {
   .case-layout { width: auto; margin-inline: 0; grid-template-columns: minmax(0, 1fr); }
   .berry-stage { position: static; grid-template-columns: 64px minmax(0, 1fr); justify-items: start; align-items: center; text-align: left; gap: 4px 14px; }
-  .berry-figure { width: 64px; grid-row: 1 / span 2; grid-column: 1; }
+  .berry-figure { width: 64px; grid-row: 1; grid-column: 1; }
   .berry-stage img { width: 64px; }
-  .berry-stage strong { grid-column: 2; grid-row: 2; font-size: 1em; }
   /* 좁은 화면: 말풍선은 베리 오른쪽, 꼬리는 왼쪽 */
   .berry-speech { grid-column: 2; grid-row: 1; justify-content: flex-start; }
   .berry-speech::before { left: -12px; top: 50%; bottom: auto; transform: translateY(-50%); border-width: 9px 12px 9px 0; border-color: transparent var(--color-primary) transparent transparent; }

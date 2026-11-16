@@ -1,6 +1,6 @@
 import { Icon } from '../../components/Icon.jsx';
 
-export function EmptyState({ onCreate }) {
+export function EmptyState({ onCreate, creating = false }) {
   return (
     <section className="empty-state" data-layer-name="L1-Home-Empty" data-variant="empty">
       <div className="empty-illustration" aria-hidden="true">
@@ -13,8 +13,8 @@ export function EmptyState({ onCreate }) {
         <br />
         적합한 처리업체를 찾아드려요.
       </p>
-      <button className="button button-primary" type="button" onClick={onCreate}>
-        <Icon name="plus" size={18} />새 폐기물 문진
+      <button className="button button-primary" type="button" onClick={onCreate} disabled={creating}>
+        <Icon name="plus" size={18} />{creating ? '문진 준비 중…' : '새 폐기물 문진'}
       </button>
     </section>
   );
