@@ -274,6 +274,12 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
   const [selectedKey, setSelectedKey] = useState(preferredFacility?.facility_key || null);
   const review = lot.review;
   const next = review?.next_step;
+  const candidateKeys = [...new Set((next?.options || []).flatMap(o => (o.facilities || []).map(f => f.capability_key)))];
+  const reviewedCount = candidateKeys.filter(key => {
+    const r = review?.results?.[key];
+    return ['reviewed', 'needs_evidence'].includes(r?.status) && r?.lot_review?.status === 'reviewed'
+      && ['isolated_vision', 'no_photo'].includes(r?.lot_review?.observation_method);
+  }).length;
   const sendable = (facility, result) => canRequestIntake(review, facility, result);
   return (
     <section className="wf-card wf-candidate-section">
@@ -292,6 +298,10 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
       {error && busy !== 'review' && <p className="wf-alert" role="alert">검토 결과를 받지 못했어요. {error}</p>}
       {review && (review.analysis_version !== 'isolated-vision-v2' || !review.recycling_checksum) && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
+      {review && candidateKeys.length > 0 && <p className={reviewedCount < candidateKeys.length ? 'wf-alert' : 'wf-muted'} role="status">
+        공정·업체 조합 {candidateKeys.length}건 중 {reviewedCount}건 검토 완료.
+        {reviewedCount < candidateKeys.length ? ` ${candidateKeys.length - reviewedCount}건은 미완료예요. 다시 검토하면 같은 조건에서 완료된 결과를 유지하고 미완료 후보만 재시도해요.` : ' 실제 반입은 수신 기업이 확인해요.'}
+      </p>}
       {review && <RouteOutcome next={next} currentLabel={stateLabel(lot, lot.data?.current?.state_key)} code={lot.data?.handoff?.waste_code} />}
       {next?.options && (
         <CandidateBrowser
