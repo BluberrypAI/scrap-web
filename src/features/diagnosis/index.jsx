@@ -6,6 +6,7 @@ import './diagnosis.css';
 import { diagnosisApi } from './lib/client.js';
 import DiagnosisChatPage from './pages/DiagnosisChatPage.jsx';
 import DiagnosisHistoryPage from './pages/DiagnosisHistoryPage.jsx';
+import { LegalFormLink } from '../documents/LegalFormPage.jsx';
 
 export { diagnosisApi };
 
@@ -49,7 +50,12 @@ export function DiagnosisCaseScreen({ caseId }) {
         <DiagnosisChatPage
           key={caseId}
           id={caseId}
-          afterConfirm={({ id, handoff }) => <RoutePrep id={id} handoff={handoff} />}
+          afterConfirm={({ id, handoff }) => (
+            <>
+              <RoutePrep id={id} handoff={handoff} />
+              <LegalFormLink caseId={id} handoff={handoff} />
+            </>
+          )}
         />
       ) : (
         <p className="muted">불러오는 중…</p>

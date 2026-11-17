@@ -97,3 +97,7 @@
 .lf-big-close { padding: 7px 14px; font: inherit; border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); cursor: pointer; }
 .lf-big-scroll { overflow: auto; padding: 16px; }
 .lf-big-page { margin: 0 auto; }
+
+/* 서식 작성 페이지 */
+.lf-page { max-width: 1480px; margin: 0 auto; padding: 20px 16px 80px; display: grid; gap: 16px; }
+.lf-page-nav { display: flex; }

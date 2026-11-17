@@ -1,6 +1,7 @@
 import { AppTopNav } from '../components/AppTopNav.jsx';
 import { SiteFooter } from '../components/SiteFooter.jsx';
 import { DiagnosisCaseScreen, DiagnosisHistoryScreen } from '../features/diagnosis/index.jsx';
+import { LegalFormScreen } from '../features/documents/LegalFormPage.jsx';
 import { CaseDetailPage, LotPage, ReceivePage } from '../features/workflow/pages.jsx';
 import { handlers } from '../data/handlers.js';
 import { wastes } from '../data/wastes.js';
@@ -35,8 +36,8 @@ export function AppShell({ path }) {
           : undefined)
       : undefined,
     o = n ? handlers.find((e) => e.id === n[1]) : undefined,
-    // 문진 엔진 건: 문진(베리 | 채팅 | 판정 보드)과 판정 기록
-    dx = path.match(/^\/wastes\/case-([A-Za-z0-9_-]{1,64})\/(survey|history)$/),
+    // 문진 엔진 건: 문진(베리 | 채팅 | 판정 보드), 판정 기록, 법정 서식 작성
+    dx = path.match(/^\/wastes\/case-([A-Za-z0-9_-]{1,64})\/(survey|history|documents)$/),
     // 기업 간 인계: 처리 건, 입고 QR 확인
     lot = path.match(/^\/lots\/([0-9a-f-]{36})(?:\/receive\/([0-9a-f-]{36}))?$/);
   if (lot)
@@ -50,7 +51,13 @@ export function AppShell({ path }) {
     return (
       <div className="app-route-shell" data-theme="light">
         <AppTopNav path={path} />
-        {dx[2] === 'survey' ? <DiagnosisCaseScreen caseId={dx[1]} /> : <DiagnosisHistoryScreen caseId={dx[1]} />}
+        {dx[2] === 'survey' ? (
+          <DiagnosisCaseScreen caseId={dx[1]} />
+        ) : dx[2] === 'documents' ? (
+          <LegalFormScreen key={dx[1]} caseId={dx[1]} />
+        ) : (
+          <DiagnosisHistoryScreen caseId={dx[1]} />
+        )}
       </div>
     );
   return a && r && r[2] !== 'match' ? (
