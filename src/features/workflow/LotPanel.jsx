@@ -1,5 +1,6 @@
 import { canRequestIntake } from './review-policy.js';
 import { InquiryPacket } from './InquiryPacket.jsx';
+import { SupplierPolicySummary, InquiryConversation } from './SupplierPolicy.jsx';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../../hooks/useSession.js';
 import QRCode from 'qrcode';
@@ -52,7 +53,13 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null, s
       return next;
     } catch (e) {
       setError(e.message);
-      if (e.status === 409) reload();
+      if (e.status === 409) {
+        // Keep the conflict reason visible while updating the revision.
+        try {
+          const next = await workflowApi.getLot(lotId);
+          setLot(next); onLotChange?.(next);
+        } catch { /* Preserve the original action error. */ }
+      }
       return null;
     } finally {
       setBusy('');
@@ -124,6 +131,10 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null, s
 
       {pendingOffer && (
         <OfferCard lot={lot} offer={pendingOffer} name={name}>
+          <SupplierPolicySummary value={pendingOffer.data.facility?.supplier_policy} />
+          <InquiryConversation lot={lot} offer={pendingOffer} busy={!!busy}
+            readOnly={![pendingOffer.sender_id, pendingOffer.recipient_id].includes(me)}
+            onSend={(text) => run('message', () => workflowApi.replyInquiry(lot, pendingOffer.id, text))} />
           <IntakeQuestions form={pendingOffer.data.intake_conditions} readOnly />
           {pendingOffer.status === 'conditional' && <ConditionalResponse lot={lot} offer={pendingOffer} busy={!!busy}
             onRespond={(values) => run('conditions', () => workflowApi.respondConditions(lot, pendingOffer.id, values))} />}
@@ -142,6 +153,7 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null, s
 
       {acceptedOffer && (
         <OfferCard lot={lot} offer={acceptedOffer} name={name}>
+          <InquiryConversation lot={lot} offer={acceptedOffer} readOnly />
           {acceptedOffer.can_issue_qr && <QrIssue lot={lot} offer={acceptedOffer} busy={busy} run={run} />}
           {acceptedOffer.can_receive && (
             <p className="wf-muted">물량이 도착하면 발송 기업이 준 입고 QR을 휴대전화로 스캔해 입고를 확인해 주세요.</p>
@@ -313,6 +325,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
           selectedKey={selectedKey}
           onSelect={setSelectedKey}
           renderAction={(facility, result) => <>
+            <SupplierPolicySummary value={facility.supplier_policy} />
             <InquiryPacket lot={lot} facility={facility} busy={!!busy} />
             <IntakeQuestions key={facility.capability_key + lot.revision} form={facility.intake_conditions} busy={!!busy}
               onSave={(answers) => onAnswers(facility.capability_key, answers)} />
@@ -361,10 +374,11 @@ function DecisionForm({ busy, onDecide, onConditions, offer }) {
   const [note, setNote] = useState('');
   const [scope, setScope] = useState(false);
   const [intake, setIntake] = useState(false);
-  const [conditionsText, setConditionsText] = useState('');
+  const requiredChecks = offer?.data.facility?.supplier_policy?.policy?.required_checks || [];
+  const [conditionsText, setConditionsText] = useState(requiredChecks.join('\n'));
   const [resolved, setResolved] = useState([]);
   const conditions = offer?.data.conditions || [];
-  const conditionsReady = conditions.every(c => resolved.includes(c.id) && offer.data.condition_responses?.[c.id]?.text);
+  const conditionsReady = (!requiredChecks.length || conditions.length > 0) && conditions.every(c => resolved.includes(c.id) && offer.data.condition_responses?.[c.id]?.text);
   const ok = note.trim().length >= 3;
   return (
     <div className="wf-form">
@@ -527,6 +541,13 @@ function LotChecks({ lot, name }) {
   return <section className="wf-evidence-panel wf-lot-checks" aria-label="현재 처리 건 확인 사항">
     <div className="wf-evidence-panel-head"><div><span>물량 · 인계 확인</span><h3>현재 물량 확인 사항</h3></div><strong>{lot.data.warnings?.length || 0}건 확인 필요</strong></div>
     <div className="wf-current-condition"><span>현재 상태 설명</span><p>{lot.data.current.condition || '설명 없음'}</p></div>
+    {lot.offers.filter(offer => offer.data.messages?.length || offer.data.facility?.supplier_policy).map(offer =>
+      <details className="wf-evidence-accordion" key={`inquiry-${offer.id}`}>
+        <summary>{name(offer.recipient_id)} · 문의 당시 반입조건과 대화</summary>
+        <SupplierPolicySummary value={offer.data.facility?.supplier_policy} />
+        <InquiryConversation lot={lot} offer={offer} readOnly />
+      </details>
+    )}
     {lot.data.warnings?.length > 0 && <div className="wf-evidence-alert"><strong>먼저 확인할 사항</strong><ul>{lot.data.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
     {offersWithConditions.map((offer) => <details className="wf-evidence-accordion" key={offer.id}>
       <summary><span><strong>{name(offer.recipient_id)} 반입 조건</strong><small>{OFFER_STATUS[offer.status] || offer.status} · {offer.data.conditions.length}건</small></span><span className="wf-disclosure-arrow" aria-hidden="true">⌄</span></summary>

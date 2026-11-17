@@ -7,8 +7,10 @@ import { currentRoute } from '../../lib/router.js';
 import { AnimatedContent } from '../landing/LandingMotion.jsx';
 import { DataTable } from './DataTable.jsx';
 import './CompanyDataPage.css';
+import { SupplierPolicyPanel } from '../../features/workflow/SupplierPolicy.jsx';
 
 const dataTabs = [
+  { id: 'intake', label: '반입조건', description: '우리 사업장 반입 안내', icon: 'building' },
   {
     id: 'workplace',
     label: '사업장 정보',
@@ -186,7 +188,7 @@ export function CompanyDataPage() {
           </nav>
         </aside>
         <AnimatedContent key={activeTab} className="data-main">
-          {activeTab === 'workplace' ? (
+          {activeTab === 'intake' ? <SupplierPolicyPanel /> : activeTab === 'workplace' ? (
             <section className="workplace-panel">
               <header>
                 <div className="workplace-mark">
