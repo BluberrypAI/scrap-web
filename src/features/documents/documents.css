@@ -96,4 +96,4 @@
 .lf-big-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--lf-rule); background: var(--lf-sheet); }
 .lf-big-close { padding: 7px 14px; font: inherit; border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); cursor: pointer; }
 .lf-big-scroll { overflow: auto; padding: 16px; }
-.lf-big-page { margin: 0 auto; min-width: 100%; }
+.lf-big-page { margin: 0 auto; }

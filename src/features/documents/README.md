@@ -5,6 +5,7 @@
 - 붙이는 법: 확정된 문진 건 화면(`features/diagnosis/index.jsx`의 `afterConfirm`)에서
   `import { LegalFormPanel } from '../documents/LegalFormPanel.jsx'` 후 `<LegalFormPanel caseId={id} handoff={handoff} />`.
   경로 추천 + 분류번호가 있을 때만 보이고, 아니면 아무것도 그리지 않아요.
+  주의: 좁은 화면에서는 문진 대화 칸(`chat-col`) 높이가 고정이라, 그 안에 넣으면 판정 보드와 겹쳐 입력이 안 돼요. 대화 칸 밖(문진 화면 아래)에 그리세요(예: `createPortal`로 `main` 끝의 자리에).
 - 제출 칸(제6·12호): 작성일, 받는 기관장, 신고인 이름, 서명·날인(직접 서명 또는 도장 이미지). 한글 파일과 PDF 모두에 들어가고 서버·브라우저 어디에도 저장하지 않아요.
 - 미리보기용 서식 그림·칸 위치는 `public/legal-forms/`에 있어요. 서버의 `scripts/legal_forms_layout.py`가 만든 `resources/<kind>-layout.json`과 같아야 해요.
 - 값 계산과 파일 만들기는 서버가 해요. 서버 명세: scrap-server `docs/specs/legal-forms.md`.

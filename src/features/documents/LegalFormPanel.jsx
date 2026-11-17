@@ -73,7 +73,8 @@ function BigPreview({ open, onClose, children }) {
         <button type="button" className="lf-big-close" onClick={onClose}>닫기</button>
       </div>
       <div className="lf-big-scroll">
-        <div className="lf-big-page" style={{ width: `${zoom * 100}%` }}>{children}</div>
+        {/* 100% = 한 쪽 전체가 창 높이에 들어가는 크기 (A4 비율) */}
+        <div className="lf-big-page" style={{ width: `calc(min(100%, (94vh - 110px) * 0.7075) * ${zoom})` }}>{children}</div>
       </div>
     </dialog>
   );
