@@ -52,6 +52,33 @@ function Sheet({ kind, items, layout }) {
   );
 }
 
+// 미리보기 크게 보기: 화면 가득 띄우고, 확대 단계를 고를 수 있다
+function BigPreview({ open, onClose, children }) {
+  const ref = useRef(null);
+  const [zoom, setZoom] = useState(1);
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open]);
+  return (
+    <dialog ref={ref} className="lf-big" aria-label="미리보기 크게 보기" onClose={onClose} onClick={(e) => { if (e.target === ref.current) onClose(); }}>
+      <div className="lf-big-bar">
+        <div className="lf-seg" role="group" aria-label="확대">
+          {[1, 1.5, 2].map((z) => (
+            <button key={z} type="button" aria-pressed={zoom === z} onClick={() => setZoom(z)}>{`${z * 100}%`}</button>
+          ))}
+        </div>
+        <button type="button" className="lf-big-close" onClick={onClose}>닫기</button>
+      </div>
+      <div className="lf-big-scroll">
+        <div className="lf-big-page" style={{ width: `${zoom * 100}%` }}>{children}</div>
+      </div>
+    </dialog>
+  );
+}
+
 function Field({ field, kind, value, onChange, handoff }) {
   const id = `lf-${kind}-${field.from}-${field.key}`;
   const isCode = field.key === 'waste_code';
@@ -155,6 +182,7 @@ export function LegalFormPanel({ caseId, handoff }) {
   const [draft, setDraft] = useState(() => (kinds[0] ? loadDraft(caseId, kinds[0]) : emptyDraft()));
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
+  const [big, setBig] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [layouts, setLayouts] = useState({});
@@ -325,7 +353,16 @@ export function LegalFormPanel({ caseId, handoff }) {
         </form>
 
         <aside className="lf-preview" aria-label="예상 파일 미리보기">
-          <Sheet kind={kind} items={items} layout={layout} />
+          <div className="lf-preview-head">
+            <span>미리보기</span>
+            <button type="button" onClick={() => setBig(true)}>크게 보기</button>
+          </div>
+          <button type="button" className="lf-sheet-open" onClick={() => setBig(true)} aria-label="미리보기 크게 보기">
+            <Sheet kind={kind} items={items} layout={layout} />
+          </button>
+          <BigPreview open={big} onClose={() => setBig(false)}>
+            <Sheet kind={kind} items={items} layout={layout} />
+          </BigPreview>
           <p className="lf-hint">미리보기예요. 파란 글씨가 채워질 값이고, 실제 한글 파일과 줄바꿈이 조금 다를 수 있어요. 첫 쪽만 보여 줘요.</p>
         </aside>
       </div>

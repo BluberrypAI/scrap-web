@@ -16,7 +16,7 @@
 .lf-tabs button { border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); padding: 8px 14px; font: inherit; cursor: pointer; }
 .lf-tabs button[aria-pressed="true"] { background: var(--lf-ink); color: var(--lf-sheet); border-color: var(--lf-ink); }
 
-.lf-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 20px; align-items: start; }
+.lf-split { display: grid; grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.4fr); gap: 20px; align-items: start; }
 .lf-inputs { display: grid; gap: 12px; min-width: 0; }
 .lf-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
 .lf-field { display: grid; gap: 4px; min-width: 0; align-content: start; }
@@ -84,3 +84,16 @@
 .lf-frame img { position: relative; max-height: 120px; max-width: 90%; width: auto; object-fit: contain; }
 .lf-frame[data-type="seal"] img { max-height: 112px; }
 .lf-mini:focus-visible, .lf-seg button:focus-visible { outline: 2px solid var(--lf-accent); outline-offset: 1px; }
+
+/* 미리보기 머리줄, 누르면 크게 보기 */
+.lf-preview-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--lf-muted); }
+.lf-preview-head button { padding: 6px 12px; font: inherit; font-size: 13px; border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); cursor: pointer; }
+.lf-sheet-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; text-align: inherit; }
+.lf-sheet-open:focus-visible { outline: 2px solid var(--lf-accent, #1f6b52); outline-offset: 2px; }
+.lf-big { width: min(1100px, 96vw); max-width: 96vw; height: 94vh; max-height: 94vh; padding: 0; border: 1px solid var(--lf-rule); background: var(--lf-paper, #f4f5f3); color: var(--lf-ink); }
+.lf-big::backdrop { background: rgba(0, 0, 0, .55); }
+.lf-big[open] { display: grid; grid-template-rows: auto 1fr; }
+.lf-big-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--lf-rule); background: var(--lf-sheet); }
+.lf-big-close { padding: 7px 14px; font: inherit; border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); cursor: pointer; }
+.lf-big-scroll { overflow: auto; padding: 16px; }
+.lf-big-page { margin: 0 auto; min-width: 100%; }
