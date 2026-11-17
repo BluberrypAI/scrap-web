@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { legalFormsApi } from './api.js';
 import { FORMS, PHYSICAL_STATE_HELP, RECIPIENT_HINT, RECIPIENT_SUGGESTIONS, availableForms, buildBody, fieldsFor, hasSubmit, hintFor, todayString } from './fields.js';
 import { SignaturePad } from './SignaturePad.jsx';
+import { StampPicker } from './StampPicker.jsx';
 import { overlayItems } from './preview.js';
 import './documents.css';
 
@@ -16,7 +17,7 @@ function loadDraft(caseId, kind) {
     if (saved && typeof saved === 'object') {
       const base = emptyDraft();
       // 서명은 저장하지 않는다 (혹시 남아 있어도 버린다)
-      const { signature_png: _s, signer_confirmed: _c, ...submit } = saved.submit ?? {};
+      const { signature_png: _s, signer_confirmed: _c, mark_type: _m, ...submit } = saved.submit ?? {};
       return { ...base, ...saved, submit: { ...base.submit, ...submit } };
     }
   } catch { /* 저장소를 못 쓰면 빈 값으로 */ }
@@ -102,7 +103,7 @@ function Field({ field, kind, value, onChange, handoff }) {
   );
 }
 
-function SubmitGroup({ kind, submit, onField, onSignature, signature, confirmed, onConfirm, padKey }) {
+function SubmitGroup({ kind, submit, onField, onMark, mark, markType, onMarkType, confirmed, onConfirm, padKey }) {
   const listId = `lf-recipients-${kind}`;
   return (
     <fieldset className="lf-submit">
@@ -124,17 +125,25 @@ function SubmitGroup({ kind, submit, onField, onSignature, signature, confirmed,
           <p className="lf-hint">비우면 대표자 성명을 써요.</p>
         </div>
       </div>
-      <div className="lf-field is-wide">
-        <span className="lf-label">서명</span>
-        <SignaturePad key={`${kind}-${padKey}`} onChange={onSignature} />
-        {signature && (
-          <label className="lf-confirm">
-            <input type="checkbox" checked={confirmed} onChange={(e) => onConfirm(e.target.checked)} />
-            <span>신고인 본인(또는 위임받은 사람)이 직접 서명합니다</span>
-          </label>
-        )}
-        <p className="lf-hint">서명은 PDF에만 들어가고 서버에 저장되지 않아요. 한글 파일은 인쇄해 서명하거나 도장을 찍어 주세요. 기관에 따라 직접 서명·날인을 요구할 수 있으니 제출 전에 확인해 주세요.</p>
-      </div>
+      <section className="lf-mark" aria-label="서명·날인">
+        <h3>서명·날인</h3>
+        <div className="lf-seg" role="group" aria-label="서명·날인 방법">
+          <button type="button" aria-pressed={markType === 'signature'} onClick={() => onMarkType('signature')}>직접 서명</button>
+          <button type="button" aria-pressed={markType === 'seal'} onClick={() => onMarkType('seal')}>도장 이미지</button>
+        </div>
+        {markType === 'signature'
+          ? <SignaturePad key={`${kind}-${padKey}`} onChange={onMark} />
+          : <StampPicker key={`${kind}-${padKey}`} value={mark} onChange={onMark} />}
+        <div className="lf-frame" data-type={markType} role="img" aria-label={mark ? '서명·날인 자리: 인쇄될 모습' : '서명·날인 자리: 아직 비어 있어요'}>
+          <span className="lf-frame-text" aria-hidden="true">(서명 또는 인)</span>
+          {mark && <img src={mark} alt="" />}
+        </div>
+        <label className="lf-confirm">
+          <input type="checkbox" checked={confirmed} onChange={(e) => onConfirm(e.target.checked)} />
+          <span>신고인 본인(또는 위임받은 사람)이 직접 서명·날인합니다</span>
+        </label>
+        <p className="lf-hint">서명·날인은 한글 파일과 PDF 모두의 (서명 또는 인) 자리에 들어가요. 서버와 브라우저에 저장되지 않아요. 기관에 따라 직접 서명·날인을 요구할 수 있으니 제출 전에 확인해 주세요.</p>
+      </section>
     </fieldset>
   );
 }
@@ -151,9 +160,11 @@ export function LegalFormPanel({ caseId, handoff }) {
   const [layouts, setLayouts] = useState({});
   // 서명은 메모리에만 둔다 (초안 저장·서버 저장 없음)
   const [signature, setSignature] = useState('');
+  const [markType, setMarkType] = useState('signature');
   const [confirmed, setConfirmed] = useState(false);
   const [padKey, setPadKey] = useState(0);
-  function clearSignature() { setSignature(''); setConfirmed(false); setPadKey((n) => n + 1); }
+  function clearSignature() { setSignature(''); setConfirmed(false); setMarkType('signature'); setPadKey((n) => n + 1); }
+  function changeMarkType(t) { if (t === markType) return; setSignature(''); setConfirmed(false); setMarkType(t); setPadKey((n) => n + 1); }
   const seq = useRef(0);
 
   // 건·서식 목록이 바뀌면 첫 서식으로 돌아간다
@@ -178,8 +189,8 @@ export function LegalFormPanel({ caseId, handoff }) {
   }, [kind, layouts]);
 
   const body = useMemo(() => (kind
-    ? buildBody(kind, { ...draft, submit: { ...draft.submit, signature_png: signature, signer_confirmed: confirmed } })
-    : null), [kind, draft, signature, confirmed]);
+    ? buildBody(kind, { ...draft, submit: { ...draft.submit, signature_png: signature, mark_type: markType, signer_confirmed: confirmed } })
+    : null), [kind, draft, signature, markType, confirmed]);
 
   // 입력이 멈추고 0.4초 뒤 서버에 칸별 값·문제 점검을 묻는다 (늦게 온 옛 응답은 버린다)
   useEffect(() => {
@@ -201,7 +212,7 @@ export function LegalFormPanel({ caseId, handoff }) {
   }, [caseId, kind, body]);
 
   const layout = kind ? layouts[kind] : null;
-  const items = useMemo(() => overlayItems(layout, preview?.edits, signature), [layout, preview, signature]);
+  const items = useMemo(() => overlayItems(layout, preview?.edits, signature, markType), [layout, preview, signature, markType]);
 
   if (!kind) return null;
 
@@ -256,7 +267,7 @@ export function LegalFormPanel({ caseId, handoff }) {
   const status = problem
     ? { cls: 'is-bad', text: problem }
     : needConfirm
-      ? { cls: 'is-bad', text: '서명을 넣으려면 "신고인 본인(또는 위임받은 사람)이 직접 서명합니다"에 체크해 주세요.' }
+      ? { cls: 'is-bad', text: '서명·날인을 넣으려면 "신고인 본인(또는 위임받은 사람)이 직접 서명·날인합니다"에 체크해 주세요.' }
       : { cls: 'is-ok', text: notice || (hasSubmit(kind)
         ? '서식에 넣을 수 있는 값이에요. 생년월일은 받은 파일에 직접 적어 주세요.'
         : '서식에 넣을 수 있는 값이에요. 생년월일·서명·날짜는 업체가 직접 적어요.') };
@@ -297,8 +308,10 @@ export function LegalFormPanel({ caseId, handoff }) {
               kind={kind}
               submit={draft.submit ?? {}}
               onField={changeSubmit}
-              signature={signature}
-              onSignature={(png) => { setSignature(png); if (!png) setConfirmed(false); }}
+              mark={signature}
+              markType={markType}
+              onMarkType={changeMarkType}
+              onMark={(png) => { setSignature(png); if (!png) setConfirmed(false); }}
               confirmed={confirmed}
               onConfirm={setConfirmed}
               padKey={padKey}

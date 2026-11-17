@@ -68,3 +68,19 @@
 .lf-sign { position: absolute; width: auto; mix-blend-mode: multiply; pointer-events: none; }
 .lf-ink.lf-at { white-space: nowrap; line-height: 1.1; }
 .lf-panel summary:focus-visible { outline: 2px solid var(--lf-accent); outline-offset: 1px; }
+
+/* 서명·날인 구역 */
+.lf-mark { display: grid; gap: 10px; padding: 12px 14px; border: 2px solid var(--lf-accent); background: var(--lf-paper); min-width: 0; }
+.lf-mark h3 { margin: 0; font-size: 15px; }
+.lf-seg { display: inline-flex; }
+.lf-seg button { padding: 7px 14px; font: inherit; font-size: 14px; border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); cursor: pointer; }
+.lf-seg button[aria-pressed="true"] { background: var(--lf-accent); color: var(--lf-accent-ink); border-color: var(--lf-accent); }
+.lf-stamp { display: grid; gap: 8px; justify-items: start; }
+.lf-stamp-prev { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lf-stamp-prev img { height: 64px; width: auto; max-width: 160px; object-fit: contain; border: 1px solid var(--lf-rule); background: #ffffff; }
+.lf-err { color: var(--lf-bad); }
+.lf-frame { position: relative; display: grid; place-items: center; min-height: 140px; border: 2px dashed var(--lf-muted); background: #ffffff; }
+.lf-frame-text { position: absolute; color: #b9c0bc; font-size: 20px; letter-spacing: 2px; user-select: none; }
+.lf-frame img { position: relative; max-height: 120px; max-width: 90%; width: auto; object-fit: contain; }
+.lf-frame[data-type="seal"] img { max-height: 112px; }
+.lf-mini:focus-visible, .lf-seg button:focus-visible { outline: 2px solid var(--lf-accent); outline-offset: 1px; }

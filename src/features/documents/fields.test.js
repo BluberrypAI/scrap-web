@@ -29,7 +29,9 @@ test('인계에 따라 쓸 수 있는 서식이 정해진다', () => {
 
 test('제출 정보는 제6·12호만 보내고 빈 값은 뺀다', () => {
   const v = { company: {}, waste: { waste_code: ' 51-03-01 ', physical_state: 'solid' }, submit: { date: '2026-11-17', recipient: ' 화성시장 ', signer_name: '', signature_png: 'data:image/png;base64,AA', signer_confirmed: true } };
-  assert.deepEqual(buildBody('form6', v).submit, { date: '2026-11-17', recipient: '화성시장', signature_png: 'data:image/png;base64,AA', signer_confirmed: true });
+  assert.deepEqual(buildBody('form6', v).submit, { date: '2026-11-17', recipient: '화성시장', signature_png: 'data:image/png;base64,AA', mark_type: 'signature', signer_confirmed: true });
+  assert.equal(buildBody('form6', { submit: { signature_png: 'data:image/png;base64,AA', mark_type: 'seal' } }).submit.mark_type, 'seal');
+  assert.equal(buildBody('form6', { submit: { mark_type: 'seal' } }).submit, undefined);
   assert.equal(buildBody('form5', v).submit, undefined);
   assert.deepEqual(buildBody('form5', v).waste, { waste_code: '51-03-01', physical_state: 'solid' });
   assert.equal(buildBody('form12', { submit: {} }).submit, undefined);

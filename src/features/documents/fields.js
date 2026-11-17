@@ -75,6 +75,7 @@ export function buildBody(kind, values) {
     }
     if (sub.signature_png) {
       out.signature_png = sub.signature_png;
+      out.mark_type = sub.mark_type === 'seal' ? 'seal' : 'signature';
       if (sub.signer_confirmed) out.signer_confirmed = true;
     }
     if (Object.keys(out).length) body.submit = out;

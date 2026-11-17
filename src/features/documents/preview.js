@@ -1,14 +1,14 @@
 // 미리보기: 빈 서식 그림 위에 겹쳐 그릴 항목을 만든다 (화면 없이 계산만 하는 순수 함수).
 // layout: public/legal-forms/{kind}.json  {page:[W,H], slots, groups}
 // edits: 서버 preview의 edits[]  위치 단위는 pt → 쪽 너비/높이 대비 %로 바꾼다.
-// signature: 그린 서명 PNG(data URL). 있을 때만 op:'sign' 자리에 그림을 올린다
+// signature: 그린 서명 또는 도장 PNG(data URL), markType: 'signature'|'seal'. 있을 때만 op:'sign' 자리에 그림을 올린다
 // 반환 항목: {key, cls: 'tick'|'set'|'append'|'at'|'line'|'sign', text, size, style, align?, parts?, src?}
 //   size는 쪽 너비 대비 cqw, parts는 line에서 [{text, value, size?}] (value=true이면 넣은 값, 파란 글씨, size는 뒤에 붙는 글자 크기)
 const pct = (v, of) => `${(v / of) * 100}%`;
 const START = '\u0001';
 const END = '\u0002';
 
-export function overlayItems(layout, edits, signature) {
+export function overlayItems(layout, edits, signature, markType = 'signature') {
   if (!layout?.page) return [];
   const [W, H] = layout.page;
   const { slots = {}, groups = {} } = layout;
@@ -23,7 +23,7 @@ export function overlayItems(layout, edits, signature) {
     // 서명 자리: 그린 서명 그림이 있을 때만, 칸 가운데에 글자 높이의 3배로
     if (e.op === 'sign' || p.sign) {
       if (e.op !== 'sign' || !signature) continue;
-      const h = 3 * Math.max(by1 - by0, p.size || 0);
+      const h = (markType === 'seal' ? 4.8 : 3) * Math.max(by1 - by0, p.size || 0); // 도장 1.6cm : 서명 1.0cm
       out.push({
         key: `${e.slot}:${i}`, cls: 'sign', text: '', src: signature, size: 0,
         style: { left: pct((bx0 + bx1) / 2, W), top: pct((by0 + by1) / 2, H), height: pct(h, H), transform: 'translate(-50%, -50%)' },
