@@ -54,7 +54,7 @@ export function comparisonDistance(site, basis) {
 }
 
 export function distanceLabel(site) {
-  if (hasRoadDistance(site)) return `도로 ${site.road_distance_km.toFixed(1)} km · 카카오 자동차 경로`;
+  if (hasRoadDistance(site)) return `도로 ${site.road_distance_km.toFixed(1)} km · ${site.road_distance_provider === 'osrm' ? 'OSRM 자동차 경로' : '카카오 자동차 경로'}`;
   return site.straight_line_distance_km != null
     ? `직선 ${site.straight_line_distance_km.toFixed(1)} km · 도로거리 미확인` : '거리 정보 없음';
 }
