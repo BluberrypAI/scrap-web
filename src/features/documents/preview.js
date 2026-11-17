@@ -20,13 +20,19 @@ export function overlayItems(layout, edits, signature, markType = 'signature') {
     if (!p) continue;
     if (p.group) { (lines[p.group] ??= []).push(e); continue; }
     const [bx0, by0, bx1, by1] = p.box;
-    // 서명 자리: 그린 서명 그림이 있을 때만, 칸 가운데에 글자 높이의 3배로
+    // 서명 자리: 서명·도장 그림이 있을 때만, 칸 가운데에 실제 파일(PDF)과 같은 크기로.
+    // 서명 높이 1cm(폭 최대 4cm), 도장 1.6cm(폭 최대 2cm). 그림 비율은 그대로 둔다
     if (e.op === 'sign' || p.sign) {
       if (e.op !== 'sign' || !signature) continue;
-      const h = (markType === 'seal' ? 4.8 : 3) * Math.max(by1 - by0, p.size || 0); // 도장 1.6cm : 서명 1.0cm
+      const PT_PER_CM = 72 / 2.54;
+      const [hCm, wMaxCm] = markType === 'seal' ? [1.6, 2] : [1, 4];
       out.push({
         key: `${e.slot}:${i}`, cls: 'sign', text: '', src: signature, size: 0,
-        style: { left: pct((bx0 + bx1) / 2, W), top: pct((by0 + by1) / 2, H), height: pct(h, H), transform: 'translate(-50%, -50%)' },
+        style: {
+          left: pct((bx0 + bx1) / 2, W), top: pct((by0 + by1) / 2, H),
+          height: pct(hCm * PT_PER_CM, H), maxWidth: pct(wMaxCm * PT_PER_CM, W),
+          transform: 'translate(-50%, -50%)',
+        },
       });
       continue;
     }

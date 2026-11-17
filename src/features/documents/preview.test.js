@@ -62,9 +62,14 @@ test('서명 자리는 서명 그림이 있을 때만 가운데에 그린다', (
   const [item] = overlayItems(layout, [edit], 'data:image/png;base64,AAAA');
   assert.equal(item.cls, 'sign');
   assert.equal(item.src, 'data:image/png;base64,AAAA');
-  const h = 3 * Math.max(p.box[3] - p.box[1], p.size);
-  assert.equal(item.style.height, pctOf(h, layout.page[1]));
+  // 실제 파일과 같은 크기: 서명 높이 1cm, 폭 최대 4cm (비율 유지)
+  const cm = 72 / 2.54;
+  assert.equal(item.style.height, pctOf(1 * cm, layout.page[1]));
+  assert.equal(item.style.maxWidth, pctOf(4 * cm, layout.page[0]));
+  assert.equal(item.style.width, undefined, '폭을 정하지 않아 그림 비율이 유지된다');
   assert.equal(item.style.left, pctOf((p.box[0] + p.box[2]) / 2, layout.page[0]));
+  const [seal] = overlayItems(layout, [edit], 'data:image/png;base64,AAAA', 'seal');
+  assert.equal(seal.style.height, pctOf(1.6 * cm, layout.page[1]));
 });
 
 test('서명 칸은 체크(√)로 그리지 않는다', () => {

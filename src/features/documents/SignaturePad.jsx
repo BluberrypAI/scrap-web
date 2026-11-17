@@ -4,6 +4,28 @@ import { useEffect, useRef, useState } from 'react';
 const WIDTH = 360;
 const HEIGHT = 120;
 
+// 획이 있는 부분만 잘라(여백 조금) PNG로. 빈 여백까지 보내면 서식에 서명이 작게 찍힌다
+function trimmed(src) {
+  const { width: w, height: h } = src;
+  const data = src.getContext('2d').getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (data[(y * w + x) * 4 + 3] > 8) {
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      }
+    }
+  }
+  if (x1 < 0) return src.toDataURL('image/png');
+  const pad = Math.round(Math.max(x1 - x0, y1 - y0) * 0.04) + 2;
+  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
+  x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+  const out = document.createElement('canvas');
+  out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+  out.getContext('2d').drawImage(src, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+  return out.toDataURL('image/png');
+}
+
 export function SignaturePad({ onChange }) {
   const canvas = useRef(null);
   const drawing = useRef(false);
@@ -52,7 +74,7 @@ export function SignaturePad({ onChange }) {
     drawing.current = false;
     if (dirty.current) {
       setEmpty(false);
-      onChange(canvas.current.toDataURL('image/png'));
+      onChange(trimmed(canvas.current));
     }
   }
   function clear() {
