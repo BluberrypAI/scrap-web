@@ -21,11 +21,6 @@ export function FacilityMap({ options, candidateCount, origin = null, originLabe
     () => (validLocation(origin) ? { ...origin, label: originLabel ? '우리 사업장' : '출발 사업장' } : null),
     [origin, originLabel],
   );
-  // 업체는 있지만 좌표만 없는 경우에도 목록 이용 방법을 알려 준다.
-  if (!factories.length && !originPoint) return count > 0
-    ? <p className="wf-card wf-muted">후보 업체 {count}곳의 좌표를 확인하지 못했어요. 아래 목록에서 업체와 근거를 확인해 주세요.</p>
-    : null;
-
   function select(key) {
     onSelect(key);
     document.getElementById(`facility-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -47,7 +42,7 @@ export function FacilityMap({ options, candidateCount, origin = null, originLabe
       </div>
       <p className="wf-map-note">
         {!factories.length
-          ? count > 0 ? `후보 업체 ${count}곳의 좌표가 없어 출발 사업장만 표시해요. 업체는 아래 목록에서 확인해 주세요.`
+          ? count > 0 ? `후보 업체 ${count}곳의 좌표가 없어 지도에 표시하지 못했어요. 업체는 아래 목록에서 확인해 주세요.`
             : '출발 사업장만 표시해요. 연결된 후보가 없어 목적지와 경로는 아직 표시하지 않아요.'
           : mapState === 'ready'
           ? `전체 후보 업체 ${count}곳 중 지도 표시 대상 ${factories.length}곳을 표시했어요. 업체를 누르면 아래 목록에서 볼 수 있어요.`

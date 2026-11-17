@@ -8,13 +8,17 @@ import { currentRoute, navigate } from '../../lib/router.js';
 import { workflowApi } from './api.js';
 import { CaseRoutePanel } from './CaseRoutePanel.jsx';
 import { LotPanel } from './LotPanel.jsx';
-import { LOT_STATUS, stateLabel, formatKg } from './labels.js';
+import { LOT_STATUS, lotCardStatus, stateLabel, formatKg } from './labels.js';
+import { Icon } from '../../components/Icon.jsx';
 import './workflow.css';
 
 export function CaseDetailPage({ caseId }) {
   const [detail, setDetail] = useState(null);
   const [lot, setLot] = useState(undefined); // undefined: 불러오는 중, null: 처리 건 없음
   const [error, setError] = useState('');
+  const [registered, setRegistered] = useState(false);
+  const [preferredFacility, setPreferredFacility] = useState(null);
+  const [activeTab, setActiveTab] = useState('route');
 
   useEffect(() => {
     let live = true;
@@ -34,44 +38,62 @@ export function CaseDetailPage({ caseId }) {
   const kase = detail.case;
   const confirmed = ['CODE_CONFIRMED', 'IN_TRANSIT', 'COMPLETED'].includes(kase.status);
   const code = kase.summary?.code || detail.handoff?.waste_code;
+  const stage = !confirmed ? '01'
+    : kase.status === 'COMPLETED' || lot?.status === 'completed' ? 'done'
+    : kase.status === 'IN_TRANSIT' || (lot && lotCardStatus(lot.status) === '처리 진행') ? '03' : '02';
+  const stageLabel = stage === '01' ? 'STEP 01 · 분류 확인'
+    : stage === '02' ? `STEP 02 · ${lot?.status === 'ready' ? '업체 검토' : lot ? LOT_STATUS[lot.status] || '경로 준비' : '경로 준비'}`
+      : stage === '03' ? `STEP 03 · ${lot ? LOT_STATUS[lot.status] || '처리 진행' : '처리 진행'}` : '처리 완료';
+  const tracking = stage === '03' || stage === 'done';
 
   return (
     <main className="wf-page waste-detail">
       <a className="detail-back" href="/wastes"><span>←</span> 자원 경로</a>
-      <header className="detail-header">
-        <div>
-          <span className="detail-stage">
-            {!confirmed ? 'STEP 01 · 분류 확인' : lot ? `STEP 03 · ${LOT_STATUS[lot.status] || lot.status}` : 'STEP 02 · 경로 준비'}
-          </span>
-          <h1>{kase.summary?.title || '폐기물'}</h1>
-          <p className="detail-meta">{kase.summary?.result_label || kase.summary?.status_label}</p>
-          {/* 분류 결과는 카드 위 문구로 충분하고, 근거는 문진 대화·판정 기록에서 본다 */}
-          <div className="detail-code wf-code">
-            <strong>분류번호 {code || '미정'}</strong>
-            <a className="button button-quiet button-small" href={`/wastes/case-${caseId}/survey`}>
-              {confirmed ? '문진 대화' : '문진 이어서 하기'}
-            </a>
-            <a className="button button-quiet button-small" href={`/wastes/case-${caseId}/history`}>판정 기록</a>
+      <header className="detail-header waste-identity" data-step={stage === 'done' ? '03' : stage}>
+        <div className="waste-identity-copy">
+          <span className="detail-stage">{stageLabel}</span>
+          <div className="waste-identity-main">
+            <div>
+              <span className="waste-identity-label">폐기물</span>
+              <h1>{kase.summary?.title || '폐기물'}</h1>
+            </div>
+            <div className="waste-identity-actions">
+              <div className="detail-code wf-code"><strong>분류번호 {code || '미정'}</strong></div>
+            </div>
           </div>
         </div>
       </header>
+      <div className="route-detail-tabs" role="group" aria-label="자원 경로 상세 보기">
+        <button type="button" aria-pressed={activeTab === 'route'} onClick={() => setActiveTab('route')}>{tracking ? '인계 현황' : '공정·업체 추천'}</button>
+        <button type="button" aria-pressed={activeTab === 'info'} onClick={() => setActiveTab('info')}>{tracking ? '물량·확인 사항' : '분류·확인 사항'}</button>
+      </div>
+      {!confirmed && activeTab === 'info' && <section className="route-info-surface" aria-label="분류·확인 사항">
+        <div className="route-info-row"><span className="route-info-icon"><Icon name="check" size={18} /></span><div className="route-info-content">
+          <h2>분류 정보와 문진 기록</h2>
+          <p>{kase.summary?.result_label || kase.summary?.status_label}</p>
+          <div className="route-info-links"><a href={`/wastes/case-${caseId}/survey`}>문진 이어서 하기</a><a href={`/wastes/case-${caseId}/history`}>판정 기록</a></div>
+        </div></div>
+      </section>}
+      <div hidden={activeTab !== 'route'}>
       {!confirmed ? (
-        <section className="wf-card">
+        <section className="route-status-notice">
           <p>분류를 확정하면 처리 경로를 볼 수 있어요.</p>
-          <a className="button button-primary" href={`/wastes/case-${caseId}/survey`}>문진 이어서 하기</a>
+          <a href={`/wastes/case-${caseId}/survey`}>문진 이어서 하기</a>
         </section>
       ) : lot === undefined ? (
         <p className="wf-muted">불러오는 중…</p>
       ) : lot ? (
-        <LotPanel lotId={lot.id} initialLot={lot} />
-      ) : (
-        <CaseRoutePanel key={caseId} caseId={caseId} caseTitle={kase.summary?.title} wasteCode={code} onLotCreated={setLot} />
-      )}
+        <>{registered && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>{preferredFacility ? `${preferredFacility.label}을 검토 후보로 선택했어요. ` : ''}사진을 첨부하고 업체를 검토한 뒤 인수를 요청해 주세요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} showRecycling={false} view="progress" onLotChange={setLot} /></>
+      ) : null}
+      </div>
+      {tracking && lot && activeTab === 'info' && <LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} showRecycling={false} view="info" />}
+      {confirmed && lot !== undefined && !tracking && <CaseRoutePanel caseId={caseId} caseTitle={kase.summary?.title} wasteCode={code} classification={kase.summary?.result_label || kase.summary?.status_label} lotRecycling={lot?.data.recycling} recyclingFollowUp={lot?.data.completed?.length > 0} view={activeTab} hasLot={!!lot} onLotCreated={(created, preferred) => { setPreferredFacility(preferred); setRegistered(true); setLot(created); setActiveTab('route'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />}
     </main>
   );
 }
 
 export function LotPage({ lotId }) {
+  const [activeTab, setActiveTab] = useState('progress');
   return (
     <main className="wf-page waste-detail">
       <a className="detail-back" href="/wastes"><span>←</span> 자원 경로</a>
@@ -81,7 +103,11 @@ export function LotPage({ lotId }) {
           <h1>처리 건</h1>
         </div>
       </header>
-      <LotPanel lotId={lotId} />
+      <div className="route-detail-tabs" role="group" aria-label="처리 건 상세 보기">
+        <button type="button" aria-pressed={activeTab === 'progress'} onClick={() => setActiveTab('progress')}>인계 현황</button>
+        <button type="button" aria-pressed={activeTab === 'info'} onClick={() => setActiveTab('info')}>물량·확인 사항</button>
+      </div>
+      <LotPanel lotId={lotId} view={activeTab} />
     </main>
   );
 }

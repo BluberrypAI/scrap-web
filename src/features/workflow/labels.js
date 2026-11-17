@@ -2,7 +2,7 @@
 
 /** 로트 status → 화면 문구 */
 export const LOT_STATUS = {
-  ready: '업체 선택 전',
+  ready: '처리 건 등록됨',
   offered: '인수 요청 중',
   conditional: '조건부 수락 · 자료 확인 중',
   accepted: '인수 수락 · 입고 대기',
@@ -130,7 +130,7 @@ export function lotMaterial(lot) {
 export const REVIEW_STATUS = {
   reviewed: '공개 근거 확인',
   needs_evidence: '근거 추가 확인 필요',
-  model_unavailable: '검토 미완료',
+  model_unavailable: 'AI 검토 결과 없음',
 };
 export const REVIEW_FINDING = {
   form_mentioned: '이 형태의 반입 근거가 공개 자료에 있음',
@@ -178,6 +178,7 @@ export function lotToWaste(lot, myCompanyId) {
   return {
     id: `lot-${lot.id}`,
     lotId: lot.id,
+    lot,
     caseId: null,
     name: `${lotTitle(lot)} · ${lot.companies[lot.owner_company_id] || '다른 기업'}`,
     code: lot.data?.handoff?.waste_code,
@@ -212,6 +213,9 @@ export function lotCardText(lot, me) {
   const progress = lotProgress(lot, me);
   if (progress.kind === 'completed') return { displayStatus: '재활용 완료', message: '처리 과정 보기' };
   if (progress.kind === 'handed_off') return { displayStatus: '전달 완료', message: '처리 추적 중' };
+  if (lot.status === 'ready' && lot.current_company_id === me) {
+    return { displayStatus: '처리 건 등록됨', message: '사진을 첨부하고 업체를 검토한 뒤 인수를 요청해 주세요' };
+  }
   if (lot.current_company_id === me) {
     return { displayStatus: LOT_STATUS[lot.status] || lot.status, message: '우리 기업이 처리할 차례예요' };
   }

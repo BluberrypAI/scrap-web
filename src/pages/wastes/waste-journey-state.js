@@ -5,6 +5,28 @@ import { routeVisualState } from '../waste-detail/route-visual-state.js';
 export function wasteJourneyState(waste, treatment, checks = {}) {
   if (!hasConfirmedCode(waste)) return { facilities: [], phase: 'classification', activeIndex: -1 };
 
+  // 문진·처리 건 카드는 서버 상태를 따른다. 브라우저에 남은 데모 경로/현장 체크가
+  // 실제 처리 단계보다 앞서 보이게 하지 않는다.
+  if (waste.caseId || waste.lotId) {
+    const phase = waste.status === '완료' ? 'complete' : waste.status === '처리 진행' ? 'processing' : 'ready';
+    const completed = (treatment?.data?.completed || []).map((step, index) => ({
+      facility_key: step.capability_key || `completed-${index}`,
+      kind: 'recycling',
+      mapLabel: step.facility || '처리 업체',
+    }));
+    const activeOffer = [...(treatment?.offers || [])].reverse().find((offer) =>
+      ['pending', 'conditional', 'accepted', 'received'].includes(offer.status) && offer.data?.facility?.label);
+    const next = activeOffer ? [{
+      facility_key: activeOffer.data.facility.facility_key || activeOffer.id,
+      kind: 'recycling',
+      mapLabel: activeOffer.data.facility.label,
+    }] : [];
+    const completedKeys = new Set(completed.map((step) => step.facility_key));
+    const completedLabels = new Set(completed.map((step) => step.mapLabel));
+    const facilities = [{ facility_key: 'source', kind: 'source', mapLabel: '배출 사업장' }, ...completed, ...next.filter((step) => !completedKeys.has(step.facility_key) && !completedLabels.has(step.mapLabel))];
+    return { facilities, phase, activeIndex: facilities.length > 1 ? facilities.length - 1 : -1 };
+  }
+
   const recorded = treatment
     ? [...treatment.completed, treatment.pending].filter(Boolean).map((step, index) => ({
       facility_key: step.capability_key || `recorded-${index}`,
