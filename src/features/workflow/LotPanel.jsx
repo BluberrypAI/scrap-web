@@ -1,4 +1,5 @@
 import { canRequestIntake } from './review-policy.js';
+import { PhotoConflict, PhotoConflictReceipt } from './PhotoConflict.jsx';
 import { InquiryPacket } from './InquiryPacket.jsx';
 import { SupplierPolicySummary, InquiryConversation } from './SupplierPolicy.jsx';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
@@ -114,6 +115,7 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null, s
       {manage && ['ready', 'processed'].includes(lot.status) && (
         <>
           <PhotoSection lot={lot} photos={stagePhotos} busy={busy} onAdd={(file) => run('photo', () => workflowApi.addPhoto(lot.id, file))} />
+          <PhotoConflict key={`conflict-${lot.revision}-${lot.review?.at}`} lot={lot} busy={busy} onResolve={body => run('conflict', () => workflowApi.resolvePhotoConflict(lot, body))} />
           <CandidateSection
             lot={lot}
             error={error}
@@ -293,7 +295,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
     return ['reviewed', 'needs_evidence'].includes(r?.status) && r?.lot_review?.status === 'reviewed'
       && ['isolated_vision', 'no_photo'].includes(r?.lot_review?.observation_method);
   }).length;
-  const sendable = (facility, result) => canRequestIntake(review, facility, result);
+  const sendable = (facility, result) => canRequestIntake(review, facility, result, lot.photo_conflict_gate);
   return (
     <section className="wf-card wf-candidate-section">
       <h3>다음 처리 업체</h3>
@@ -334,6 +336,8 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
                 onClick={() => onOffer(facility.capability_key)}>
                 {facility.recipient.name}에 인수 요청 보내기
               </button>
+            ) : lot.photo_conflict_gate?.blocked ? (
+              <p className="wf-alert">사진·설명 불일치 확인 전이라 인수 요청을 보류했어요. 위 확인 영역에서 수정하거나 확인 사유를 남겨 주세요.</p>
             ) : result?.status === 'model_unavailable' || result?.lot_review?.status === 'model_unavailable' ? (
               <p className="wf-muted">AI 검토가 끝나지 않아 요청을 보낼 수 없어요. 다시 검토해 주세요.</p>
             ) : <p className="wf-muted">{!facility.recipient ? '업체의 수신 계정 연결 후 인수 요청을 보낼 수 있어요.' : result?.finding === 'restriction_mentioned' ? '반입 제한이 확인되어 요청을 보낼 수 없어요.' : '필요한 답변을 입력하고 업체 검토를 완료해 주세요.'}</p>}</>}
@@ -365,6 +369,7 @@ function OfferCard({ lot, offer, name, children }) {
         </div>
       )}
       {data.decision && <p className="wf-muted">응답 메모: {data.decision.note}</p>}
+      <PhotoConflictReceipt value={data.photo_conflict_resolution} />
       {children}
     </section>
   );
@@ -548,6 +553,7 @@ function LotChecks({ lot, name }) {
         <InquiryConversation lot={lot} offer={offer} readOnly />
       </details>
     )}
+    {lot.offers.filter(offer => offer.data.photo_conflict_resolution).map(offer => <PhotoConflictReceipt key={offer.id} value={offer.data.photo_conflict_resolution} />)}
     {lot.data.warnings?.length > 0 && <div className="wf-evidence-alert"><strong>먼저 확인할 사항</strong><ul>{lot.data.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
     {offersWithConditions.map((offer) => <details className="wf-evidence-accordion" key={offer.id}>
       <summary><span><strong>{name(offer.recipient_id)} 반입 조건</strong><small>{OFFER_STATUS[offer.status] || offer.status} · {offer.data.conditions.length}건</small></span><span className="wf-disclosure-arrow" aria-hidden="true">⌄</span></summary>

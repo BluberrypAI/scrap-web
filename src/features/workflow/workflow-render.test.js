@@ -4,6 +4,26 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
+test('사진 불일치 화면은 수정·확인 및 재문진 안내와 수신자 확인 기록을 제공한다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { PhotoConflict, PhotoConflictReceipt } = await vite.ssrLoadModule('/src/features/workflow/PhotoConflict.jsx');
+    const issues = [{ concern: '여러 색 조각 관찰과 흰색만 있다는 설명 불일치' }];
+    const lot = { data: { current: { condition: '흰색 조각만 있습니다' } }, photo_conflict_gate: { blocked: true, issues } };
+    const html = renderToStaticMarkup(React.createElement(PhotoConflict, { lot }));
+    assert.match(html, /인수 요청을 보낼 수 없어요/);
+    assert.match(html, /분류번호는 변경하지 않아요/);
+    assert.match(html, /재문진/);
+    assert.match(html, /disabled="">기존 설명 확인 내용 기록/);
+    assert.match(html, /disabled="">설명 수정 후 다시 검토하기/);
+    const note = { note: '실물과 사진을 대조한 시험 확인 사유', issues };
+    const receipt = renderToStaticMarkup(React.createElement(PhotoConflictReceipt, { value: note }));
+    assert.match(receipt, /실물과 사진을 대조한 시험 확인 사유/);
+    assert.match(receipt, /여러 색 조각/);
+    assert.match(receipt, /수신 업체가 최종 확인/);
+  } finally { await vite.close(); }
+});
+
 test('등록한 물량 화면이 실제 렌더되고 현재 보유 기업 위치와 서버 형태명을 전달한다', async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
   try {

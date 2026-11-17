@@ -4,6 +4,14 @@ import { canRequestIntake } from './review-policy.js';
 const review = { version: 'lot-vision-v1', analysis_version: 'isolated-vision-v2', conditions_version: 'intake-questions-v1', reference_checksum: 'test', conditions_checksum: 'test', recycling_checksum: 'test' };
 const facility = { recipient: { id: 'recipient' } };
 const result = { status: 'needs_evidence', finding: 'insufficient', lot_review: { status: 'reviewed', observation_method: 'no_photo' } };
+test('명확한 사진 불일치는 다른 후보 선택으로 우회할 수 없고 서버 확인이 필요하다', () => {
+  const conflict = { ...result, lot_review: { ...result.lot_review, concerns: [{ category: 'description_conflict' }] } };
+  const reviewed = { ...review, results: { a: result, b: conflict } };
+  assert.equal(canRequestIntake(reviewed, facility, result), false);
+  assert.equal(canRequestIntake(reviewed, facility, result, { blocked: true }), false);
+  assert.equal(canRequestIntake(reviewed, facility, result, { blocked: false, resolution: { note: '사용자 확인' } }), true);
+  assert.equal(canRequestIntake(reviewed, facility, { ...result, status: 'model_unavailable' }, { blocked: false, resolution: {} }), false);
+});
 test('current review permits recipient consideration without claiming approval', () => {
   assert.equal(canRequestIntake(review, facility, result), true);
   assert.equal(canRequestIntake(review, facility, { ...result, lot_review: { status: 'reviewed', observation_method: 'isolated_vision' } }), true);
