@@ -33,6 +33,16 @@ test('형태 이름과 중량 표시', () => {
   assert.equal(formatKg(null), '-');
 });
 
+test('인수 요청·조건부 수락·QR 안내를 발송자와 수신자에 맞게 표시한다', () => {
+  const current = (status) => ({ ...lot, offers: [{ sender_id: 'A', recipient_id: 'B', status }] });
+  assert.equal(lotCardText(current('pending'), 'B').message, '받은 인수 요청을 검토해 주세요');
+  assert.equal(lotCardText(current('pending'), 'A').message, '상대 기업 응답 대기');
+  assert.equal(lotCardText(current('conditional'), 'A').message, '업체가 요청한 추가 자료를 제출해 주세요');
+  assert.equal(lotCardText(current('conditional'), 'B').message, '추가 자료 확인 후 수락해 주세요');
+  assert.equal(lotCardText(current('accepted'), 'A').message, '입고 QR을 발급해 물량과 함께 보내 주세요');
+  assert.equal(lotCardText(current('accepted'), 'B').message, '도착한 물량의 QR로 입고를 확인해 주세요');
+});
+
 test('우리 몫이 끝났는지: 받는 쪽 입고 확인 뒤에만 전달 완료', () => {
   const base = { ...lot, status: 'accepted', current_company_id: 'A', offers: [{ sender_id: 'A', recipient_id: 'B', status: 'accepted' }] };
   assert.equal(lotProgress(base, 'A').kind, 'active');

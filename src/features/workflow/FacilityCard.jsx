@@ -1,6 +1,7 @@
 import { EVIDENCE_GAP, CONCERN_CATEGORY, REVIEW_FINDING, REVIEW_STATUS } from './labels.js';
 import { Icon } from '../../components/Icon.jsx';
 import { ProcessDiscovery } from './ProcessDiscovery.jsx';
+import { distanceLabel } from './route-result.js';
 
 // 공정 후보 업체 한 곳: 공개 근거, 거리, AI 검토 결과(있으면), 이어서 할 일(action)
 export function FacilityCard({ facility, review, action = null, selected = false, onSelect }) {
@@ -19,7 +20,7 @@ export function FacilityCard({ facility, review, action = null, selected = false
           {facility.evidence_basis === 'published_site_process' ? '공개 공정 근거' : '역할 추정'}
         </span>
       </div>
-      <div className="facility-meta-row"><span><Icon name="map" size={15} />{facility.straight_line_distance_km != null ? `직선 ${facility.straight_line_distance_km.toFixed(1)} km` : '거리 정보 없음'}</span>{onSelect && facility.location && <button type="button" onClick={() => onSelect(facility.facility_key)} aria-pressed={selected}>{selected ? '지도에서 선택됨' : '지도에서 보기'}<Icon name="arrow" size={14} /></button>}</div>
+      <div className="facility-meta-row"><span><Icon name="map" size={15} />{distanceLabel(facility)}</span>{onSelect && facility.location && <button type="button" onClick={() => onSelect(facility.facility_key)} aria-pressed={selected}>{selected ? '지도에서 선택됨' : '지도에서 보기'}<Icon name="arrow" size={14} /></button>}</div>
       {facility.recipient !== undefined && (
         <p className="wf-muted">
           {facility.recipient

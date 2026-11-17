@@ -40,6 +40,25 @@ export function validLocation(location) {
     Math.abs(location.latitude) <= 90 && Math.abs(location.longitude) <= 180);
 }
 
+export function hasRoadDistance(site) {
+  return site.road_distance_status === 'available' && Number.isFinite(site.road_distance_km) && site.road_distance_km > 0;
+}
+
+export function distanceBasis(options = []) {
+  return options.some(o => o.facilities?.some(hasRoadDistance)) ? 'road' : 'straight_line';
+}
+
+export function comparisonDistance(site, basis) {
+  const distance = basis === 'road' ? (hasRoadDistance(site) ? site.road_distance_km : null) : site.straight_line_distance_km;
+  return Number.isFinite(distance) && distance >= 0 ? distance : Infinity;
+}
+
+export function distanceLabel(site) {
+  if (hasRoadDistance(site)) return `도로 ${site.road_distance_km.toFixed(1)} km · ${site.road_distance_provider === 'osrm' ? 'OSRM 자동차 경로' : '카카오 자동차 경로'}`;
+  return site.straight_line_distance_km != null
+    ? `직선 ${site.straight_line_distance_km.toFixed(1)} km · 도로거리 미확인` : '거리 정보 없음';
+}
+
 /** Server ranks distinct sites; never truncate the set sent for AI review. */
 export function nearbyOptions(options = [], origin) {
   const unbound = options.filter(o => !o.facilities?.length);
@@ -75,4 +94,29 @@ export function facilityMapData(options = []) {
       latitude: site.location.latitude, longitude: site.location.longitude,
     })),
   };
+}
+
+/** Limit only map markers. All filtered candidates remain in cards and AI review. */
+export function candidateMapOptions(options = [], origin, selectedKey, basis = distanceBasis(options)) {
+  const sites = new Map();
+  for (const option of options) for (const site of option.facilities || []) {
+    if (validLocation(site.location) && !sites.has(site.facility_key)) {
+      sites.set(site.facility_key, site);
+    }
+  }
+  const ranked = validLocation(origin);
+  const eligible = [...sites.values()].filter(site => !ranked ||
+    Number.isFinite(comparisonDistance(site, basis)));
+  if (ranked) eligible.sort((a, b) => comparisonDistance(a, basis) - comparisonDistance(b, basis) ||
+    a.facility_key.localeCompare(b.facility_key));
+  const shown = eligible.slice(0, 5);
+  const selected = sites.get(selectedKey);
+  if (selected && !shown.some(site => site.facility_key === selectedKey)) {
+    if (shown.length === 5) shown.pop();
+    shown.push(selected);
+  }
+  const keys = new Set(shown.map(site => site.facility_key));
+  return options.map(option => ({ ...option,
+    facilities: (option.facilities || []).filter(site => keys.has(site.facility_key)),
+  })).filter(option => option.facilities.length);
 }

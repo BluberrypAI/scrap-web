@@ -258,3 +258,26 @@
 .wf-check-state { color: #6a4b89; font-weight: 700; }
 @media (max-width: 750px) { .wf-summary .wf-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 0; } .wf-summary .wf-facts > div:nth-child(3) { padding-left: 0; border-left: 0; } .wf-check-table > div { grid-template-columns: 1fr; gap: 3px; } }
 @media (max-width: 460px) { .wf-summary, .wf-evidence-panel, .wf-progress-status, .wf-history, .wf-handoff-map { padding: 17px; } }
+.wf-inquiry-dialog {
+  width: min(720px, calc(100vw - 32px));
+  height: min(760px, calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
+  box-sizing: border-box;
+  padding: 20px;
+  border: 1px solid #ded5ee;
+  border-radius: 20px;
+  color: #282337;
+  background: #fff;
+  box-shadow: 0 24px 90px #20143940;
+}
+.wf-inquiry-dialog[open] { display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.wf-inquiry-dialog::backdrop { background: #20143977; }
+.wf-inquiry-dialog h2 { font-size: 20px; margin: 0; flex: 0 0 auto; }
+.wf-inquiry-dialog p { line-height: 1.5; font-size: 14px; margin: 0; flex: 0 0 auto; }
+.wf-inquiry-dialog textarea {
+  box-sizing: border-box; width: 100%; height: auto; min-height: 60px; flex: 1 1 auto;
+  padding: 12px; resize: none; border: 1px solid #ded5ee;
+  border-radius: 10px; font: inherit; line-height: 1.65; color: #282337; background: #faf9fc;
+}
+.wf-inquiry-actions { display: flex; flex-wrap: wrap; gap: 8px; flex: 0 0 auto; }
+.wf-inquiry-actions button { padding: 9px 12px; font-size: 14px; border: 1px solid #d7cbe9; border-radius: 8px; background: #f1ecfa; color: #422b6c; cursor: pointer; }

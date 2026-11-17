@@ -7,6 +7,11 @@ const enc = encodeURIComponent;
 
 // 서버의 HTTPException은 {detail: "문구"}, 공통 오류는 {code, message} 형식이다. ApiError가 둘 다 message로 읽는다.
 export const workflowApi = {
+  supplierPolicies: () => apiFetch('/workflow/supplier-policies'),
+  saveSupplierPolicy: (body) => apiFetch('/workflow/supplier-policies', { method: 'POST', body }),
+  replyInquiry: (lot, offerId, text) => apiFetch(`/workflow/offers/${enc(offerId)}/messages`, {
+    method: 'POST', body: { revision: lot.revision, text },
+  }),
   // ---- 문진 연계 처리 경로 ----
   /** 확정 문진의 첫 공정 후보. inputForm이 없으면 needs_input과 선택지(available_forms)를 돌려준다 */
   caseNextStep: (caseId, inputForm = null, solidConfirmed = false, materialDetail = null) =>
@@ -43,6 +48,10 @@ export const workflowApi = {
     apiFetch(`/workflow/lots/${enc(lot.id)}/offers`, {
       method: 'POST',
       body: { revision: lot.revision, capability_key: capabilityKey },
+    }),
+  inquiryPacket: (lot, capabilityKey) =>
+    apiFetch(`/workflow/lots/${enc(lot.id)}/inquiry-packet`, {
+      method: 'POST', body: { revision: lot.revision, capability_key: capabilityKey },
     }),
   getOffer: (offerId) => apiFetch(`/workflow/offers/${enc(offerId)}`),
   saveIntakeAnswers: (lot, capabilityKey, answers) => apiFetch(`/workflow/lots/${enc(lot.id)}/intake-answers`, {

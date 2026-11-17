@@ -83,7 +83,7 @@ export function CaseDetailPage({ caseId }) {
       ) : lot === undefined ? (
         <p className="wf-muted">불러오는 중…</p>
       ) : lot ? (
-        <>{registered && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>{preferredFacility ? `${preferredFacility.label}을 검토 후보로 선택했어요. ` : ''}사진을 첨부하고 업체를 검토한 뒤 인수를 요청해 주세요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} showRecycling={false} view="progress" onLotChange={setLot} /></>
+        <>{registered && lot.status === 'ready' && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>{preferredFacility ? `${preferredFacility.label}을 검토 후보로 선택했어요. ` : ''}사진을 첨부하고 업체를 검토한 뒤 인수를 요청해 주세요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} showRecycling={false} view="progress" onLotChange={setLot} /></>
       ) : null}
       </div>
       {tracking && lot && activeTab === 'info' && <LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} showRecycling={false} view="info" />}
