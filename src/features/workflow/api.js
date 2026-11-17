@@ -44,6 +44,10 @@ export const workflowApi = {
       method: 'POST',
       body: { revision: lot.revision, capability_key: capabilityKey },
     }),
+  inquiryPacket: (lot, capabilityKey) =>
+    apiFetch(`/workflow/lots/${enc(lot.id)}/inquiry-packet`, {
+      method: 'POST', body: { revision: lot.revision, capability_key: capabilityKey },
+    }),
   getOffer: (offerId) => apiFetch(`/workflow/offers/${enc(offerId)}`),
   saveIntakeAnswers: (lot, capabilityKey, answers) => apiFetch(`/workflow/lots/${enc(lot.id)}/intake-answers`, {
     method: 'POST', body: { revision: lot.revision, capability_key: capabilityKey, answers },

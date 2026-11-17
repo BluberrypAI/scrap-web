@@ -1,5 +1,7 @@
 # SCRAP 웹
 
+업체 후보 카드의 **업체에 보낼 문의서**로 현재 물량·AI 확인사항·질문을 미리 보고 복사하거나 텍스트로 저장할 수 있습니다. 수신 계정이 없는 업체에도 문의 준비가 가능하며 자동 발송·인수 승인은 하지 않습니다. server의 `POST /api/v1/workflow/lots/{id}/inquiry-packet`와 함께 적용하세요. 사업장 변경 후에는 다시 검토해야 합니다.
+
 Re:Source AI의 **frontend** 레포. 화면, 3D 시각화, server API 호출을 담당함.
 
 - 하지 않는 일: DB 직접 접근, ai 직접 호출 (항상 server API를 거침)

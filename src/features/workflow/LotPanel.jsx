@@ -1,4 +1,5 @@
 import { canRequestIntake } from './review-policy.js';
+import { InquiryPacket } from './InquiryPacket.jsx';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../../hooks/useSession.js';
 import QRCode from 'qrcode';
@@ -312,6 +313,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
           selectedKey={selectedKey}
           onSelect={setSelectedKey}
           renderAction={(facility, result) => <>
+            <InquiryPacket lot={lot} facility={facility} busy={!!busy} />
             <IntakeQuestions key={facility.capability_key + lot.revision} form={facility.intake_conditions} busy={!!busy}
               onSave={(answers) => onAnswers(facility.capability_key, answers)} />
             {sendable(facility, result) ? (
