@@ -101,6 +101,8 @@ server의 플라스틱 확장 버전은 문진 handoff의 재질이 `pet`, 상�
 
 server #52의 새 migration `a87485f30805`를 먼저 적용하고 이 웹을 빌드합니다. 새로운 환경변수는 없습니다. 실제 업체 연락 없이 별도 시험 기업 A/B로 위 흐름을 웹에서 확인했으며, 웹 자동 검사 67개와 빌드를 통과했습니다. [서버 검증 결과와 한계](https://github.com/BluberrypAI/scrap-server/blob/fix/e2e-release-20261117/docs/supplier-intake-validation-20261117.md)를 참고하세요.
 
+후속으로 별도 C 계정에서 조건을 등록하고, 같은 처리 건을 **B 산출물 950kg → 9개 후보 AI 검토 → C 문의·답변 → 조건부 수락 → 두 조건의 자료 제출·확인 → QR 입고**까지 웹에서 확인했습니다. A는 B→C를 조회하지만 문의 답변·QR 발급·입고를 대신할 수 없습니다. [B→C 검증 결과](https://github.com/BluberrypAI/scrap-server/blob/fix/e2e-release-20261117/docs/supplier-bc-validation-20261117.md). route #65와 server #52를 함께 적용하면 업체별 단독 검토로 한 곳의 시간초과가 다른 후보에 번지는 것을 줄입니다.
+
 ```bash
 docker build -t scrap-web .
 docker run --rm -p 8080:80 -e SCRAP_SERVER_URL=http://host.docker.internal:8000 scrap-web
