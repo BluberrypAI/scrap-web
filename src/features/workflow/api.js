@@ -7,28 +7,33 @@ const enc = encodeURIComponent;
 
 // 서버의 HTTPException은 {detail: "문구"}, 공통 오류는 {code, message} 형식이다. ApiError가 둘 다 message로 읽는다.
 export const workflowApi = {
+  supplierPolicies: () => apiFetch('/workflow/supplier-policies'),
+  saveSupplierPolicy: (body) => apiFetch('/workflow/supplier-policies', { method: 'POST', body }),
+  replyInquiry: (lot, offerId, text) => apiFetch(`/workflow/offers/${enc(offerId)}/messages`, {
+    method: 'POST', body: { revision: lot.revision, text },
+  }),
   // ---- 문진 연계 처리 경로 ----
   /** 확정 문진의 첫 공정 후보. inputForm이 없으면 needs_input과 선택지(available_forms)를 돌려준다 */
-  caseNextStep: (caseId, inputForm = null) =>
+  caseNextStep: (caseId, inputForm = null, solidConfirmed = false, materialDetail = null) =>
     apiFetch(`/diagnosis/cases/${enc(caseId)}/treatment/next-step`, {
       method: 'POST',
-      body: inputForm ? { input_form: inputForm } : {},
+      body: { ...(inputForm ? { input_form: inputForm } : {}), solid_confirmed: solidConfirmed, material_detail: materialDetail },
     }),
   /** 후보 업체 전체의 공개 근거 AI 검토 (Azure 호출, 수십 초 걸릴 수 있음) */
-  caseIntakeReviews: (caseId, inputForm) =>
+  caseIntakeReviews: (caseId, inputForm, solidConfirmed = false, materialDetail = null) =>
     apiFetch(`/diagnosis/cases/${enc(caseId)}/treatment/intake-reviews`, {
       method: 'POST',
-      body: { input_form: inputForm },
+      body: { input_form: inputForm, solid_confirmed: solidConfirmed, material_detail: materialDetail },
     }),
 
   // ---- 기업 간 인계 ----
   listLots: () => apiFetch('/workflow/lots'),
   getLot: (lotId) => apiFetch(`/workflow/lots/${enc(lotId)}`),
   /** 확정 문진으로 처리 건 등록. 같은 문진으로 이미 만든 건이 있으면 그 건을 돌려준다 */
-  createLot: ({ diagnosisId, inputForm, massKg, condition }) =>
+  createLot: ({ diagnosisId, inputForm, massKg, condition, solidConfirmed = false, materialDetail = null }) =>
     apiFetch('/workflow/lots', {
       method: 'POST',
-      body: { diagnosis_id: diagnosisId, input_form: inputForm, mass_kg: massKg, condition },
+      body: { diagnosis_id: diagnosisId, input_form: inputForm, mass_kg: massKg, condition, solid_confirmed: solidConfirmed, material_detail: materialDetail },
     }),
   addPhoto: (lotId, file) => {
     const form = new FormData();
@@ -43,6 +48,10 @@ export const workflowApi = {
     apiFetch(`/workflow/lots/${enc(lot.id)}/offers`, {
       method: 'POST',
       body: { revision: lot.revision, capability_key: capabilityKey },
+    }),
+  inquiryPacket: (lot, capabilityKey) =>
+    apiFetch(`/workflow/lots/${enc(lot.id)}/inquiry-packet`, {
+      method: 'POST', body: { revision: lot.revision, capability_key: capabilityKey },
     }),
   getOffer: (offerId) => apiFetch(`/workflow/offers/${enc(offerId)}`),
   saveIntakeAnswers: (lot, capabilityKey, answers) => apiFetch(`/workflow/lots/${enc(lot.id)}/intake-answers`, {

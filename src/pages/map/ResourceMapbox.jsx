@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { DOKDO_COORDINATE, hideRoadNumberShields, styleKoreaMapContext } from '../../lib/mapbox-style.js';
+import * as maplibregl from 'maplibre-gl';
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { DOKDO_COORDINATE } from '../../lib/mapbox-style.js';
 
 const KOREA_CENTER = [128.25, 36.25];
+// MapLibre v6 workers must be emitted by Vite, including the worker's imports.
+maplibregl.setWorkerUrl(maplibreWorkerUrl);
 const KOREA_BOUNDS = [[124.5, 32.8], [132.35, 39.4]];
 const KOREA_VIEW = [[125.5, 33.05], [132.15, 38.55]];
 
@@ -37,41 +40,42 @@ function createOriginMarker(origin) {
   return marker;
 }
 
-export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origin = null, label = '전국 순환자원 처리업체 위치 지도', onStateChange }) {
+export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origin = null, routePoints = [], onPick, label = '전국 순환자원 처리업체 위치 지도', onStateChange }) {
   const hostRef = useRef(null);
   const mapRef = useRef(null);
   const markerRefs = useRef(new Map());
   const onSelectRef = useRef(onSelect);
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
   const [loadState, setLoadState] = useState('loading');
   const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim();
   const signature = useMemo(() => factories.map((factory) => [
     factory.id, factory.longitude, factory.latitude,
-  ]).join(':') + (origin ? `|${origin.longitude},${origin.latitude}` : ''), [factories, origin]);
+  ]).join(':') + (origin ? `|${origin.longitude},${origin.latitude}` : '') + `|${JSON.stringify(routePoints)}`, [factories, origin, routePoints]);
 
   onSelectRef.current = onSelect;
   useEffect(() => { onStateChange?.(loadState); }, [loadState, onStateChange]);
 
   useEffect(() => {
-    if (!mapboxgl.supported()) {
-      setLoadState('unsupported');
-      return undefined;
-    }
-
     let cancelled = false;
     let loaded = false;
     let resizeObserver;
     const markers = [];
-    mapboxgl.accessToken = accessToken || '';
+    const mapgl = maplibregl;
     setLoadState('loading');
 
-    const map = new mapboxgl.Map({
+    const map = new mapgl.Map({
       container: hostRef.current,
-      style: accessToken ? 'mapbox://styles/mapbox/streets-v12' : {
+      style: {
         version: 8,
-        sources: { osm: { type: 'raster', tileSize: 256, maxzoom: 19,
-          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-          attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors' } },
-        layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
+        sources: { base: { type: 'raster', tileSize: 256, maxzoom: 19,
+          tiles: [accessToken
+            ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${encodeURIComponent(accessToken)}`
+            : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          attribution: accessToken
+            ? '© <a href="https://www.mapbox.com/about/maps/" target="_blank" rel="noopener noreferrer">Mapbox</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
+            : '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors' } },
+        layers: [{ id: 'base', type: 'raster', source: 'base' }],
       },
       center: KOREA_CENTER,
       zoom: 5.8,
@@ -84,8 +88,14 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
     });
     mapRef.current = map;
     markerRefs.current = new Map();
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
-    map.addControl(new mapboxgl.AttributionControl({ compact: false }), 'bottom-left');
+    map.addControl(new mapgl.NavigationControl({ showCompass: false }), 'top-right');
+    map.addControl(new mapgl.AttributionControl({ compact: false }), 'bottom-left');
+    if (onPickRef.current) {
+      map.on('click', (event) => onPickRef.current?.({
+        latitude: event.lngLat.lat, longitude: event.lngLat.lng,
+      }));
+      map.getCanvas().style.cursor = 'crosshair';
+    }
 
     const handleError = (event) => {
       if (event?.error) console.error('Resource map error:', event.error);
@@ -94,10 +104,16 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
     map.on('error', handleError);
     map.on('load', () => {
       if (cancelled) return;
-      if (accessToken) { hideRoadNumberShields(map); styleKoreaMapContext(map); }
+      if (routePoints.length > 1) {
+        map.addSource('actual-handoff-route', { type: 'geojson', data: {
+          type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: routePoints },
+        } });
+        map.addLayer({ id: 'actual-handoff-route-outline', type: 'line', source: 'actual-handoff-route', paint: { 'line-color': '#fff', 'line-width': 8, 'line-opacity': .9 } });
+        map.addLayer({ id: 'actual-handoff-route-line', type: 'line', source: 'actual-handoff-route', paint: { 'line-color': '#7754a6', 'line-width': 4, 'line-opacity': .95 } });
+      }
       factories.forEach((factory) => {
         const element = createCompassMarker(factory, (id) => onSelectRef.current?.(id));
-        const marker = new mapboxgl.Marker({ element, anchor: 'bottom', offset: [0, -3] })
+        const marker = new mapgl.Marker({ element, anchor: 'bottom', offset: [0, -3] })
           .setLngLat([factory.longitude, factory.latitude])
           .addTo(map);
         markers.push(marker);
@@ -105,15 +121,20 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
       });
 
       if (origin) {
-        markers.push(new mapboxgl.Marker({ element: createOriginMarker(origin), anchor: 'bottom' })
+        const marker = new mapgl.Marker({ element: createOriginMarker(origin), anchor: 'bottom', draggable: !!onPickRef.current })
           .setLngLat([origin.longitude, origin.latitude])
-          .addTo(map));
+          .addTo(map);
+        marker.on('dragend', () => {
+          const point = marker.getLngLat();
+          onPickRef.current?.({ latitude: point.lat, longitude: point.lng });
+        });
+        markers.push(marker);
       }
 
       if (factories.length) {
         const bounds = factories.reduce((nextBounds, factory) => nextBounds.extend([
           factory.longitude, factory.latitude,
-        ]), new mapboxgl.LngLatBounds(
+        ]), new mapgl.LngLatBounds(
           [factories[0].longitude, factories[0].latitude],
           [factories[0].longitude, factories[0].latitude],
         ));
@@ -124,6 +145,8 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
           maxZoom: factories.length === 1 && !origin ? 11 : origin ? 10 : 7.8,
           duration: 700,
         });
+      } else if (origin) {
+        map.jumpTo({ center: [origin.longitude, origin.latitude], zoom: 10 });
       } else {
         map.fitBounds(KOREA_VIEW, { padding: 50, duration: 0 });
       }

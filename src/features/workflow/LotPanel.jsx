@@ -1,11 +1,16 @@
 import { canRequestIntake } from './review-policy.js';
-import { useCallback, useEffect, useState } from 'react';
+import { InquiryPacket } from './InquiryPacket.jsx';
+import { SupplierPolicySummary, InquiryConversation } from './SupplierPolicy.jsx';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../../hooks/useSession.js';
 import QRCode from 'qrcode';
 import { receiveUrl, workflowApi } from './api.js';
-import { ProcessOption } from './FacilityCard.jsx';
-import { FacilityMap } from './FacilityMap.jsx';
+import { CandidateBrowser } from './CandidateBrowser.jsx';
+import { QrPreview } from './QrPreview.jsx';
+import { RecyclingTypes } from './RecyclingTypes.jsx';
+import { RouteOutcome } from './RouteOutcome.jsx';
 import { IntakeQuestions, ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
+import { validLocation } from './route-result.js';
 import {
   LOT_STATUS,
   OFFER_STATUS,
@@ -14,13 +19,16 @@ import {
   STATE_LABEL,
   formatDateTime,
   formatKg,
+  stateLabel,
   lotMaterial,
   lotProgress,
 } from './labels.js';
 
+const ResourceMapbox = lazy(() => import('../../pages/map/ResourceMapbox.jsx').then((module) => ({ default: module.ResourceMapbox })));
+
 // 처리 건(로트) 하나. 지금 물량을 가진 기업(can_manage)과 요청받은 기업이 각자 할 일을 본다.
 // 모든 변경은 revision을 함께 보내고, 다른 화면에서 바뀌었으면(409) 새로 불러온다.
-export function LotPanel({ lotId, initialLot = null }) {
+export function LotPanel({ lotId, initialLot = null, preferredFacility = null, showRecycling = true, view = 'progress', onLotChange }) {
   const [lot, setLot] = useState(initialLot);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
@@ -28,8 +36,8 @@ export function LotPanel({ lotId, initialLot = null }) {
 
   const reload = useCallback(() => {
     setError('');
-    return workflowApi.getLot(lotId).then(setLot).catch((e) => setError(e.message));
-  }, [lotId]);
+    return workflowApi.getLot(lotId).then((next) => { setLot(next); onLotChange?.(next); }).catch((e) => setError(e.message));
+  }, [lotId, onLotChange]);
 
   useEffect(() => {
     if (!initialLot) reload();
@@ -41,11 +49,17 @@ export function LotPanel({ lotId, initialLot = null }) {
     setError('');
     try {
       const next = await call();
-      if (next?.id && next?.revision) setLot(next);
+      if (next?.id && next?.revision) { setLot(next); onLotChange?.(next); }
       return next;
     } catch (e) {
       setError(e.message);
-      if (e.status === 409) reload();
+      if (e.status === 409) {
+        // Keep the conflict reason visible while updating the revision.
+        try {
+          const next = await workflowApi.getLot(lotId);
+          setLot(next); onLotChange?.(next);
+        } catch { /* Preserve the original action error. */ }
+      }
       return null;
     } finally {
       setBusy('');
@@ -62,28 +76,31 @@ export function LotPanel({ lotId, initialLot = null }) {
   const name = (id) => lot.companies[id] || '알 수 없는 기업';
   const manage = lot.can_manage;
   const material = lotMaterial(lot);
+  const diagnosisId = lot.diagnosis_id || lot.data.handoff?.case_id;
   const canFinish = manage && lot.status === 'processed' && (lot.terminal_states || FINISH_STATES[material] || []).includes(current.state_key);
 
   const progress = lotProgress(lot, me);
   const summary = (
-      <section className="wf-card wf-summary">
+      <section className="wf-card wf-summary" aria-label="현재 처리 건 상태와 물량">
         <div className="wf-summary-head">
-          <span className="wf-status" data-status={lot.status}>{LOT_STATUS[lot.status] || lot.status}</span>
+          <div><span className="wf-summary-eyebrow">처리 건 현황</span><h2><span className="wf-status" data-status={lot.status}>{LOT_STATUS[lot.status] || lot.status}</span></h2></div>
           <button className="button button-quiet button-small" type="button" onClick={reload} disabled={!!busy}>
             새로고침
           </button>
         </div>
         <dl className="wf-facts">
-          <div><dt>현재 물량</dt><dd>{STATE_LABEL[current.state_key] || current.state_key} · {formatKg(current.mass_kg)}</dd></div>
+          <div><dt>현재 물량</dt><dd>{stateLabel(lot, current.state_key)} · {formatKg(current.mass_kg)}</dd></div>
           <div><dt>지금 담당</dt><dd>{name(lot.current_company_id)}{manage && ' (우리 기업)'}</dd></div>
           <div><dt>처음 배출</dt><dd>{name(lot.owner_company_id)}</dd></div>
           {current.purity_percent != null && <div><dt>순도</dt><dd>{current.purity_percent}%</dd></div>}
         </dl>
         <p className="wf-muted">상태 설명: {current.condition}</p>
         {lot.data.warnings?.length > 0 && (
+          <div className="wf-inline-checks"><strong>확인 사항</strong>
           <ul className="wf-warnings">
             {lot.data.warnings.map((w) => <li key={w}>{w}</li>)}
           </ul>
+          </div>
         )}
       </section>
   );
@@ -99,6 +116,9 @@ export function LotPanel({ lotId, initialLot = null }) {
           <PhotoSection lot={lot} photos={stagePhotos} busy={busy} onAdd={(file) => run('photo', () => workflowApi.addPhoto(lot.id, file))} />
           <CandidateSection
             lot={lot}
+            error={error}
+            showRecycling={showRecycling}
+            preferredFacility={preferredFacility}
             busy={busy}
             onReview={() => run('review', () => workflowApi.reviewCandidates(lot))}
             onOffer={(key) => run('offer', () => workflowApi.sendOffer(lot, key))}
@@ -111,6 +131,10 @@ export function LotPanel({ lotId, initialLot = null }) {
 
       {pendingOffer && (
         <OfferCard lot={lot} offer={pendingOffer} name={name}>
+          <SupplierPolicySummary value={pendingOffer.data.facility?.supplier_policy} />
+          <InquiryConversation lot={lot} offer={pendingOffer} busy={!!busy}
+            readOnly={![pendingOffer.sender_id, pendingOffer.recipient_id].includes(me)}
+            onSend={(text) => run('message', () => workflowApi.replyInquiry(lot, pendingOffer.id, text))} />
           <IntakeQuestions form={pendingOffer.data.intake_conditions} readOnly />
           {pendingOffer.status === 'conditional' && <ConditionalResponse lot={lot} offer={pendingOffer} busy={!!busy}
             onRespond={(values) => run('conditions', () => workflowApi.respondConditions(lot, pendingOffer.id, values))} />}
@@ -129,6 +153,7 @@ export function LotPanel({ lotId, initialLot = null }) {
 
       {acceptedOffer && (
         <OfferCard lot={lot} offer={acceptedOffer} name={name}>
+          <InquiryConversation lot={lot} offer={acceptedOffer} readOnly />
           {acceptedOffer.can_issue_qr && <QrIssue lot={lot} offer={acceptedOffer} busy={busy} run={run} />}
           {acceptedOffer.can_receive && (
             <p className="wf-muted">물량이 도착하면 발송 기업이 준 입고 QR을 휴대전화로 스캔해 입고를 확인해 주세요.</p>
@@ -140,34 +165,46 @@ export function LotPanel({ lotId, initialLot = null }) {
         <OutputForm material={material} current={current} outputStates={lot.output_states} busy={busy} onSubmit={(v) => run('output', () => workflowApi.recordOutput(lot, v))} />
       )}
 
-      <History lot={lot} name={name} />
     </>
   );
 
-  // 내 몫의 일이 끝났으면(전달 완료·재활용 완료) 그것을 먼저 보여 주고, 처리 과정은 접어 둔다.
-  // 배출 기업은 위탁 뒤에도 최종 처리까지 확인할 수 있어야 하므로 숨기지 않는다.
+  if (view === 'info') return (
+    <div className="wf-panel">
+      {error && <p className="wf-alert" role="alert">{error}</p>}
+      {lot.status === 'completed' && <CompletedCard lot={lot} name={name} />}
+      {summary}
+      <section className="wf-evidence-panel" aria-label="최초 폐기물의 법령표 근거">
+        <div className="wf-evidence-panel-head"><div><span>최초 분류 기준</span><h3>재활용 유형과 법령 근거</h3></div><strong>{lot.data.handoff?.waste_code || '분류번호 미정'}</strong></div>
+        <RecyclingTypes assessment={lot.data.recycling} compact />
+        {!lot.data.recycling && <p className="wf-evidence-alert">이 처리 건에 연결된 재활용 유형표 정보가 없어요. 최초 문진의 판정 기록을 확인해 주세요.</p>}
+        {lot.data.completed.length > 0 && <RecyclingTypes followUp />}
+        {diagnosisId && <div className="route-info-links"><a href={`/wastes/case-${diagnosisId}/survey`}>문진 대화</a><a href={`/wastes/case-${diagnosisId}/history`}>판정 기록</a></div>}
+      </section>
+      <LotChecks lot={lot} name={name} />
+    </div>
+  );
+
+  if (lot.status === 'ready') return <div className="wf-panel">
+    {error && <p className="wf-alert" role="alert">{error}</p>}
+    {summary}
+    {steps}
+  </div>;
+
   return (
     <div className="wf-panel">
       {error && <p className="wf-alert" role="alert">{error}</p>}
       {progress.kind === 'active' ? (
         <>
+          <ProgressStatus lot={lot} name={name} />
           {summary}
+          <div className="wf-tracking-layout"><History lot={lot} name={name} /><HandoffMap lot={lot} /></div>
           {steps}
         </>
       ) : (
         <>
-          {progress.kind === 'completed' ? (
-            <CompletedCard lot={lot} name={name} />
-          ) : (
-            <HandedOffCard lot={lot} offer={progress.offer} name={name} onReload={reload} busy={busy} />
-          )}
-          <details className="wf-card wf-more">
-            <summary>{progress.kind === 'completed' ? '처리 과정 보기' : '이후 처리 과정 보기'}</summary>
-            <div className="wf-panel">
-              {summary}
-              {steps}
-            </div>
-          </details>
+          <ProgressStatus lot={lot} name={name} />
+          {summary}
+          <div className="wf-tracking-layout"><History lot={lot} name={name} /><HandoffMap lot={lot} /></div>
         </>
       )}
     </div>
@@ -188,7 +225,7 @@ function HandedOffCard({ lot, offer, name, onReload, busy }) {
       <dl className="wf-facts">
         <div><dt>받은 기업</dt><dd>{name(offer.recipient_id)}</dd></div>
         <div><dt>입고 확인</dt><dd>{received ? formatDateTime(received.at) : '-'}</dd></div>
-        <div><dt>전달 물량</dt><dd>{STATE_LABEL[sent?.state_key] || sent?.state_key} · {formatKg(sent?.mass_kg)}</dd></div>
+        <div><dt>전달 물량</dt><dd>{stateLabel(lot, sent?.state_key)} · {formatKg(sent?.mass_kg)}</dd></div>
         <div><dt>지금 진행</dt><dd>{name(lot.current_company_id)} · {LOT_STATUS[lot.status] || lot.status}</dd></div>
       </dl>
       <p className="wf-muted">우리 기업이 할 일은 끝났어요. 최종 처리까지는 아래에서 확인할 수 있어요.</p>
@@ -204,7 +241,7 @@ function CompletedCard({ lot, name }) {
       <div className="wf-summary-head">
         <span className="wf-status" data-status="completed">재활용 완료</span>
       </div>
-      <h3>{STATE_LABEL[current.state_key] || current.state_key} {formatKg(current.mass_kg)}로 재활용됐어요</h3>
+      <h3>{stateLabel(lot, current.state_key)} {formatKg(current.mass_kg)}로 재활용됐어요</h3>
       <dl className="wf-facts">
         <div><dt>완료 업체</dt><dd>{name(lot.current_company_id)}</dd></div>
         <div><dt>완료 일시</dt><dd>{finished ? formatDateTime(finished.at) : '-'}</dd></div>
@@ -246,30 +283,50 @@ function PhotoSection({ lot, photos, busy, onAdd }) {
   );
 }
 
-function CandidateSection({ lot, busy, onReview, onOffer, onAnswers, onDirectorySave }) {
-  const [selectedKey, setSelectedKey] = useState(null);
+function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDirectorySave, preferredFacility, showRecycling }) {
+  const [selectedKey, setSelectedKey] = useState(preferredFacility?.facility_key || null);
   const review = lot.review;
   const next = review?.next_step;
+  const candidateKeys = [...new Set((next?.options || []).flatMap(o => (o.facilities || []).map(f => f.capability_key)))];
+  const reviewedCount = candidateKeys.filter(key => {
+    const r = review?.results?.[key];
+    return ['reviewed', 'needs_evidence'].includes(r?.status) && r?.lot_review?.status === 'reviewed'
+      && ['isolated_vision', 'no_photo'].includes(r?.lot_review?.observation_method);
+  }).length;
   const sendable = (facility, result) => canRequestIntake(review, facility, result);
   return (
-    <section className="wf-card">
+    <section className="wf-card wf-candidate-section">
       <h3>다음 처리 업체</h3>
-      {!review && <p className="wf-muted">현재 물량·사진으로 다음 공정 후보 업체를 모두 검토해요. 1~2분 걸릴 수 있어요.</p>}
+      {preferredFacility && <p className="wf-muted">선택한 검토 후보: <strong>{preferredFacility.label}</strong></p>}
+      {showRecycling && <RecyclingTypes assessment={lot.data.recycling} followUp={lot.data.completed.length > 0} />}
+      {!review && <p className="wf-muted">현재 물량·사진으로 다음 공정 후보 업체를 모두 검토해요. 후보 수와 AI 응답에 따라 시간이 걸릴 수 있어요.</p>}
       <button className="button button-primary" type="button" onClick={onReview} disabled={!!busy}>
         {busy === 'review' ? '업체를 검토하는 중…' : review ? '다시 검토' : '업체 검토 시작'}
       </button>
-      {review && review.analysis_version !== 'isolated-vision-v2' && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
+      {busy === 'review' && <div className="wf-review-loading" role="status" aria-live="polite">
+        <span className="wf-review-orbit" aria-hidden="true"><i /><i /><i /></span>
+        <strong>업체의 공개 근거를 확인하고 있어요</strong>
+        <p>현재 물량과 사진을 후보 업체의 반입 조건에 대조합니다. 결과가 나오면 이 화면에 표시돼요.</p>
+      </div>}
+      {error && busy !== 'review' && <p className="wf-alert" role="alert">검토 결과를 받지 못했어요. {error}</p>}
+      {review && (review.analysis_version !== 'isolated-vision-v2' || !review.recycling_checksum) && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
-      {next?.options?.length > 0 && (
-        <FacilityMap options={next.options} selectedKey={selectedKey} onSelect={setSelectedKey} />
-      )}
-      {next?.options?.map((option) => (
-        <div key={option.transition_key}><ProcessOption
-          key={option.transition_key}
-          option={option}
+      {review && candidateKeys.length > 0 && <p className={reviewedCount < candidateKeys.length ? 'wf-alert' : 'wf-muted'} role="status">
+        공정·업체 조합 {candidateKeys.length}건 중 {reviewedCount}건 검토 완료.
+        {reviewedCount < candidateKeys.length ? ` ${candidateKeys.length - reviewedCount}건은 미완료예요. 다시 검토하면 같은 조건에서 완료된 결과를 유지하고 미완료 후보만 재시도해요.` : ' 실제 반입은 수신 기업이 확인해요.'}
+      </p>}
+      {review && <RouteOutcome next={next} currentLabel={stateLabel(lot, lot.data?.current?.state_key)} code={lot.data?.handoff?.waste_code} />}
+      {next?.options && (
+        <CandidateBrowser
+          options={next.options}
+          origin={review.origin}
+          originLabel={review.origin_label}
           reviews={review.results}
           selectedKey={selectedKey}
+          onSelect={setSelectedKey}
           renderAction={(facility, result) => <>
+            <SupplierPolicySummary value={facility.supplier_policy} />
+            <InquiryPacket lot={lot} facility={facility} busy={!!busy} />
             <IntakeQuestions key={facility.capability_key + lot.revision} form={facility.intake_conditions} busy={!!busy}
               onSave={(answers) => onAnswers(facility.capability_key, answers)} />
             {sendable(facility, result) ? (
@@ -279,10 +336,10 @@ function CandidateSection({ lot, busy, onReview, onOffer, onAnswers, onDirectory
               </button>
             ) : result?.status === 'model_unavailable' || result?.lot_review?.status === 'model_unavailable' ? (
               <p className="wf-muted">AI 검토가 끝나지 않아 요청을 보낼 수 없어요. 다시 검토해 주세요.</p>
-            ) : null}</>
-          }
-        /><DirectoryCandidates lot={lot} transitionKey={option.transition_key} onSave={(listing, cursor, answers) => onDirectorySave(option.transition_key, listing, cursor, answers)} /></div>
-      ))}
+            ) : <p className="wf-muted">{!facility.recipient ? '업체의 수신 계정 연결 후 인수 요청을 보낼 수 있어요.' : result?.finding === 'restriction_mentioned' ? '반입 제한이 확인되어 요청을 보낼 수 없어요.' : '필요한 답변을 입력하고 업체 검토를 완료해 주세요.'}</p>}</>}
+          renderExtra={(option) => <DirectoryCandidates lot={lot} transitionKey={option.transition_key} onSave={(listing, cursor, answers) => onDirectorySave(option.transition_key, listing, cursor, answers)} />}
+        />
+      )}
     </section>
   );
 }
@@ -300,7 +357,7 @@ function OfferCard({ lot, offer, name, children }) {
         {data.synthetic && ' · 로컬 시험용 계정'}
       </p>
       <p>
-        보낸 물량: {STATE_LABEL[data.current?.state_key] || data.current?.state_key} {formatKg(data.current?.mass_kg)} · {data.current?.condition}
+        보낸 물량: {stateLabel(lot, data.current?.state_key)} {formatKg(data.current?.mass_kg)} · {data.current?.condition}
       </p>
       {photos.length > 0 && (
         <div className="wf-photos">
@@ -317,10 +374,11 @@ function DecisionForm({ busy, onDecide, onConditions, offer }) {
   const [note, setNote] = useState('');
   const [scope, setScope] = useState(false);
   const [intake, setIntake] = useState(false);
-  const [conditionsText, setConditionsText] = useState('');
+  const requiredChecks = offer?.data.facility?.supplier_policy?.policy?.required_checks || [];
+  const [conditionsText, setConditionsText] = useState(requiredChecks.join('\n'));
   const [resolved, setResolved] = useState([]);
   const conditions = offer?.data.conditions || [];
-  const conditionsReady = conditions.every(c => resolved.includes(c.id) && offer.data.condition_responses?.[c.id]?.text);
+  const conditionsReady = (!requiredChecks.length || conditions.length > 0) && conditions.every(c => resolved.includes(c.id) && offer.data.condition_responses?.[c.id]?.text);
   const ok = note.trim().length >= 3;
   return (
     <div className="wf-form">
@@ -363,7 +421,7 @@ function QrIssue({ lot, offer, busy, run }) {
     <div className="wf-qr">
       {qr ? (
         <>
-          <img src={qr.image} alt="입고 QR" width="240" height="240" />
+          <QrPreview image={qr.image} url={qr.url} label="입고 QR" description="수신 기업이 실물을 받은 뒤 스캔해 입고를 확인하는 QR이에요. 7일 동안 유효합니다." />
           <p className="wf-muted">물량과 함께 보내 주세요. 7일 동안 유효하고, 다시 발급하면 이 QR은 쓸 수 없어요.</p>
           <div className="wf-actions">
             <button className="button button-quiet button-small" type="button" onClick={() => window.print()}>인쇄</button>
@@ -383,12 +441,23 @@ function OutputForm({ material, current, outputStates, busy, onSubmit }) {
   const [state, setState] = useState('');
   const [mass, setMass] = useState('');
   const [purity, setPurity] = useState('');
+  const [purityBadInput, setPurityBadInput] = useState(false);
   const [condition, setCondition] = useState('');
   const [evidence, setEvidence] = useState('');
-  const ok = state && Number(mass) > 0 && condition.trim().length >= 3 && evidence.trim().length >= 3;
+  const [attempted, setAttempted] = useState(false);
+  const errorRef = useRef(null);
+  const issues = [
+    !state && '산출물 형태를 선택해 주세요.',
+    !(Number(mass) > 0 && Number(mass) <= Number(current.mass_kg)) && `중량은 0kg보다 크고 입고 물량 ${formatKg(current.mass_kg)} 이하여야 해요.`,
+    (purityBadInput || (purity !== '' && !(Number(purity) >= 0 && Number(purity) <= 100))) && '순도는 0~100 사이 숫자로 적거나, 모르면 비워 주세요.',
+    condition.trim().length < 3 && '상태 설명을 3자 이상 적어 주세요.',
+    evidence.trim().length < 3 && '계량표·작업일지 번호 등 근거를 3자 이상 적어 주세요.',
+  ].filter(Boolean);
   return (
-    <form className="wf-card wf-form" onSubmit={(e) => {
+    <form className="wf-card wf-form" noValidate onSubmit={(e) => {
       e.preventDefault();
+      setAttempted(true);
+      if (issues.length) { requestAnimationFrame(() => errorRef.current?.focus()); return; }
       onSubmit({
         state_key: state,
         mass_kg: Number(mass),
@@ -399,17 +468,19 @@ function OutputForm({ material, current, outputStates, busy, onSubmit }) {
     }}>
       <h3>처리 결과(실제 산출물) 기록</h3>
       <p className="wf-muted">입고 물량 {formatKg(current.mass_kg)}을 넘을 수 없어요.</p>
+      <p className="wf-muted">상태 설명과 근거는 각각 3자 이상 적어 주세요. 순도를 모르면 비워 두면 됩니다.</p>
+      {attempted && issues.length > 0 && <div ref={errorRef} className="wf-form-errors" role="alert" tabIndex={-1}><strong>기록하기 전에 확인해 주세요</strong><ul>{issues.map((issue) => <li key={issue}>{issue}</li>)}</ul></div>}
       <label>산출물 형태
         <select required value={state} onChange={(e) => setState(e.target.value)}>
           <option value="">선택</option>
           {(outputStates || (OUTPUT_STATES[material] || []).map(key => ({ key, label: STATE_LABEL[key] }))).map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
         </select>
       </label>
-      <label>중량(kg)<input type="number" min="0.1" step="0.1" required value={mass} onChange={(e) => setMass(e.target.value)} /></label>
-      <label>순도(%, 모르면 비움)<input type="number" min="0" max="100" step="0.1" value={purity} onChange={(e) => setPurity(e.target.value)} /></label>
+      <label>중량(kg)<input type="number" min="0" step="any" required value={mass} onChange={(e) => setMass(e.target.value)} /></label>
+      <label>순도(%, 모르면 비움)<input type="number" min="0" max="100" step="any" value={purity} onChange={(e) => { setPurity(e.target.value); setPurityBadInput(e.target.validity.badInput); }} /></label>
       <label>상태 설명<textarea rows={2} maxLength={1500} value={condition} onChange={(e) => setCondition(e.target.value)} /></label>
       <label>근거(계량표·작업일지 번호 등)<input maxLength={300} value={evidence} onChange={(e) => setEvidence(e.target.value)} /></label>
-      <button className="button button-primary" type="submit" disabled={!!busy || !ok}>
+      <button className="button button-primary" type="submit" disabled={!!busy}>
         {busy === 'output' ? '기록하는 중…' : '처리 결과 기록'}
       </button>
     </form>
@@ -441,41 +512,108 @@ function FinishForm({ material, busy, onFinish }) {
 function History({ lot, name }) {
   const events = [...(lot.data.events || [])].reverse();
   return (
-    <section className="wf-card">
-      <h3>인계 기록</h3>
-      {lot.offers.filter(o => o.status !== 'conditional' && o.data.conditions?.length).map(o => (
-        <details key={o.id} className="wf-card">
-          <summary>반입조건 확인 기록 · {name(o.recipient_id)}</summary>
-          <p className="wf-muted">{OFFER_STATUS[o.status] || o.status} · {o.data.decision?.note}</p>
-          <dl className="wf-form">{o.data.conditions.map(c => <div key={c.id}>
-            <dt>{c.text}</dt><dd>{o.data.condition_responses?.[c.id]?.text || '미제출'}</dd>
-            <small>{o.data.decision?.resolved_condition_ids?.includes(c.id) ? '수신기업 확인 완료' : '수신기업 확인 전'}</small>
-          </div>)}</dl>
-        </details>
-      ))}
-      {lot.data.completed.length > 0 && (
-        <ol className="wf-steps">
-          {lot.data.completed.map((step, i) => (
-            <li key={i}>
-              <strong>{step.facility}</strong> · {STATE_LABEL[step.output.state_key] || step.output.state_key} {formatKg(step.output.mass_kg)}
-              <span className="wf-muted"> (근거: {step.output.evidence})</span>
+    <section className="wf-history" aria-labelledby="wf-history-title">
+      <header className="wf-history-heading">
+        <div><span>HANDOFF STATUS</span><h3 id="wf-history-title">인계 기록</h3><p>처리 건의 진행 상황과 기업별 확인 내역을 시간순으로 확인하세요.</p></div>
+        <strong>{events.length}건 기록</strong>
+      </header>
+      {events.length ? (
+        <ol className="wf-history-timeline">
+          {events.map((e, i) => (
+            <li key={i} className={i === 0 ? 'is-current' : ''}>
+              <span className="wf-history-marker" aria-hidden="true" />
+              <div className="wf-history-entry">
+                <div className="wf-history-entry-top"><strong>{e.action}</strong>{i === 0 && <span>최근 단계</span>}</div>
+                <p>{name(e.company_id)}{e.facility && ` · ${e.facility}`}</p>
+                {e.note && <p>{e.note}</p>}
+                <time>{formatDateTime(e.at)}</time>
+              </div>
             </li>
           ))}
         </ol>
-      )}
-      {events.length ? (
-        <ul className="wf-events">
-          {events.map((e, i) => (
-            <li key={i}>
-              <span className="wf-muted">{formatDateTime(e.at)}</span> {e.action} · {name(e.company_id)}
-              {e.facility && ` · ${e.facility}`}
-              {e.note && <span className="wf-muted"> · {e.note}</span>}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="wf-muted">아직 기록이 없어요.</p>
-      )}
+      ) : <p className="wf-history-empty">아직 기록이 없어요.</p>}
     </section>
   );
+}
+
+function LotChecks({ lot, name }) {
+  const offersWithConditions = lot.offers.filter((offer) => offer.data.conditions?.length);
+  return <section className="wf-evidence-panel wf-lot-checks" aria-label="현재 처리 건 확인 사항">
+    <div className="wf-evidence-panel-head"><div><span>물량 · 인계 확인</span><h3>현재 물량 확인 사항</h3></div><strong>{lot.data.warnings?.length || 0}건 확인 필요</strong></div>
+    <div className="wf-current-condition"><span>현재 상태 설명</span><p>{lot.data.current.condition || '설명 없음'}</p></div>
+    {lot.offers.filter(offer => offer.data.messages?.length || offer.data.facility?.supplier_policy).map(offer =>
+      <details className="wf-evidence-accordion" key={`inquiry-${offer.id}`}>
+        <summary>{name(offer.recipient_id)} · 문의 당시 반입조건과 대화</summary>
+        <SupplierPolicySummary value={offer.data.facility?.supplier_policy} />
+        <InquiryConversation lot={lot} offer={offer} readOnly />
+      </details>
+    )}
+    {lot.data.warnings?.length > 0 && <div className="wf-evidence-alert"><strong>먼저 확인할 사항</strong><ul>{lot.data.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
+    {offersWithConditions.map((offer) => <details className="wf-evidence-accordion" key={offer.id}>
+      <summary><span><strong>{name(offer.recipient_id)} 반입 조건</strong><small>{OFFER_STATUS[offer.status] || offer.status} · {offer.data.conditions.length}건</small></span><span className="wf-disclosure-arrow" aria-hidden="true">⌄</span></summary>
+      <div className="wf-evidence-accordion-body"><p className="wf-muted">{OFFER_STATUS[offer.status] || offer.status} · {offer.data.decision?.note}</p>
+        <dl className="wf-check-table">{offer.data.conditions.map((condition) => <div key={condition.id}>
+          <dt>{condition.text}</dt><dd>{offer.data.condition_responses?.[condition.id]?.text || '미제출'}</dd>
+          <dd className="wf-check-state">{offer.data.decision?.resolved_condition_ids?.includes(condition.id) ? '수신기업 확인 완료' : '수신기업 확인 전'}</dd>
+        </div>)}</dl>
+      </div>
+    </details>)}
+    {lot.data.completed.length > 0 && <details className="wf-evidence-accordion"><summary><span><strong>완료된 공정</strong><small>{lot.data.completed.length}건 · 산출물과 근거</small></span><span className="wf-disclosure-arrow" aria-hidden="true">⌄</span></summary><div className="wf-evidence-accordion-body"><ol className="wf-steps">
+      {lot.data.completed.map((step, index) => <li key={index}><strong>{step.facility}</strong> · {stateLabel(lot, step.output.state_key)} {formatKg(step.output.mass_kg)} <span className="wf-muted">(근거: {step.output.evidence})</span></li>)}
+    </ol></div></details>}
+  </section>;
+}
+
+function ProgressStatus({ lot, name }) {
+  const stages = ['처리 건 등록', '업체 인수 요청', '입고 확인', '처리 진행', '처리 완료'];
+  const current = lot.status === 'completed' ? 4
+    : lot.status === 'processing' || lot.status === 'processed' || lot.status === 'review_required' ? 3
+      : lot.status === 'accepted' ? 2
+        : ['offered', 'conditional'].includes(lot.status) ? 1 : 0;
+  const company = name(lot.current_company_id);
+  const awaitingRecipient = lot.offers.find((offer) => offer.status === 'accepted');
+  const currentOffer = [...lot.offers].reverse().find((offer) => offer.recipient_id === lot.current_company_id && ['received', 'processed'].includes(offer.status));
+  const site = currentOffer?.data?.facility?.label || company;
+  const message = lot.status === 'processing' ? `${site}에서 처리 중이에요`
+    : lot.status === 'completed' ? `${site}에서 처리를 완료했어요`
+      : lot.status === 'processed' ? `${site}에서 처리 결과를 기록했어요`
+        : lot.status === 'accepted' ? `${awaitingRecipient ? name(awaitingRecipient.recipient_id) : '수신 기업'}의 입고를 기다리고 있어요`
+          : lot.status === 'offered' || lot.status === 'conditional' ? '업체의 인수 확인을 기다리고 있어요'
+            : `${company}에서 다음 인계를 준비하고 있어요`;
+  return <section className="wf-progress-status" aria-label="현재 인계 현황">
+    <span>현재 진행 상황</span><h2>{message}</h2>
+    <p>현재 담당 · {company}{site !== company && ` · ${site}`}</p>
+    <ol>{stages.map((stage, index) => <li key={stage} className={index === current ? 'is-current' : index < current ? 'is-done' : ''}>
+      <span aria-hidden="true">{index < current ? '✓' : String(index + 1).padStart(2, '0')}</span>{stage}
+    </li>)}</ol>
+  </section>;
+}
+
+function HandoffMap({ lot }) {
+  const origin = lot.data.initial?.origin;
+  const handoffs = lot.offers.filter((offer) => ['received', 'processed'].includes(offer.status));
+  const locations = handoffs.map((offer) => ({
+    id: offer.id,
+    name: offer.data.facility?.label || lot.companies[offer.recipient_id] || '처리 사업장',
+    location: offer.data.facility?.region || '',
+    point: offer.data.facility?.location,
+  }));
+  const factories = locations.filter((site) => validLocation(site.point)).map((site) => ({
+    id: site.id, name: site.name, location: site.location,
+    latitude: site.point.latitude, longitude: site.point.longitude,
+  }));
+  const routePoints = validLocation(origin) ? [[origin.longitude, origin.latitude]] : [];
+  for (const site of locations) {
+    if (!validLocation(site.point) || !routePoints.length) break;
+    routePoints.push([site.point.longitude, site.point.latitude]);
+  }
+  return <section className="wf-handoff-map" aria-label="인계 사업장 지도">
+    <header><strong>인계 경로</strong><span>입고 확인된 사업장</span></header>
+    <div className="wf-handoff-map-canvas"><Suspense fallback={<p>지도를 불러오는 중이에요.</p>}>
+      <ResourceMapbox factories={factories} origin={validLocation(origin) ? { ...origin, label: '배출 사업장' } : null}
+        routePoints={routePoints} label="실제 인계 사업장 위치와 이동 순서 지도" />
+    </Suspense></div>
+    <p>{handoffs.length ? `${handoffs.length}곳에 입고가 확인됐어요. 선은 확인된 사업장 좌표 간 직선 연결이며 실제 운송 GPS 경로는 아니에요.` : '아직 입고가 확인된 업체가 없어요. 입고 후 이동 순서를 표시합니다.'}</p>
+    {handoffs.length > factories.length && <p>일부 사업장 좌표가 없어 지도에 표시하지 못했어요.</p>}
+  </section>;
 }

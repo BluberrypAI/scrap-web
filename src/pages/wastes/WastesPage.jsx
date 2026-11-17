@@ -33,7 +33,7 @@ const stages = [
   },
 ];
 
-function WasteList({ variant, onCreate, createdWasteId, wastes }) {
+function WasteList({ variant, onCreate, creating, createdWasteId, wastes }) {
   const createdWaste = wastes.find((waste) => waste.id === createdWasteId);
   const createdStage = stages.find((stage) => stage.statuses.includes(createdWaste?.status));
   const [activeStage, setActiveStage] = useState(createdStage?.id || stages[0].id);
@@ -101,8 +101,8 @@ function WasteList({ variant, onCreate, createdWasteId, wastes }) {
             <Icon name="arrow" size={15} />
           </a>
         </div>
-        <button className="button button-primary create-button" type="button" onClick={onCreate}>
-          <Icon name="plus" size={18} />새 폐기물 문진
+        <button className="button button-primary create-button" type="button" onClick={onCreate} disabled={creating}>
+          <Icon name="plus" size={18} />{creating ? '문진 준비 중…' : '새 폐기물 문진'}
         </button>
       </header>
       {variant === 'list' ? (
@@ -182,7 +182,7 @@ function WasteList({ variant, onCreate, createdWasteId, wastes }) {
           </div>
         </>
       ) : (
-        <EmptyState onCreate={onCreate} />
+        <EmptyState onCreate={onCreate} creating={creating} />
       )}
     </div>
   );
@@ -191,14 +191,17 @@ function WasteList({ variant, onCreate, createdWasteId, wastes }) {
 // 우리 문진으로 만든 처리 건은 그 문진 카드에 진행 상태를 덮고,
 // 다른 기업이 보낸 처리 건(우리가 요청받았거나 지금 처리 중)은 별도 카드로 넣는다
 function mergeLots(cards, lots, myCompanyId) {
-  const byCase = new Map(lots.filter((l) => l.owner_company_id === myCompanyId).map((l) => [l.data?.handoff?.case_id, l]));
+  // 문진 목록은 이미 로그인 기업 소유로 제한된다. 기업 프로필 조회가 실패해도
+  // 같은 case_id의 처리 건은 카드에 연결해야 STEP 3 경로가 사라지지 않는다.
+  const byCase = new Map(lots.filter((l) => l.data?.handoff?.case_id).map((l) => [l.data.handoff.case_id, l]));
   const merged = cards.map((card) => {
     const lot = byCase.get(card.caseId);
     return lot
-      ? { ...card, status: lotCardStatus(lot.status), ...lotCardText(lot, myCompanyId), href: `/wastes/${card.id}` }
+      ? { ...card, lot, status: lotCardStatus(lot.status), ...lotCardText(lot, myCompanyId), href: `/wastes/${card.id}` }
       : card;
   });
-  const received = lots.filter((l) => l.owner_company_id !== myCompanyId).map((l) => lotToWaste(l, myCompanyId));
+  const cardCaseIds = new Set(cards.map((card) => card.caseId));
+  const received = lots.filter((l) => !cardCaseIds.has(l.data?.handoff?.case_id)).map((l) => lotToWaste(l, myCompanyId));
   return [...received, ...merged];
 }
 
@@ -207,11 +210,12 @@ export function WastesPage() {
   // 카드는 문진 엔진의 실제 건 목록으로 채운다 (server /api/v1/diagnosis/cases)
   const [wastes, setWastes] = useState(null);
   const [problem, setProblem] = useState('');
+  const [creating, setCreating] = useState(false);
   useEffect(() => {
     // 처리 건(기업 간 인계)은 목록을 못 불러와도 문진 카드는 보여 준다
     Promise.all([
       api.diagnosis.listCases(),
-      workflowApi.listLots().catch(() => []),
+      workflowApi.listLots().catch(() => { setProblem('처리 건을 불러오지 못해 진행 경로를 표시할 수 없어요. 새로고침해 주세요.'); return []; }),
       api.myCompany().catch(() => null),
     ])
       .then(([page, lots, company]) => setWastes(mergeLots(page.items.map(caseToWaste), lots, company?.id)))
@@ -221,6 +225,18 @@ export function WastesPage() {
       });
   }, []);
   if (wastes === null) return <div className="home-content" role="status" aria-busy="true">폐기물과 처리 현황을 불러오는 중이에요…</div>;
+  const createCase = async () => {
+    if (creating) return;
+    setCreating(true);
+    setProblem('');
+    try {
+      const created = await api.diagnosis.createCase({});
+      navigate(`/wastes/case-${created.case.id}/survey`);
+    } catch (error) {
+      setProblem(error?.message || '문진을 시작하지 못했어요. 다시 시도해 주세요.');
+      setCreating(false);
+    }
+  };
   const variant = params.get('variant') === 'empty' || !wastes.length ? 'empty' : 'list';
   return (
     <>
@@ -232,8 +248,9 @@ export function WastesPage() {
       <WasteList
         wastes={wastes}
         variant={variant}
-      createdWasteId={params.get('created')}
-        onCreate={() => navigate(`/wastes/lot-${crypto.randomUUID()}/survey`)}
+        creating={creating}
+        createdWasteId={params.get('created')}
+        onCreate={createCase}
       />
     </>
   );
