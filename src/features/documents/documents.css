@@ -16,8 +16,8 @@
 .lf-tabs button { border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); padding: 8px 14px; font: inherit; cursor: pointer; }
 .lf-tabs button[aria-pressed="true"] { background: var(--lf-ink); color: var(--lf-sheet); border-color: var(--lf-ink); }
 
-/* 입력 | 미리보기 나란히. 아주 좁은 화면(720px 미만)에서만 위아래로 */
-.lf-split { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(0, 1.2fr); gap: 20px; align-items: start; }
+/* 입력 | 미리보기 나란히. 휴대폰 폭(560px 미만)에서만 위아래로 */
+.lf-split { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.2fr); gap: 16px; align-items: start; }
 .lf-inputs { display: grid; gap: 12px; min-width: 0; container-type: inline-size; }
 .lf-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
 .lf-field { display: grid; gap: 4px; min-width: 0; align-content: start; }
@@ -51,7 +51,7 @@
 .lf-actions button.is-ghost { background: transparent; color: var(--lf-ink); border-color: var(--lf-rule); }
 .lf-actions button:disabled { opacity: .45; cursor: not-allowed; }
 
-@media (max-width: 720px) { .lf-split { grid-template-columns: 1fr; } .lf-preview { position: static; max-height: none; } }
+@media (max-width: 560px) { .lf-split { grid-template-columns: 1fr; } .lf-preview { position: static; max-height: none; } }
 /* 입력 칸이 좁으면 입력칸을 한 줄에 하나씩 */
 @container (max-width: 520px) { .lf-fields { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .lf-fields { grid-template-columns: 1fr; } }
