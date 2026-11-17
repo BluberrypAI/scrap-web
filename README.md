@@ -103,6 +103,8 @@ server #52의 새 migration `a87485f30805`를 먼저 적용하고 이 웹을 빌
 
 후속으로 별도 C 계정에서 조건을 등록하고, 같은 처리 건을 **B 산출물 950kg → 9개 후보 AI 검토 → C 문의·답변 → 조건부 수락 → 두 조건의 자료 제출·확인 → QR 입고**까지 웹에서 확인했습니다. A는 B→C를 조회하지만 문의 답변·QR 발급·입고를 대신할 수 없습니다. [B→C 검증 결과](https://github.com/BluberrypAI/scrap-server/blob/fix/e2e-release-20261117/docs/supplier-bc-validation-20261117.md). route #65와 server #52를 함께 적용하면 업체별 단독 검토로 한 곳의 시간초과가 다른 후보에 번지는 것을 줄입니다.
 
+같은 합성 PP 건을 **C 펠렛 900kg·완료 근거 기록 → 처리 완료 → A 재로그인**까지 이어서 확인했습니다. A에서 전체 인계 19건, B/C 공정 2건과 산출물·근거, 완료 업체·시각·용도가 보이고, 완료 건은 진행 목록에서 처리 이력으로 이동합니다. A에게 산출물 기록·완료 수정 버튼은 없습니다. 이번 후속은 실제 웹 검증 기록만 추가하며 실행 코드는 바꾸지 않았습니다. 시험 자료이며 실제 업체 연락·운송·재활용 인증은 수행하지 않았습니다.
+
 ```bash
 docker build -t scrap-web .
 docker run --rm -p 8080:80 -e SCRAP_SERVER_URL=http://host.docker.internal:8000 scrap-web
