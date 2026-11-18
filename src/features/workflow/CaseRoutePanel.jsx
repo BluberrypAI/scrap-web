@@ -8,6 +8,8 @@ import { registerLot } from './registration.js';
 import { RecyclingTypes } from './RecyclingTypes.jsx';
 import { RouteOutcome } from './RouteOutcome.jsx';
 import { hasFacilities } from './route-result.js';
+import { handoffDesignated } from '../diagnosis/lib/designated.js';
+import { DesignatedBanner, DesignatedNextActions } from '../diagnosis/components/DesignatedNotice.jsx';
 
 // 확정 문진 → 첫 처리 공정과 후보 업체.
 // 분류번호·재질·사업장 위치는 서버가 확정 문진과 기업 정보에서 읽고, 화면은 현재 형태만 고른다.
@@ -67,6 +69,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
   if (!context) return null;
 
   const next = context.next_step;
+  const designatedInfo = handoffDesignated(context.handoff);
   const reviews = context.reviews?.results;
   const reviewItems = Object.values(reviews || {});
   const reviewUnavailable = reviewItems.length > 0 && reviewItems.every((item) => item.status === 'model_unavailable');
@@ -97,6 +100,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
       </div>
       <div hidden={view !== 'route' || hasLot} className="route-recommendations-main">
       {context.requires_solid_confirmation && <label className="wf-card"><input type="checkbox" checked={solidConfirmed} disabled={reviewing} onChange={(event) => { setSolidConfirmed(event.target.checked); setForm(null); }} />현재 물량은 내용물을 비운 고체이며 액체·슬러지가 섞이지 않았어요.</label>}
+      {designatedInfo && <section className="designated-route" aria-label="지정폐기물 안내"><DesignatedBanner notice={designatedInfo} /><DesignatedNextActions notice={designatedInfo} caseId={caseId} handoff={context.handoff} /></section>}
       <RouteOutcome status={context.status} next={next} message={context.status !== 'ready' ? context.message : undefined} currentLabel={next?.current_state?.label || caseTitle} code={context.handoff?.waste_code || wasteCode} caseId={caseId} onRetry={retry} busy={reviewing} />
       {context.available_materials?.length > 0 && <fieldset className="wf-forms" disabled={reviewing}><legend>확인된 세부 재질</legend><p className="wf-muted">분류번호는 그대로 유지해요. 재질 표시나 성적서로 확인한 값만 선택하세요.</p>{[...context.available_materials, { value: 'unknown', label: '모름 · 혼합물이거나 목록에 없음' }].map((option) => <label key={option.value}><input type="radio" name="material-detail" value={option.value} checked={materialDetail === option.value} onChange={() => { setForm(null); setMaterialDetail(option.value); }} />{option.label}</label>)}</fieldset>}
       {context.available_forms?.length > 0 && (
