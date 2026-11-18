@@ -1,0 +1,106 @@
+/* 법정 서식 작성 패널. 색은 앱 변수가 없을 때를 위해 기본값을 둔다 */
+.lf-panel {
+  --lf-sheet: #ffffff; --lf-ink: #1d2321; --lf-muted: #5d6763; --lf-rule: #cfd5d1;
+  --lf-accent: #1f6b52; --lf-accent-ink: #ffffff; --lf-bad: #a2361f; --lf-bad-soft: #fbe9e4; --lf-ok-soft: #e1efe8; --lf-paper: #f4f5f3;
+  display: grid; gap: 16px; color: var(--lf-ink);
+}
+@media (prefers-color-scheme: dark) {
+  .lf-panel {
+    --lf-sheet: #202624; --lf-ink: #e6ebe8; --lf-muted: #9aa5a0; --lf-rule: #34403c;
+    --lf-accent: #6cc3a0; --lf-accent-ink: #10201a; --lf-bad: #ff9c85; --lf-bad-soft: #3b1f19; --lf-ok-soft: #1d3a30; --lf-paper: #161a19;
+  }
+}
+.lf-panel h2 { margin: 0 0 6px; font-size: 18px; }
+.lf-lead { margin: 0; color: var(--lf-muted); max-width: 65ch; }
+.lf-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.lf-tabs button { border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); padding: 8px 14px; font: inherit; cursor: pointer; }
+.lf-tabs button[aria-pressed="true"] { background: var(--lf-ink); color: var(--lf-sheet); border-color: var(--lf-ink); }
+
+/* 입력 | 미리보기 나란히. 휴대폰 폭(560px 미만)에서만 위아래로 */
+.lf-split { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.2fr); gap: 16px; align-items: start; }
+.lf-inputs { display: grid; gap: 12px; min-width: 0; container-type: inline-size; }
+.lf-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+.lf-field { display: grid; gap: 4px; min-width: 0; align-content: start; }
+.lf-field.is-wide { grid-column: 1 / -1; }
+.lf-field label { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.lf-field label em { font-style: normal; font-size: 11px; color: var(--lf-muted); white-space: nowrap; }
+.lf-field input:not([type="checkbox"]), .lf-field select { width: 100%; padding: 8px 10px; border: 1px solid var(--lf-rule); background: var(--lf-paper); color: var(--lf-ink); font: inherit; }
+.lf-field.is-check { grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; }
+.lf-field.is-check .lf-hint { grid-column: 1 / -1; }
+.lf-hint { margin: 0; font-size: 12px; color: var(--lf-muted); }
+.lf-warnings { margin: 0; padding: 10px 14px 10px 28px; font-size: 13px; border: 1px solid var(--lf-rule); background: var(--lf-paper); }
+.lf-panel input:focus-visible, .lf-panel select:focus-visible, .lf-panel button:focus-visible { outline: 2px solid var(--lf-accent); outline-offset: 1px; }
+
+.lf-preview { position: sticky; top: 12px; display: grid; gap: 8px; min-width: 0; max-height: calc(100vh - 24px); overflow: auto; }
+.lf-sheet { position: relative; width: 100%; container-type: inline-size; background: #ffffff; border: 1px solid var(--lf-rule); box-shadow: 0 2px 10px rgba(0, 0, 0, .08); }
+.lf-sheet img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lf-ink { position: absolute; color: #1b3fa0; line-height: 1.25; white-space: pre-line; font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; }
+.lf-ink.lf-set { display: flex; align-items: center; justify-content: flex-start; text-align: left; background: #ffffff; overflow: hidden; }
+.lf-ink.lf-set[data-align="center"] { justify-content: center; text-align: center; }
+.lf-ink.lf-line { white-space: pre; overflow: hidden; background: #ffffff; color: #1d2321; }
+.lf-ink.lf-line, .lf-ink.lf-tick { line-height: 1.1; }
+.lf-ink.lf-tick { font-weight: 700; }
+.lf-ink.lf-line b { font-weight: inherit; color: #1b3fa0; }
+
+.lf-bar { position: sticky; bottom: 0; background: var(--lf-sheet); border: 1px solid var(--lf-rule); padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.lf-bar p { margin: 0; font-size: 14px; flex: 1 1 280px; padding: 6px 10px; }
+.lf-bar p.is-ok { background: var(--lf-ok-soft); }
+.lf-bar p.is-bad { background: var(--lf-bad-soft); color: var(--lf-bad); }
+.lf-actions { display: flex; gap: 8px; }
+.lf-actions button { padding: 10px 16px; font: inherit; border: 1px solid var(--lf-accent); background: var(--lf-accent); color: var(--lf-accent-ink); cursor: pointer; }
+.lf-actions button.is-ghost { background: transparent; color: var(--lf-ink); border-color: var(--lf-rule); }
+.lf-actions button:disabled { opacity: .45; cursor: not-allowed; }
+
+@media (max-width: 560px) { .lf-split { grid-template-columns: 1fr; } .lf-preview { position: static; max-height: none; } }
+/* 입력 칸이 좁으면 입력칸을 한 줄에 하나씩 */
+@container (max-width: 520px) { .lf-fields { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .lf-fields { grid-template-columns: 1fr; } }
+
+/* 제출 정보·서명 */
+.lf-submit { margin: 0; padding: 12px 14px; display: grid; gap: 12px; border: 1px solid var(--lf-rule); min-width: 0; }
+.lf-submit legend { padding: 0 6px; font-size: 14px; font-weight: 700; }
+.lf-label { font-size: 14px; }
+.lf-pad { display: grid; gap: 6px; justify-items: start; }
+.lf-pad canvas { border: 1px dashed var(--lf-muted); background: var(--lf-paper); touch-action: none; cursor: crosshair; }
+.lf-pad button, .lf-mini { padding: 4px 10px; font: inherit; font-size: 13px; border: 1px solid var(--lf-rule); background: transparent; color: var(--lf-ink); cursor: pointer; justify-self: start; }
+.lf-pad button:disabled { opacity: .45; cursor: not-allowed; }
+.lf-confirm { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.lf-help { font-size: 12px; color: var(--lf-muted); }
+.lf-help summary { cursor: pointer; }
+.lf-help p { margin: 4px 0 0; }
+.lf-sheet img.lf-sign { position: absolute; inset: auto; height: auto; width: auto; object-fit: contain; mix-blend-mode: multiply; pointer-events: none; }
+.lf-ink.lf-at { white-space: nowrap; line-height: 1.1; }
+.lf-panel summary:focus-visible { outline: 2px solid var(--lf-accent); outline-offset: 1px; }
+
+/* 서명·날인 구역 */
+.lf-mark { display: grid; gap: 10px; padding: 12px 14px; border: 2px solid var(--lf-accent); background: var(--lf-paper); min-width: 0; }
+.lf-mark h3 { margin: 0; font-size: 15px; }
+.lf-seg { display: inline-flex; }
+.lf-seg button { padding: 7px 14px; font: inherit; font-size: 14px; border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); cursor: pointer; }
+.lf-seg button[aria-pressed="true"] { background: var(--lf-accent); color: var(--lf-accent-ink); border-color: var(--lf-accent); }
+.lf-stamp { display: grid; gap: 8px; justify-items: start; }
+.lf-stamp-prev { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lf-stamp-prev img { height: 64px; width: auto; max-width: 160px; object-fit: contain; border: 1px solid var(--lf-rule); background: #ffffff; }
+.lf-err { color: var(--lf-bad); }
+.lf-frame { position: relative; display: grid; place-items: center; min-height: 140px; border: 2px dashed var(--lf-muted); background: #ffffff; }
+.lf-frame-text { position: absolute; color: #b9c0bc; font-size: 20px; letter-spacing: 2px; user-select: none; }
+.lf-frame img { position: relative; max-height: 120px; max-width: 90%; width: auto; object-fit: contain; }
+.lf-frame[data-type="seal"] img { max-height: 112px; }
+.lf-mini:focus-visible, .lf-seg button:focus-visible { outline: 2px solid var(--lf-accent); outline-offset: 1px; }
+
+/* 미리보기 머리줄, 누르면 크게 보기 */
+.lf-preview-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--lf-muted); }
+.lf-preview-head button { padding: 6px 12px; font: inherit; font-size: 13px; border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); cursor: pointer; }
+.lf-sheet-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; text-align: inherit; }
+.lf-sheet-open:focus-visible { outline: 2px solid var(--lf-accent, #1f6b52); outline-offset: 2px; }
+.lf-big { width: min(1100px, 96vw); max-width: 96vw; height: 94vh; max-height: 94vh; padding: 0; border: 1px solid var(--lf-rule); background: var(--lf-paper, #f4f5f3); color: var(--lf-ink); }
+.lf-big::backdrop { background: rgba(0, 0, 0, .55); }
+.lf-big[open] { display: grid; grid-template-rows: auto 1fr; }
+.lf-big-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--lf-rule); background: var(--lf-sheet); }
+.lf-big-close { padding: 7px 14px; font: inherit; border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); cursor: pointer; }
+.lf-big-scroll { overflow: auto; padding: 16px; }
+.lf-big-page { margin: 0 auto; }
+
+/* 서식 작성 페이지 */
+.lf-page { max-width: 1480px; margin: 0 auto; padding: 20px 16px 80px; display: grid; gap: 16px; }
+.lf-page-nav { display: flex; }
