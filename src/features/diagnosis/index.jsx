@@ -49,7 +49,9 @@ export function DiagnosisCaseScreen({ caseId }) {
         <DiagnosisChatPage
           key={caseId}
           id={caseId}
-          afterConfirm={({ id, handoff }) => <RoutePrep id={id} handoff={handoff} />}
+          afterConfirm={({ id, handoff }) => (
+            <RoutePrep id={id} handoff={handoff} />
+          )}
         />
       ) : (
         <p className="muted">불러오는 중…</p>

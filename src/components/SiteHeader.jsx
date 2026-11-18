@@ -1,7 +1,6 @@
 import { ArrowUpRightIcon } from './LandingIcons.jsx';
-import { navItems } from '../data/navigation.js';
 import { getStartPath, isAuthenticated } from '../lib/auth.js';
-import { AuthenticatedAccount } from './AuthenticatedAccount.jsx';
+import { GachonBadge } from '../pages/landing/GachonBadge.jsx';
 
 // 홈·기업소개(로그인 전 화면) 상단 헤더.
 // 앱 화면의 AppTopNav와 같은 구조·클래스를 써서 높이, 폭, 메뉴 위치가 똑같이 맞도록 함.
@@ -13,29 +12,20 @@ export function SiteHeader({ activeHref }) {
         <a className="app-wordmark" href="/" data-layer-name="Logo" aria-label="SCRAP 홈">
           <img className="site-brand-logo" src="/images/scrap-logo-2d.png" alt="" />
         </a>
-        <nav className="app-route-nav" aria-label="주요 메뉴">
-          {navItems.map((item) => (
-            <a
-              href={item.href}
-              className={item.href === activeHref ? 'is-active' : ''}
-              aria-current={item.href === activeHref ? 'page' : undefined}
-              key={item.href}
-            >
-              {item.label}
-            </a>
-          ))}
-        </nav>
-        {authenticated && activeHref === '/about' ? (
-          <AuthenticatedAccount />
+        {activeHref === '/about' ? (
+          <div className="app-account">
+            <a className="landing-button landing-button-primary landing-button-small" href="/wastes">자원 경로 <ArrowUpRightIcon /></a>
+          </div>
         ) : (
           <div className="app-account landing-header-actions">
             {!authenticated && (
               <a className="landing-header-login" href="/login?mode=login">로그인</a>
             )}
             <a className="landing-button landing-button-primary landing-button-small" href={getStartPath()}>
-              시작하기
+              {authenticated ? '자원 경로' : '시작하기'}
               <ArrowUpRightIcon />
             </a>
+            <GachonBadge />
           </div>
         )}
       </div>

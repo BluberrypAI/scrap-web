@@ -1,33 +1,21 @@
-import { navItems } from '../data/navigation.js';
 import { AuthenticatedAccount } from './AuthenticatedAccount.jsx';
 import { NotificationInbox } from './NotificationInbox.jsx';
+import { ArrowUpRightIcon } from './LandingIcons.jsx';
+import { StageProgress } from '../pages/wastes/StageProgress.jsx';
 
-export function AppTopNav({ path }) {
-  let r =
-    path === '/app' || path.startsWith('/wastes')
-      ? '/wastes'
-      : path.startsWith('/map')
-        ? '/map'
-        : path;
+export function AppTopNav({ currentStage = null, showStages = true }) {
   return (
     <header className="app-topnav" data-layer-name="TopNav-App">
       <div className="app-topnav-inner">
         <a className="app-wordmark" href="/" data-layer-name="Logo" aria-label="SCRAP 홈">
           <img className="site-brand-logo" src="/images/scrap-logo-2d.png" alt="" />
         </a>
-        <nav className="app-route-nav" aria-label="앱 주요 메뉴">
-          {navItems.map((e) => (
-            <a
-              href={e.href}
-              className={r === e.href ? 'is-active' : ''}
-              aria-current={r === e.href ? 'page' : undefined}
-              key={e.href}
-            >
-              {e.label}
-            </a>
-          ))}
-        </nav>
-        <div className="app-account"><NotificationInbox /><AuthenticatedAccount /></div>
+        {showStages && <StageProgress current={currentStage} />}
+        <div className="app-account">
+          {showStages ? <><NotificationInbox /><AuthenticatedAccount /></> : (
+            <a className="landing-button landing-button-primary landing-button-small" href="/wastes">자원 경로 <ArrowUpRightIcon /></a>
+          )}
+        </div>
       </div>
     </header>
   );

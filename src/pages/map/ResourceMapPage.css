@@ -32,17 +32,6 @@
   content: ''; display: block; width: 42px; height: 3px; margin-top: 14px;
   border-radius: 999px; background: linear-gradient(90deg, #7654b7, #9e88c8);
 }
-.resource-map-search {
-  grid-template-columns: 30px minmax(0, 1fr) auto auto;
-  height: 62px; margin-top: 24px; border-color: #ddd6e3; border-radius: 16px; padding-left: 18px;
-  box-shadow: 0 10px 30px #352a4912;
-}
-.resource-map-search .button { min-width: 112px; min-height: 44px; border-radius: 12px; }
-.resource-search-clear {
-  display: grid; place-items: center; width: 28px; height: 28px; cursor: pointer;
-  border: 0; border-radius: 50%; background: #f1eef3; color: #77707b;
-  font-size: 19px; line-height: 1;
-}
 .resource-map-layout {
   display: grid; grid-template-columns: 360px minmax(0, 1fr);
   min-height: 720px; margin-top: 18px; overflow: hidden;
@@ -202,8 +191,6 @@
   .resource-map-hero-copy { align-items: flex-start; }
   .resource-map-hero-mark { width: 52px; height: 52px; border-radius: 15px; }
   .resource-map-hero-mark img { width: 37px; height: 37px; }
-  .resource-map-search { grid-template-columns: 24px minmax(0, 1fr) 28px; }
-  .resource-map-search .button { grid-column: 1 / -1; }
   .resource-map-layout { display: flex; flex-direction: column; min-height: 0; }
   .resource-map-sidebar { max-height: none; border-right: 0; }
   .resource-result-list { max-height: 360px; }
