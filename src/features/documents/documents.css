@@ -16,8 +16,9 @@
 .lf-tabs button { border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); padding: 8px 14px; font: inherit; cursor: pointer; }
 .lf-tabs button[aria-pressed="true"] { background: var(--lf-ink); color: var(--lf-sheet); border-color: var(--lf-ink); }
 
-.lf-split { display: grid; grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.4fr); gap: 20px; align-items: start; }
-.lf-inputs { display: grid; gap: 12px; min-width: 0; }
+/* 입력 | 미리보기 나란히. 휴대폰 폭(560px 미만)에서만 위아래로 */
+.lf-split { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.2fr); gap: 16px; align-items: start; }
+.lf-inputs { display: grid; gap: 12px; min-width: 0; container-type: inline-size; }
 .lf-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
 .lf-field { display: grid; gap: 4px; min-width: 0; align-content: start; }
 .lf-field.is-wide { grid-column: 1 / -1; }
@@ -30,7 +31,7 @@
 .lf-warnings { margin: 0; padding: 10px 14px 10px 28px; font-size: 13px; border: 1px solid var(--lf-rule); background: var(--lf-paper); }
 .lf-panel input:focus-visible, .lf-panel select:focus-visible, .lf-panel button:focus-visible { outline: 2px solid var(--lf-accent); outline-offset: 1px; }
 
-.lf-preview { position: sticky; top: 12px; display: grid; gap: 8px; min-width: 0; }
+.lf-preview { position: sticky; top: 12px; display: grid; gap: 8px; min-width: 0; max-height: calc(100vh - 24px); overflow: auto; }
 .lf-sheet { position: relative; width: 100%; container-type: inline-size; background: #ffffff; border: 1px solid var(--lf-rule); box-shadow: 0 2px 10px rgba(0, 0, 0, .08); }
 .lf-sheet img { position: absolute; inset: 0; width: 100%; height: 100%; }
 .lf-ink { position: absolute; color: #1b3fa0; line-height: 1.25; white-space: pre-line; font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; }
@@ -50,7 +51,9 @@
 .lf-actions button.is-ghost { background: transparent; color: var(--lf-ink); border-color: var(--lf-rule); }
 .lf-actions button:disabled { opacity: .45; cursor: not-allowed; }
 
-@media (max-width: 1100px) { .lf-split { grid-template-columns: 1fr; } .lf-preview { position: static; } }
+@media (max-width: 560px) { .lf-split { grid-template-columns: 1fr; } .lf-preview { position: static; max-height: none; } }
+/* 입력 칸이 좁으면 입력칸을 한 줄에 하나씩 */
+@container (max-width: 520px) { .lf-fields { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .lf-fields { grid-template-columns: 1fr; } }
 
 /* 제출 정보·서명 */

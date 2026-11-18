@@ -358,7 +358,7 @@ function OfferCard({ lot, offer, name, children }) {
       </h3>
       <p className="wf-muted">
         {name(offer.sender_id)} → {name(offer.recipient_id)} · {data.option?.label}
-        {data.synthetic && ' · 로컬 시험용 계정'}
+        {data.synthetic && ' · 시연용 계정'}
       </p>
       <p>
         보낸 물량: {stateLabel(lot, data.current?.state_key)} {formatKg(data.current?.mass_kg)} · {data.current?.condition}
@@ -434,7 +434,7 @@ function QrIssue({ lot, offer, busy, run }) {
           </div>
         </>
       ) : (
-        <button className="button button-primary" type="button" disabled={!!busy} onClick={issue}>
+        <button className="button button-primary wf-qr-issue-button" type="button" disabled={!!busy} onClick={issue}>
           {busy === 'qr' ? '발급하는 중…' : '입고 QR 발급'}
         </button>
       )}

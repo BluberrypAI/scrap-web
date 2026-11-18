@@ -13,21 +13,21 @@ const stages = [
   {
     id: 'classification',
     number: '01',
-    label: '분류 확인',
+    label: '폐기물 분류',
     description: '문진과 분석을 거쳐 폐기물의 분류를 확인해요.',
     statuses: ['문진 중', '후보', '분석 대기'],
   },
   {
     id: 'route',
     number: '02',
-    label: '경로 준비',
+    label: '업체 연결',
     description: '분류가 확정된 폐기물의 처리경로를 살펴봐요.',
     statuses: ['확정'],
   },
   {
     id: 'treatment',
     number: '03',
-    label: '처리 진행',
+    label: '처리 추적',
     description: '인계된 폐기물의 현재 처리 상태를 확인해요.',
     statuses: ['처리 진행'],
   },
@@ -36,37 +36,7 @@ const stages = [
 function WasteList({ variant, onCreate, creating, createdWasteId, wastes }) {
   const createdWaste = wastes.find((waste) => waste.id === createdWasteId);
   const createdStage = stages.find((stage) => stage.statuses.includes(createdWaste?.status));
-  const [activeStage, setActiveStage] = useState(createdStage?.id || stages[0].id);
   const ongoing = wastes.filter((waste) => waste.status !== '완료');
-  useEffect(() => {
-    if (variant !== 'list') return undefined;
-    let frame;
-    const updateCurrentStage = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        const marker = window.innerHeight / 2;
-        let current = stages[0].id;
-        for (const stage of stages) {
-          if (document.getElementById(`waste-stage-${stage.id}`)?.getBoundingClientRect().top <= marker) {
-            current = stage.id;
-          }
-        }
-        if (document.documentElement.scrollHeight > window.innerHeight + 50 &&
-            window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 8) {
-          current = stages[stages.length - 1].id;
-        }
-        setActiveStage(current);
-      });
-    };
-    updateCurrentStage();
-    window.addEventListener('scroll', updateCurrentStage, { passive: true });
-    window.addEventListener('resize', updateCurrentStage);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener('scroll', updateCurrentStage);
-      window.removeEventListener('resize', updateCurrentStage);
-    };
-  }, [variant]);
 
   useEffect(() => {
     if (variant !== 'list' || !createdStage) return undefined;
@@ -78,14 +48,6 @@ function WasteList({ variant, onCreate, creating, createdWasteId, wastes }) {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [createdStage, variant]);
-
-  const jumpToStage = (id) => {
-    setActiveStage(id);
-    document.getElementById(`waste-stage-${id}`)?.scrollIntoView({
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-      block: 'start',
-    });
-  };
 
   return (
     <div className="home-content" data-layer-name="L1-Home" data-variant={variant}>
@@ -107,31 +69,6 @@ function WasteList({ variant, onCreate, creating, createdWasteId, wastes }) {
       </header>
       {variant === 'list' ? (
         <>
-          <div className="waste-stage-heading">
-            <span>PROCESS OVERVIEW</span>
-            <h2>진행 단계</h2>
-          </div>
-          <nav className="waste-stage-tabs" aria-label="폐기물 진행 단계로 이동">
-            {stages.map((stage) => {
-              const count = ongoing.filter((waste) => stage.statuses.includes(waste.status)).length;
-              return (
-                <button
-                  key={stage.id}
-                  type="button"
-                  data-stage={stage.number}
-                  aria-current={activeStage === stage.id ? 'location' : undefined}
-                  className={activeStage === stage.id ? 'is-active' : ''}
-                  onClick={() => jumpToStage(stage.id)}
-                >
-                  <span className="waste-stage-number">{stage.number}</span>
-                  <span className="waste-stage-caption">
-                    <span className="waste-stage-name">{stage.label}</span>
-                    <span className="waste-stage-count">{count}건</span>
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
           <div className="waste-stage-content">
             {stages.map((stage) => {
               const stageWastes = ongoing.filter((waste) => stage.statuses.includes(waste.status));

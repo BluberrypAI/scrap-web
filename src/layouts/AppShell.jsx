@@ -14,12 +14,17 @@ import { SurveyPage } from '../pages/survey/SurveyPage.jsx';
 import { WasteDetailPage } from '../pages/waste-detail/WasteDetailPage.jsx';
 import { WasteTrackingPage } from '../pages/waste-detail/WasteTrackingPage.jsx';
 import { WastesPage } from '../pages/wastes/WastesPage.jsx';
+import { useCallback, useState } from 'react';
 import { TaskPlaceholder } from '../pages/workspace/TaskPlaceholder.jsx';
 
 // 기업소개와 같은 하단 푸터는 1단계 메뉴 화면(자원 경로, 순환자원지도, 기업데이터)에만 붙임
 const FOOTER_PATHS = ['/wastes', '/map', '/data'];
 
 export function AppShell({ path }) {
+  const [reportedStage, setReportedStage] = useState(null);
+  const reportStage = useCallback((routePath, stage) => {
+    setReportedStage((previous) => previous?.path === routePath && previous.stage === stage ? previous : { path: routePath, stage });
+  }, []);
   let t = path.match(/^\/wastes\/([^/]+)$/),
     tracking = path.match(/^\/wastes\/([^/]+)\/tracking$/),
     n = path.match(/^\/map\/([^/]+)$/),
@@ -40,17 +45,22 @@ export function AppShell({ path }) {
     dx = path.match(/^\/wastes\/case-([A-Za-z0-9_-]{1,64})\/(survey|history|documents)$/),
     // 기업 간 인계: 처리 건, 입고 QR 확인
     lot = path.match(/^\/lots\/([0-9a-f-]{36})(?:\/receive\/([0-9a-f-]{36}))?$/);
+  const inferredStage = dx ? dx[2] === 'documents' ? 'treatment' : 'classification' : lot ? 'treatment'
+    : trackingWaste || (i || a)?.status === '처리 진행' ? 'treatment'
+      : t && !i || (i || a)?.status === '확정' ? 'route'
+        : i || a ? 'classification' : null;
+  const currentStage = reportedStage?.path === path ? reportedStage.stage : inferredStage;
   if (lot)
     return (
       <div className="app-route-shell" data-theme="light">
-        <AppTopNav path={path} />
-        {lot[2] ? <ReceivePage lotId={lot[1]} offerId={lot[2]} /> : <LotPage lotId={lot[1]} />}
+        <AppTopNav currentStage={currentStage} />
+        {lot[2] ? <ReceivePage lotId={lot[1]} offerId={lot[2]} /> : <LotPage lotId={lot[1]} onStageChange={(stage) => reportStage(path, stage)} />}
       </div>
     );
   if (dx)
     return (
       <div className="app-route-shell" data-theme="light">
-        <AppTopNav path={path} />
+        <AppTopNav currentStage={currentStage} />
         {dx[2] === 'survey' ? (
           <DiagnosisCaseScreen caseId={dx[1]} />
         ) : dx[2] === 'documents' ? (
@@ -74,13 +84,13 @@ export function AppShell({ path }) {
     </div>
   ) : (
     <div className="app-route-shell" data-theme="light">
-      <AppTopNav path={path} />
+      <AppTopNav currentStage={currentStage} showStages={path === '/app' || path.startsWith('/wastes') || path.startsWith('/lots')} />
       {trackingWaste ? (
         <WasteTrackingPage waste={trackingWaste} />
       ) : i || (r?.[2] === 'match' && a) ? (
         <WasteDetailPage waste={i || a} />
       ) : t && /^case-[A-Za-z0-9_-]{1,64}$/.test(t[1]) ? (
-        <CaseDetailPage key={t[1]} caseId={t[1].slice('case-'.length)} />
+        <CaseDetailPage key={t[1]} caseId={t[1].slice('case-'.length)} onStageChange={(stage) => reportStage(path, stage)} />
       ) : o ? (
         <HandlerDetailPage company={o} />
       ) : path === '/map' ? (
