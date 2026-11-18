@@ -1,8 +1,6 @@
 import { SiteHeader } from '../../components/SiteHeader.jsx';
 import { MeadowBackground } from './ShowcaseHome.jsx';
-import { GachonBadge } from './GachonBadge.jsx';
 import './showcase.css';
-import { AnimatedContent } from './LandingMotion.jsx';
 
 const partners = [
   { id: 'moel', name: '고용노동부', image: '/images/partner-moel-symbol.svg' },
@@ -18,18 +16,21 @@ export function LandingPage() {
       <SiteHeader />
       <section className="landing-hero meadow-integrated" aria-labelledby="landing-title">
         <MeadowBackground onBerryClick={openBerryTour} />
-        <GachonBadge />
         <div className="landing-copy">
           <h1 id="landing-title">
             Connecting Resources,
             <br />
             <span className="landing-headline-accent">Creating Circulation.</span>
           </h1>
-          <AnimatedContent as="p" delay={180}>
+          <p>
             폐기물 분류부터 처리업체에 맡기는 시간까지,
             <br />
             SCRAP이 더 빠르고 투명한 자원순환을 시작합니다.
-          </AnimatedContent>
+          </p>
+          <nav className="meadow-hero-actions" aria-label="SCRAP 주요 페이지">
+            <a className="meadow-liquid-link" href="/about"><span>기업소개</span></a>
+            <a className="meadow-liquid-link" href="/map"><span>순환자원지도</span></a>
+          </nav>
         </div>
         <footer className="meadow-credits">
           <svg className="partner-render-filters" aria-hidden="true" width="0" height="0">
