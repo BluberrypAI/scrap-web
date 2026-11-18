@@ -243,7 +243,7 @@ export function CompanyDataPage() {
                       </label>
                     ))}
                   </div>
-                  <SiteLocationPicker value={sitePoint} onChange={setSitePoint} disabled={saving} />
+                  <SiteLocationPicker address={draft.site_address} value={sitePoint} onChange={setSitePoint} disabled={saving} />
                   <div className="workplace-edit-footer">
                     <span>저장하면 서버의 기업 정보가 바뀝니다.</span>
                     <button className="button button-primary" type="submit" disabled={saving || !company}>

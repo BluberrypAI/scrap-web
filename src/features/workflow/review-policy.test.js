@@ -33,3 +33,15 @@ test('업체가 신규 문의를 중단하면 AI 검토 완료여도 요청할 �
   assert.equal(canRequestIntake(review, { ...facility, supplier_policy: { policy: { accepting_inquiries: false } } }, result), false);
   assert.equal(canRequestIntake(review, { ...facility, supplier_policy: { policy: { accepting_inquiries: true } } }, result), true);
 });
+
+
+test('무관 사진은 다른 업체나 사용자 확인으로 우회할 수 없다', () => {
+  const invalid = { ...result, lot_review: { ...result.lot_review, observation_method: 'isolated_vision',
+    photo_observations: [{ photo_id: 'wrong', visibility: 'not_waste', description: '캐릭터 그림' }] } };
+  const reviewed = { ...review, results: { a: result, b: invalid } };
+  assert.equal(canRequestIntake(reviewed, facility, result, { blocked: false, resolution: { note: '확인' } }), false);
+  assert.equal(canRequestIntake(review, facility, invalid), false);
+  const limited = { ...invalid, lot_review: { ...invalid.lot_review,
+    photo_observations: [{ photo_id: 'blur', visibility: 'limited' }] } };
+  assert.equal(canRequestIntake({ ...review, results: { b: limited } }, facility, limited), true);
+});

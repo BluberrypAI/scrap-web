@@ -86,6 +86,19 @@ test('최신 인계 UI가 조건부·QR·실제 산출물·완료 단계의 행�
     const accepted = render({ ...base, offers: [offer] });
     assert.match(accepted, /시험 B의 입고를 기다리고 있어요/);
     assert.match(accepted, /입고 QR 발급/);
+    const readyToDispatch = render({ ...base, offers: [{ ...offer, can_dispatch: true }] });
+    assert.match(readyToDispatch, />운송 시작</);
+    const dispatched = render({ ...base, offers: [{ ...offer, can_dispatch: false,
+      data: { ...offer.data, dispatch: { at: '2026-11-18T09:00:00Z', company_id: 'a' } } }] });
+    assert.match(dispatched, /시험 B으로 운송 중이에요/);
+    assert.doesNotMatch(dispatched, />운송 시작</);
+    const history = render({ ...base, offers: [offer], data: { ...base.data, events: [
+      { action: '인수 수락', company_id: 'b', at: '2026-11-18T10:00:00Z' },
+      { action: '운송 시작', company_id: 'a', at: '2026-11-18T10:01:00Z' },
+      { action: 'QR 입고 확인', company_id: 'b', at: '2026-11-18T10:02:00Z' },
+    ] } });
+    assert.equal((history.match(/class="is-done(?: is-current)?"/g) || []).length, 5); // 상단 완료 2 + 이력 3
+    assert.ok(history.indexOf('QR 입고 확인') < history.indexOf('운송 시작'));
     const conditional = render({ ...base, status: 'conditional', offers: [{
       ...offer, status: 'conditional', can_issue_qr: false, can_respond_conditions: true,
       data: { ...offer.data, conditions: [{ id: 'pack', text: '밀봉 상태 확인' }] },
@@ -94,14 +107,24 @@ test('최신 인계 UI가 조건부·QR·실제 산출물·완료 단계의 행�
     assert.doesNotMatch(conditional, />입고 QR 발급</);
     const processing = render({ ...base, status: 'processing', current_company_id: 'b' });
     assert.match(processing, /실제 산출물/);
-    assert.doesNotMatch(processing, /업체 검토 시작/);
+    assert.doesNotMatch(processing, /AI 검토하고 후보 보기/);
+    const finalOutput = render({ ...base, status: 'processed', current_company_id: 'b',
+      terminal_states: ['pp-pellet'], data: { ...base.data,
+        current: { ...current, state_key: 'pp-pellet', mass_kg: 950 } } });
+    assert.match(finalOutput, /완료 근거/);
+    assert.doesNotMatch(finalOutput, /현재 물량 사진|사진·상태로 공정·업체 검토|AI 검토하고 후보 보기/);
+    const intermediateOutput = render({ ...base, status: 'processed', current_company_id: 'b',
+      terminal_states: ['pp-pellet'], data: { ...base.data,
+        current: { ...current, state_key: 'pp-shredded', mass_kg: 950 } } });
+    assert.match(intermediateOutput, /AI 검토하고 후보 보기/);
+    assert.doesNotMatch(intermediateOutput, /완료 근거/);
     const output = { state_key: 'pp-pellet', mass_kg: 900, condition: '합성 펠렛', evidence: 'TEST-OUTPUT' };
     const done = { ...base, status: 'completed', can_manage: false, current_company_id: 'b',
       data: { ...base.data, current: output, completed: [{ facility: 'B 시험사업장', output }],
         events: [{ action: '처리 완료 확인', company_id: 'b', at: '2026-11-17T00:00:00Z', reference: 'TEST-FINISH', intended_use: '시험용 원료' }] } };
     assert.match(render(done), /900/);
     assert.match(render(done), /처리 완료 확인/);
-    assert.doesNotMatch(render(done), /입고 QR 발급|업체 검토 시작/);
+    assert.doesNotMatch(render(done), /입고 QR 발급|AI 검토하고 후보 보기/);
     const evidence = render(done, { view: 'info' });
     assert.match(evidence, /TEST-FINISH/);
     assert.match(evidence, /시험용 원료/);
@@ -110,4 +133,46 @@ test('최신 인계 UI가 조건부·QR·실제 산출물·완료 단계의 행�
   } finally {
     await vite.close();
   }
+});
+
+
+test('AI 검토 전에는 사진 입력과 한 번의 검토 진입만 있고 업체 선택은 없다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { LotPanel } = await vite.ssrLoadModule('/src/features/workflow/LotPanel.jsx');
+    const lot = {
+      id: 'input-order', revision: 1, status: 'ready', can_manage: true,
+      current_company_id: 'a', owner_company_id: 'a', companies: { a: '시험 A' },
+      photos: [], offers: [], review: null,
+      data: { current: { state_key: 'pp-scrap', mass_kg: 100, condition: '검토 전 합성 물량' },
+        initial: { material: 'pp' }, handoff: { waste_code: '51-03-01' }, completed: [], events: [] },
+    };
+    const html = renderToStaticMarkup(React.createElement(LotPanel, { lotId: lot.id, initialLot: lot }));
+    assert.match(html, /현재 물량 사진/);
+    assert.equal(html.split('>AI 검토하고 후보 보기<').length - 1, 1);
+    assert.ok(html.indexOf('현재 물량 사진') < html.indexOf('>AI 검토하고 후보 보기<'));
+    assert.doesNotMatch(html, /이 업체 선택하기|선택한 검토 후보|에 인수 요청 보내기/);
+    assert.doesNotMatch(html, /처리 업체 후보|공개 근거 AI 검토/);
+  } finally { await vite.close(); }
+});
+
+
+test('캐릭터 사진은 교체 안내만 표시하고 확인 체크·후보 선택을 숨긴다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { LotPanel } = await vite.ssrLoadModule('/src/features/workflow/LotPanel.jsx');
+    const lot = { id: 'invalid', revision: 2, status: 'ready', can_manage: true,
+      current_company_id: 'a', owner_company_id: 'a', companies: { a: '시험 A' }, offers: [],
+      photos: [{ id: 'old', stage: 0, active: false, url: '/old.jpg' }, { id: 'wrong', stage: 0, active: true, url: '/wrong.jpg' }],
+      data: { current: { state_key: 'pp-scrap', mass_kg: 100, condition: 'PP 폐기물' }, initial: { material: 'pp' }, completed: [], events: [] },
+      review: { results: { b: { lot_review: { photo_observations: [{ photo_id: 'wrong', visibility: 'not_waste', description: '보라색 캐릭터 그림' }] } } },
+        next_step: { options: [{ label: '표시되면 안 되는 후보', facilities: [] }] } },
+    };
+    const html = renderToStaticMarkup(React.createElement(LotPanel, { lotId: lot.id, initialLot: lot }));
+    assert.match(html, /폐기물 사진이 아니에요/);
+    assert.doesNotMatch(html, /보라색 캐릭터 그림/);
+    assert.match(html, /사진 1 교체/);
+    assert.match(html, /현재 물량 사진 \(1\/4\)/);
+    assert.doesNotMatch(html, /old.jpg|표시되면 안 되는 후보|기존 설명 확인 내용 기록|AI 검토하고 후보 보기|에 인수 요청 보내기/);
+  } finally { await vite.close(); }
 });

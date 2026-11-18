@@ -1,10 +1,16 @@
 import { useState } from 'react';
+import { invalidReviewPhotos } from './review-policy.js';
 
 export function PhotoConflict({ lot, busy, onResolve }) {
   const [condition, setCondition] = useState(lot.data.current.condition);
   const [note, setNote] = useState('');
   const [checked, setChecked] = useState(false);
   const gate = lot.photo_conflict_gate;
+  const invalid = invalidReviewPhotos(lot.review);
+  if (invalid.length || gate?.invalid_photos?.length) return <section className="wf-card wf-form" role="alert" aria-label="폐기물 사진 다시 등록">
+    <h3>폐기물 사진이 아니에요. 실제 물량을 촬영해 주세요.</h3>
+    <p>캐릭터·그림·문서처럼 폐기물 상태를 확인할 수 없는 이미지가 있어 검토를 보류했어요.</p>
+  </section>;
   if (!gate?.issues?.length) return null;
   const issues = [...new Set(gate.issues.map(i => i.concern))];
   return <section className="wf-card wf-form" aria-label="사진과 상태 설명 확인">

@@ -7,7 +7,7 @@ import { rememberSession } from '../../lib/auth.js';
 import { navigate } from '../../lib/router.js';
 import { SiteLocationPicker } from '../../components/SiteLocationPicker.jsx';
 
-const facilityOptions = ['폐수처리시설', '혼합시설', '세척시설', '반응시설', '건조시설', '저장시설'];
+const facilityOptions = ['폐수처리시설', '혼합시설', '세척시설', '반응시설', '건조시설', '저장시설', '선별시설', '파쇄시설', '압출·성형시설'];
 // 서버와 같은 형식 검사 (companies/schemas.py EMAIL_PATTERN)
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -179,6 +179,8 @@ export function OnboardingPage() {
                   업종
                   <select value={n} onChange={(e) => r(e.target.value)}>
                     <option value="">업종을 선택하세요</option>
+                    <option>플라스틱 제품 제조업</option>
+                    <option>폐기물 재활용업</option>
                     <option>화학제품 제조업</option>
                     <option>금속 가공업</option>
                     <option>전자부품 제조업</option>
@@ -196,7 +198,7 @@ export function OnboardingPage() {
                   autoComplete="street-address"
                 />
               </label>
-              <SiteLocationPicker value={sitePoint} onChange={setSitePoint} disabled={submitting} />
+              <SiteLocationPicker address={i} value={sitePoint} onChange={setSitePoint} disabled={submitting} />
             </section>
           )}
           {e === 1 && (

@@ -8,7 +8,7 @@ import { currentRoute, navigate } from '../../lib/router.js';
 import { workflowApi } from './api.js';
 import { CaseRoutePanel } from './CaseRoutePanel.jsx';
 import { LotPanel } from './LotPanel.jsx';
-import { LOT_STATUS, lotCardStatus, stateLabel, formatKg } from './labels.js';
+import { LOT_STATUS, lotStatusLabel, lotCardStatus, stateLabel, formatKg } from './labels.js';
 import { Icon } from '../../components/Icon.jsx';
 import { LegalFormLink } from '../documents/LegalFormPage.jsx';
 import './workflow.css';
@@ -18,7 +18,6 @@ export function CaseDetailPage({ caseId, onStageChange }) {
   const [lot, setLot] = useState(undefined); // undefined: 불러오는 중, null: 처리 건 없음
   const [error, setError] = useState('');
   const [registered, setRegistered] = useState(false);
-  const [preferredFacility, setPreferredFacility] = useState(null);
   const [activeTab, setActiveTab] = useState('route');
 
   useEffect(() => {
@@ -52,7 +51,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
     : kase.status === 'IN_TRANSIT' || (lot && lotCardStatus(lot.status) === '처리 진행') ? '03' : '02';
   const stageLabel = stage === '01' ? 'STEP 01 · 분류 확인'
     : stage === '02' ? `STEP 02 · ${lot?.status === 'ready' ? '업체 검토' : lot ? LOT_STATUS[lot.status] || '경로 준비' : '경로 준비'}`
-      : stage === '03' ? `STEP 03 · ${lot ? LOT_STATUS[lot.status] || '처리 진행' : '처리 진행'}` : '처리 완료';
+      : stage === '03' ? `STEP 03 · ${lot ? lotStatusLabel(lot) : '처리 진행'}` : '처리 완료';
   const tracking = stage === '03' || stage === 'done';
   const acceptedOffer = lot?.offers?.find((offer) => ['accepted', 'received', 'processed'].includes(offer.status));
 
@@ -74,7 +73,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
         </div>
       </header>
       <div className="route-detail-tabs" role="group" aria-label="자원 경로 상세 보기">
-        <button type="button" aria-pressed={activeTab === 'route'} onClick={() => setActiveTab('route')}>{tracking ? '인계 현황' : '공정·업체 추천'}</button>
+        <button type="button" aria-pressed={activeTab === 'route'} onClick={() => setActiveTab('route')}>{tracking ? '인계 현황' : !lot || !lot.review ? '물량·사진 입력' : '공정·업체 검토'}</button>
         <button type="button" aria-pressed={activeTab === 'info'} onClick={() => setActiveTab('info')}>{tracking ? '물량·확인 사항' : '분류·확인 사항'}</button>
       </div>
       {!confirmed && activeTab === 'info' && <section className="route-info-surface" aria-label="분류·확인 사항">
@@ -93,11 +92,11 @@ export function CaseDetailPage({ caseId, onStageChange }) {
       ) : lot === undefined ? (
         <p className="wf-muted">불러오는 중…</p>
       ) : lot ? (
-        <>{registered && lot.status === 'ready' && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>{preferredFacility ? `${preferredFacility.label}을 검토 후보로 선택했어요. ` : ''}사진을 첨부하고 업체를 검토한 뒤 인수를 요청해 주세요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} showRecycling={false} view="progress" onLotChange={setLot} /></>
+        <>{registered && lot.status === 'ready' && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>사진을 첨부하고 AI 검토를 시작하세요. 검토 결과에서 공정과 업체를 선택할 수 있어요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} showRecycling={false} view="progress" onLotChange={setLot} /></>
       ) : null}
       </div>
-      {tracking && lot && activeTab === 'info' && <LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} showRecycling={false} view="info" />}
-      {confirmed && lot !== undefined && !tracking && <CaseRoutePanel caseId={caseId} caseTitle={kase.summary?.title} wasteCode={code} classification={kase.summary?.result_label || kase.summary?.status_label} lotRecycling={lot?.data.recycling} recyclingFollowUp={lot?.data.completed?.length > 0} view={activeTab} hasLot={!!lot} onLotCreated={(created, preferred) => { setPreferredFacility(preferred); setRegistered(true); setLot(created); setActiveTab('route'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />}
+      {tracking && lot && activeTab === 'info' && <LotPanel lotId={lot.id} initialLot={lot} showRecycling={false} view="info" />}
+      {confirmed && lot !== undefined && !tracking && <CaseRoutePanel caseId={caseId} caseTitle={kase.summary?.title} wasteCode={code} classification={kase.summary?.result_label || kase.summary?.status_label} lotRecycling={lot?.data.recycling} recyclingFollowUp={lot?.data.completed?.length > 0} view={activeTab} hasLot={!!lot} onLotCreated={(created) => { setRegistered(true); setLot(created); setActiveTab('route'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />}
       {confirmed && acceptedOffer && <div className="route-legal-form-link"><LegalFormLink caseId={caseId} handoff={detail.handoff} facilityName={acceptedOffer.data?.facility?.label || '처리업체'} /></div>}
     </main>
   );

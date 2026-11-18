@@ -3,6 +3,7 @@ import * as maplibregl from 'maplibre-gl';
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { DOKDO_COORDINATE } from '../../lib/mapbox-style.js';
+import { KakaoResourceMap } from './KakaoResourceMap.jsx';
 
 const KOREA_CENTER = [128.25, 36.25];
 // MapLibre v6 workers must be emitted by Vite, including the worker's imports.
@@ -40,7 +41,11 @@ function createOriginMarker(origin) {
   return marker;
 }
 
-export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origin = null, routePoints = [], onPick, label = '전국 순환자원 처리업체 위치 지도', onStateChange }) {
+export function ResourceMapbox(props) {
+  return import.meta.env.VITE_KAKAO_MAP_APP_KEY?.trim() ? <KakaoResourceMap {...props} /> : <OpenResourceMap {...props} />;
+}
+
+function OpenResourceMap({ factories, selectedId, focusId, onSelect, origin = null, routePoints = [], routeLines = [], onPick, label = '전국 순환자원 처리업체 위치 지도', onStateChange }) {
   const hostRef = useRef(null);
   const mapRef = useRef(null);
   const markerRefs = useRef(new Map());
@@ -51,7 +56,7 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
   const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim();
   const signature = useMemo(() => factories.map((factory) => [
     factory.id, factory.longitude, factory.latitude,
-  ]).join(':') + (origin ? `|${origin.longitude},${origin.latitude}` : '') + `|${JSON.stringify(routePoints)}`, [factories, origin, routePoints]);
+  ]).join(':') + (origin ? `|${origin.longitude},${origin.latitude}` : '') + `|${JSON.stringify([routePoints, routeLines])}`, [factories, origin, routePoints, routeLines]);
 
   onSelectRef.current = onSelect;
   useEffect(() => { onStateChange?.(loadState); }, [loadState, onStateChange]);
@@ -104,9 +109,10 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
     map.on('error', handleError);
     map.on('load', () => {
       if (cancelled) return;
-      if (routePoints.length > 1) {
+      const lines = [...routeLines, ...(routePoints.length > 1 ? [routePoints] : [])].filter(line => line.length > 1);
+      if (lines.length) {
         map.addSource('actual-handoff-route', { type: 'geojson', data: {
-          type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: routePoints },
+          type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: lines },
         } });
         map.addLayer({ id: 'actual-handoff-route-outline', type: 'line', source: 'actual-handoff-route', paint: { 'line-color': '#fff', 'line-width': 8, 'line-opacity': .9 } });
         map.addLayer({ id: 'actual-handoff-route-line', type: 'line', source: 'actual-handoff-route', paint: { 'line-color': '#7754a6', 'line-width': 4, 'line-opacity': .95 } });
@@ -146,7 +152,7 @@ export function ResourceMapbox({ factories, selectedId, focusId, onSelect, origi
           duration: 700,
         });
       } else if (origin) {
-        map.jumpTo({ center: [origin.longitude, origin.latitude], zoom: 10 });
+        map.jumpTo({ center: [origin.longitude, origin.latitude], zoom: onPickRef.current ? 15 : 10 });
       } else {
         map.fitBounds(KOREA_VIEW, { padding: 50, duration: 0 });
       }
