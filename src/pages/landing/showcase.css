@@ -1,13 +1,47 @@
 html:has(.showcase-home) { scrollbar-gutter: auto; }
 .showcase-home { background: #8ac4f4; }
-.showcase-home .site-topnav { position: absolute; inset: 0 0 auto; z-index: 10; background: #ffffffd9; backdrop-filter: blur(18px); border-bottom: 1px solid #ffffff70; }
-.landing-hero.meadow-integrated { position: relative; width: 100%; max-width: none; height: 100svh; min-height: 640px; padding: clamp(104px,14vh,148px) 24px 0; margin: 0; overflow: hidden; border-radius: 0; background: #8ac4f4; }
+.showcase-home .site-topnav { position: absolute; inset: 0 0 auto; z-index: 10; background: transparent; backdrop-filter: none; border: 0; box-shadow: none; }
+.showcase-home .landing-header-actions { gap: 10px; }
+.landing-hero.meadow-integrated { position: relative; width: 100%; max-width: none; height: 100svh; min-height: 640px; padding: clamp(88px,12vh,130px) 24px 0; margin: 0; overflow: hidden; border-radius: 0; background: #8ac4f4; }
 /* 위쪽은 기존처럼 밝게(검은 헤드라인용), 소제목이 걸리는 능선 부근부터는 장면을 살짝 어둡게(흰 소제목용) */
 .landing-hero.meadow-integrated::after { inset: 0; width: auto; height: auto; transform: none; background: linear-gradient(180deg,#eaf4fc99 0%,#eaf4fc33 18%,transparent 26%,#0e2a2629 33%,#0e2a2629 100%); pointer-events: none; z-index: 1; }
 .meadow-integrated .landing-copy { width: 100%; pointer-events: none; }
 .meadow-integrated .landing-copy h1 { font-size: clamp(36px,4.6vw,66px); line-height: 1.08; margin-bottom: 18px; }
 .meadow-integrated .landing-copy > p { font-size: 19px; font-weight: 500; line-height: 1.65; color: #fff; margin-bottom: 0; text-shadow: 0 1px 2px #12302a73, 0 0 1px #12302a59; word-break: keep-all; }
 .meadow-integrated .landing-copy > p br { display: initial; }
+.meadow-hero-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 20px; pointer-events: auto; }
+.meadow-liquid-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  width: 132px;
+  height: 44px;
+  border: 1px solid #ffffffd9;
+  border-radius: 44% 56% 52% 48% / 54% 47% 53% 46%;
+  background: radial-gradient(circle at 24% 16%, #ffffffee, transparent 45%), linear-gradient(125deg, #fdfbffdb, #dce9ffcc 58%, #eee0f9e0);
+  box-shadow: inset 0 2px 4px #fff, inset 0 -4px 9px #8c75bc38, 0 8px 20px #244e7038;
+  color: #3a2d57;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+  backdrop-filter: blur(14px) saturate(1.45);
+  animation: meadow-liquid-morph 7s ease-in-out infinite alternate;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.meadow-liquid-link:nth-child(2) { animation-delay: -3.5s; }
+.meadow-liquid-link::before { content: ''; position: absolute; inset: 2px 12px auto; height: 48%; border-radius: 50%; background: linear-gradient(#ffffffb8, transparent); pointer-events: none; }
+.meadow-liquid-link span { position: relative; z-index: 1; }
+.meadow-liquid-link:hover { transform: translateY(-3px); box-shadow: inset 0 2px 4px #fff, inset 0 -4px 9px #8c75bc38, 0 12px 27px #244e7050; }
+@keyframes meadow-liquid-morph {
+  0% { border-radius: 44% 56% 52% 48% / 54% 47% 53% 46%; }
+  50% { border-radius: 55% 45% 47% 53% / 44% 56% 48% 52%; }
+  100% { border-radius: 48% 52% 57% 43% / 56% 45% 55% 44%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .meadow-liquid-link { transition: none; animation: none; }
+}
 .meadow-world { position: absolute; inset: 0; z-index: 0; }
 .meadow-world canvas { display: block; width: 100%; height: 100%; }
 .meadow-loading { position: absolute; left: 50%; bottom: 27%; transform: translateX(-50%); z-index: 2; padding: 9px 14px; border: 1px solid #ffffffa8; border-radius: 999px; background: #ffffffa8; color: #31534c; box-shadow: 0 7px 24px #31534c1f; font-size: 12px; font-weight: 700; backdrop-filter: blur(10px); }
@@ -21,14 +55,16 @@ html:has(.showcase-home) { scrollbar-gutter: auto; }
   .landing-hero.meadow-integrated { padding: 130px 16px 0; min-height: 700px; }
   .meadow-integrated .landing-copy h1 { font-size: clamp(28px,7.8vw,36px); line-height: 1.13; }
   .meadow-integrated .landing-copy > p { font-size: 14px; }
+  .meadow-hero-actions { gap: 8px; margin-top: 17px; }
+  .meadow-liquid-link { width: 120px; height: 40px; font-size: 11px; }
   .meadow-world { top: 170px; }
   .landing-hero.meadow-integrated::after { background: linear-gradient(180deg,#c3e1f8 0%,#b4d8f4 19%,transparent 42%); }
 }
 
 .meadow-world { touch-action: pan-y; outline-offset: -5px; }
 .meadow-world:focus-visible { outline: 2px solid #ffffffb0; }
-.gachon-world-badge { position: absolute; z-index: 4; right: 24px; top: 90px; width: 110px; height: 110px; pointer-events: none; }
-.gachon-world-badge > img { position: absolute; inset: 10%; width: 80%; height: 80%; object-fit: contain; border-radius: 50%; clip-path: circle(49% at 50% 50%); }
+.gachon-header-badge { flex: none; width: 42px; height: 42px; pointer-events: none; }
+.gachon-header-badge > img { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: 50%; clip-path: circle(49% at 50% 50%); }
 .meadow-credits { position: absolute; z-index: 4; inset: auto 0 0; padding: 12px 36px 6px; color: #fff; background: linear-gradient(180deg,transparent,#183d2a38 48%,#143a2b68); text-shadow: 0 1px 3px #183726; }
 .meadow-partners { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px 25px; margin-bottom: 17px; }
 .meadow-partner { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 650; }
@@ -40,7 +76,6 @@ html:has(.showcase-home) { scrollbar-gutter: auto; }
 .meadow-credits a:hover { text-decoration: underline; }
 .meadow-copyright { font-size: 9px; text-align: center; margin: 3px 0 0; opacity: .82; }
 @media (max-width: 800px) {
- .gachon-world-badge { width: 76px; height: 76px; right: 15px; top: 100px; }
  .meadow-credits { padding: 12px 20px 6px; }
  .meadow-credit-line { justify-content: center; flex-wrap: wrap; gap: 8px; }
  .meadow-partners { gap: 8px 16px; margin-bottom: 12px; }
@@ -49,8 +84,8 @@ html:has(.showcase-home) { scrollbar-gutter: auto; }
  .meadow-credit-line p, .meadow-credit-line nav { font-size: 11px; gap: 12px; }
 }
 @media (max-width: 560px) {
- .landing-hero.meadow-integrated { padding-top: 175px; min-height: 780px; }
- .gachon-world-badge { top: 101px; width: 64px; height: 64px; right: 12px; }
+ .landing-hero.meadow-integrated { padding-top: 155px; min-height: 780px; }
+ .gachon-header-badge { width: 34px; height: 34px; }
  .meadow-partners { gap: 7px 12px; }
  .meadow-partner img { width: 20px; height: 20px; }
  .meadow-partner { gap: 4px; font-size: 9px; }

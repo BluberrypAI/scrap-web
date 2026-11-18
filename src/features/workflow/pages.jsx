@@ -12,7 +12,7 @@ import { LOT_STATUS, lotCardStatus, stateLabel, formatKg } from './labels.js';
 import { Icon } from '../../components/Icon.jsx';
 import './workflow.css';
 
-export function CaseDetailPage({ caseId }) {
+export function CaseDetailPage({ caseId, onStageChange }) {
   const [detail, setDetail] = useState(null);
   const [lot, setLot] = useState(undefined); // undefined: 불러오는 중, null: 처리 건 없음
   const [error, setError] = useState('');
@@ -31,6 +31,14 @@ export function CaseDetailPage({ caseId }) {
       live = false;
     };
   }, [caseId]);
+
+  useEffect(() => {
+    if (!detail) return;
+    const status = detail.case.status;
+    if (!['CODE_CONFIRMED', 'IN_TRANSIT', 'COMPLETED'].includes(status)) return onStageChange('classification');
+    if (status === 'IN_TRANSIT' || status === 'COMPLETED' || (lot && lotCardStatus(lot.status) === '처리 진행')) return onStageChange('treatment');
+    onStageChange('route');
+  }, [detail, lot, onStageChange]);
 
   if (error) return <main className="wf-page"><p className="wf-alert" role="alert">{error} <a href="/wastes">목록으로</a></p></main>;
   if (!detail) return <main className="session-gate" aria-busy="true" />;
@@ -92,8 +100,12 @@ export function CaseDetailPage({ caseId }) {
   );
 }
 
-export function LotPage({ lotId }) {
+export function LotPage({ lotId, onStageChange }) {
   const [activeTab, setActiveTab] = useState('progress');
+  const [lot, setLot] = useState(null);
+  useEffect(() => {
+    if (lot) onStageChange(lot.status === 'ready' ? 'route' : 'treatment');
+  }, [lot, onStageChange]);
   return (
     <main className="wf-page waste-detail">
       <a className="detail-back" href="/wastes"><span>←</span> 자원 경로</a>
@@ -107,7 +119,7 @@ export function LotPage({ lotId }) {
         <button type="button" aria-pressed={activeTab === 'progress'} onClick={() => setActiveTab('progress')}>인계 현황</button>
         <button type="button" aria-pressed={activeTab === 'info'} onClick={() => setActiveTab('info')}>물량·확인 사항</button>
       </div>
-      <LotPanel lotId={lotId} view={activeTab} />
+      <LotPanel lotId={lotId} view={activeTab} onLotChange={setLot} />
     </main>
   );
 }
