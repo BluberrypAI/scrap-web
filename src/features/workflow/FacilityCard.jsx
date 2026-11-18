@@ -24,7 +24,7 @@ export function FacilityCard({ facility, review, action = null, selected = false
       {facility.recipient !== undefined && (
         <p className="wf-muted">
           {facility.recipient
-            ? `수신 계정: ${facility.recipient.name}${facility.recipient.synthetic ? ' (로컬 시험용 계정)' : ''}`
+            ? `수신 계정: ${facility.recipient.name}${facility.recipient.synthetic ? ' (시연용 계정)' : ''}`
             : '이 업체와 연결된 수신 계정이 없어요. 인수 요청을 보낼 수 없어요.'}
         </p>
       )}
