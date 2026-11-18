@@ -36,7 +36,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
     if (!detail) return;
     const status = detail.case.status;
     if (!['CODE_CONFIRMED', 'IN_TRANSIT', 'COMPLETED'].includes(status)) return onStageChange('classification');
-    if (status === 'IN_TRANSIT' || status === 'COMPLETED' || (lot && lotCardStatus(lot.status) === '처리 진행')) return onStageChange('treatment');
+    if (status === 'IN_TRANSIT' || status === 'COMPLETED' || lot?.status === 'completed' || (lot && lotCardStatus(lot.status) === '처리 진행')) return onStageChange('treatment');
     onStageChange('route');
   }, [detail, lot, onStageChange]);
 
