@@ -25,7 +25,7 @@ export function FacilityMap({ options, origin = null, originLabel = '', selected
   }
 
   return (
-    <div className="wf-map-block">
+    <div className="wf-map-block" aria-label={originLabel ? `출발 사업장: ${originLabel}` : undefined}>
       <div className="wf-map resource-map-stage">
         <Suspense fallback={<div className="resource-map-state"><span /><p>지도를 불러오는 중이에요.</p></div>}>
           <ResourceMapbox
@@ -34,7 +34,7 @@ export function FacilityMap({ options, origin = null, originLabel = '', selected
             focusId={selectedKey}
             onSelect={select}
             origin={originPoint}
-            label="처리 후보 업체 위치 지도"
+            label={originLabel ? `처리 후보 업체 위치 지도 · 출발 사업장 ${originLabel}` : '처리 후보 업체 위치 지도'}
           />
         </Suspense>
       </div>
