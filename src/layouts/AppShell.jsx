@@ -45,7 +45,7 @@ export function AppShell({ path }) {
     dx = path.match(/^\/wastes\/case-([A-Za-z0-9_-]{1,64})\/(survey|history|documents)$/),
     // 기업 간 인계: 처리 건, 입고 QR 확인
     lot = path.match(/^\/lots\/([0-9a-f-]{36})(?:\/receive\/([0-9a-f-]{36}))?$/);
-  const inferredStage = dx ? dx[2] === 'documents' ? 'route' : 'classification' : lot ? 'treatment'
+  const inferredStage = dx ? dx[2] === 'documents' ? 'treatment' : 'classification' : lot ? 'treatment'
     : trackingWaste || (i || a)?.status === '처리 진행' ? 'treatment'
       : t && !i || (i || a)?.status === '확정' ? 'route'
         : i || a ? 'classification' : null;

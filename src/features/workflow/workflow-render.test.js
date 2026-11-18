@@ -23,7 +23,7 @@ test('등록한 물량 화면이 실제 렌더되고 현재 보유 기업 위치
     const markup = renderToStaticMarkup(React.createElement(LotPanel, { lotId: lot.id, initialLot: lot }));
     assert.match(markup, /PS 압축 베일 시험명/);
     assert.match(markup, /시험 B의 사업장/);
-    assert.match(markup, /출발 사업장만 표시/);
+    assert.match(markup, /업체 위치/);
     assert.match(markup, /이전 방식의 검토/);
     assert.match(markup, /재활용 유형표는 아직 확인되지 않았어요/);
     const followUp = { ...lot, data: { ...lot.data, completed: [{

@@ -10,6 +10,7 @@ import { CaseRoutePanel } from './CaseRoutePanel.jsx';
 import { LotPanel } from './LotPanel.jsx';
 import { LOT_STATUS, lotCardStatus, stateLabel, formatKg } from './labels.js';
 import { Icon } from '../../components/Icon.jsx';
+import { LegalFormLink } from '../documents/LegalFormPage.jsx';
 import './workflow.css';
 
 export function CaseDetailPage({ caseId, onStageChange }) {
@@ -53,6 +54,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
     : stage === '02' ? `STEP 02 · ${lot?.status === 'ready' ? '업체 검토' : lot ? LOT_STATUS[lot.status] || '경로 준비' : '경로 준비'}`
       : stage === '03' ? `STEP 03 · ${lot ? LOT_STATUS[lot.status] || '처리 진행' : '처리 진행'}` : '처리 완료';
   const tracking = stage === '03' || stage === 'done';
+  const acceptedOffer = lot?.offers?.find((offer) => ['accepted', 'received', 'processed'].includes(offer.status));
 
   return (
     <main className="wf-page waste-detail">
@@ -96,6 +98,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
       </div>
       {tracking && lot && activeTab === 'info' && <LotPanel lotId={lot.id} initialLot={lot} preferredFacility={preferredFacility} showRecycling={false} view="info" />}
       {confirmed && lot !== undefined && !tracking && <CaseRoutePanel caseId={caseId} caseTitle={kase.summary?.title} wasteCode={code} classification={kase.summary?.result_label || kase.summary?.status_label} lotRecycling={lot?.data.recycling} recyclingFollowUp={lot?.data.completed?.length > 0} view={activeTab} hasLot={!!lot} onLotCreated={(created, preferred) => { setPreferredFacility(preferred); setRegistered(true); setLot(created); setActiveTab('route'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />}
+      {confirmed && acceptedOffer && <div className="route-legal-form-link"><LegalFormLink caseId={caseId} handoff={detail.handoff} facilityName={acceptedOffer.data?.facility?.label || '처리업체'} /></div>}
     </main>
   );
 }
