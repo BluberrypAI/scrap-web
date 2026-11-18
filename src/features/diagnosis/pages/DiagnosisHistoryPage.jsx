@@ -1,3 +1,4 @@
+import '../designated.css';
 import { useState } from 'react';
 import { diagnosisApi as api } from '../lib/client.js';
 import { CATEGORY_LABEL, OUTCOME_LABEL } from '../lib/labels.js';
@@ -40,7 +41,7 @@ export default function DiagnosisHistoryPage({ id }) {
         {detail.verdicts.map((v) => (
           <li key={v.version} className="wd-card">
             <strong>v{v.version}</strong> {v.code ? `${v.code} ${v.name}` : OUTCOME_LABEL[v.outcome] || v.outcome}{' '}
-            <span className="muted">{CATEGORY_LABEL[v.category] || v.category} · 확정 {formatDateTime(v.confirmed_at)}</span>
+            {v.category === 'DESIGNATED' ? <span className="wd-chip is-designated">⚠ {CATEGORY_LABEL[v.category]}</span> : <span className="muted">{CATEGORY_LABEL[v.category] || v.category}</span>}<span className="muted"> · 확정 {formatDateTime(v.confirmed_at)}</span>
             {v.superseded_at && <div className="muted">대체됨 {formatDateTime(v.reopened_at || v.superseded_at)}{v.reopen_reason ? ` · 사유: ${v.reopen_reason}` : ''}</div>}
           </li>
         ))}

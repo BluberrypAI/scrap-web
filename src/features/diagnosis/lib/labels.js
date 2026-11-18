@@ -59,6 +59,7 @@ export const OUTCOME_LABEL = {
   HOUSEHOLD: '생활폐기물',
   INTERPRETATION_NEEDED: '관할 기관 해석 필요',
   NO_GENERAL_CODE: '지정폐기물 아님(세부 번호 확인 필요)',
+  DESIGNATED_CODE_NEEDED: '지정폐기물(세부 번호 확인 필요)',
   CODE_NEEDS_TEST: '시험 후 분류',
   NO_MIXTURE_RULE: '소재별로 나눠 확인 필요',
 };
