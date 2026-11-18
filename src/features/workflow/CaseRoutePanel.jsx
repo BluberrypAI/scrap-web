@@ -125,7 +125,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
         <>
           <div ref={candidatesSection} className="route-candidate-anchor">
           <CandidateBrowser key={form || 'initial'} options={next.options} reviews={reviewUnavailable ? null : reviews} origin={context.origin} originLabel={context.origin_label} selectedKey={selectedKey} onSelect={setSelectedKey}
-            renderAction={(facility) => canRegister && <button className={`button ${preferred?.capability_key === facility.capability_key ? 'button-primary' : 'button-quiet'} facility-select`} type="button" aria-pressed={preferred?.capability_key === facility.capability_key} onClick={() => { setPreferred(facility); setSelectedKey(facility.facility_key); registerSection.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>{preferred?.capability_key === facility.capability_key ? '선택됨 · 물량 입력하기' : '이 업체 선택'}<Icon name="arrow" size={16} /></button>} />
+            renderAction={(facility) => canRegister && <button className="facility-select facility-choose" type="button" aria-pressed={preferred?.capability_key === facility.capability_key} onClick={() => { setPreferred(facility); setSelectedKey(facility.facility_key); registerSection.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>{preferred?.capability_key === facility.capability_key ? '선택한 업체 · 물량 입력하기' : '이 업체 선택하기'}</button>} />
           </div>
           {next.status === 'candidates' && hasFacilities(next) && <section className="candidate-review-bar" aria-label="공개 근거 AI 검토"><div><Icon name="spark" size={19} /><span><strong>공개 근거 AI 검토</strong><small>업체 후보의 공개 자료에서 반입 형태와 제한 조건을 다시 확인합니다. 실제 인수 승인과는 별개예요.</small></span></div>
             <button className="button button-quiet" type="button" onClick={review} disabled={reviewing}>
@@ -202,7 +202,7 @@ function LotRegisterForm({ caseId, inputForm, solidConfirmed, materialDetail, pr
         />
       </label>
       {error && <p ref={errorMessage} tabIndex={-1} className="wf-alert" role="alert">{error}</p>}
-      <button className="button register-submit" type="submit" disabled={busy}>
+      <button className="register-submit facility-select facility-choose" type="submit" disabled={busy}>
         {busy ? '등록하는 중…' : '처리 건 등록하고 계속'}
       </button>
     </form>

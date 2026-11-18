@@ -42,7 +42,7 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
             {renderExtra?.(option)}
           </div>)}
         </div>
-        {hasMap && <aside className="candidate-map-panel"><div className="candidate-map-heading"><Icon name="map" size={18} /><strong>업체 위치</strong></div><p className="wf-muted">{validLocation(origin) ? basis === 'road' ? '현재 검색 결과 중 도로거리가 확인된 가까운 최대 5곳 · 미확인 업체는 별도' : '현재 검색 결과에서 가까운 최대 5곳 · 직선거리 기준 · 도로거리 미확인' : '위치가 확인된 최대 5곳 · 거리 순위 없음'}{selectedKey && ' · 선택한 업체 포함'}. 목록과 AI 검토에는 나머지 후보도 포함돼요.{basis === 'road' && ' 자동차 경로 참고값이며 화물차 통행 제한·운송비는 별도 확인이 필요해요.'}</p><p className="wf-muted">경로: OSRM/FOSSGIS · © OpenStreetMap contributors. OSRM은 최단시간 경로의 거리예요. <a href="https://www.openstreetmap.org/fixthemap">지도 수정</a></p><FacilityMap options={mapOptions} candidateCount={count} origin={origin} originLabel={originLabel} selectedKey={selectedKey} onSelect={onSelect} />{originLabel && <p className="candidate-origin"><Icon name="building" size={16} />출발 사업장 · {originLabel}</p>}</aside>}
+        {hasMap && <aside className="candidate-map-panel"><div className="candidate-map-heading"><Icon name="map" size={18} /><strong>업체 위치</strong></div><FacilityMap options={mapOptions} origin={origin} originLabel={originLabel} selectedKey={selectedKey} onSelect={onSelect} /></aside>}
       </div>
     </section>
   );

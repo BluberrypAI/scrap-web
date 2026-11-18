@@ -429,7 +429,7 @@ function QrIssue({ lot, offer, busy, run }) {
           </div>
         </>
       ) : (
-        <button className="button button-primary" type="button" disabled={!!busy} onClick={issue}>
+        <button className="button button-primary wf-qr-issue-button" type="button" disabled={!!busy} onClick={issue}>
           {busy === 'qr' ? '발급하는 중…' : '입고 QR 발급'}
         </button>
       )}
