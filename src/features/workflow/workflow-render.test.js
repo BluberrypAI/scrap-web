@@ -4,6 +4,20 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
+test('폐기물 카드의 진행 그림도 서버가 준 인수 대기 문구를 유지한다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { WasteJourneyPreview } = await vite.ssrLoadModule('/src/pages/wastes/WasteJourneyPreview.jsx');
+    for (const message of ['받은 인수 요청을 검토해 주세요', '수신 기업의 입고 확인을 기다리고 있어요']) {
+      const waste = { lotId: 'synthetic', name: '시험 PP', code: '51-03-01', status: '처리 진행', message,
+        lot: { status: 'offered', data: { completed: [] }, offers: [] } };
+      const html = renderToStaticMarkup(React.createElement(WasteJourneyPreview, { waste, active: false }));
+      assert.ok(html.includes(message));
+      assert.doesNotMatch(html, /처리업체에서 처리 중이에요/);
+    }
+  } finally { await vite.close(); }
+});
+
 test('사진 불일치 화면은 수정·확인 및 재문진 안내와 수신자 확인 기록을 제공한다', async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
   try {
