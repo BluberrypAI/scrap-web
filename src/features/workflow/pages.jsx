@@ -92,7 +92,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
       ) : lot === undefined ? (
         <p className="wf-muted">불러오는 중…</p>
       ) : lot ? (
-        <>{registered && lot.status === 'ready' && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>사진을 첨부하고 AI 검토를 시작하세요. 검토 결과에서 공정과 업체를 선택할 수 있어요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} showRecycling={false} view="progress" onLotChange={setLot} /></>
+        <>{registered && lot.status === 'ready' && !lot.review && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>필요하면 사진을 첨부하고 AI 검토를 시작하세요. 검토 결과에서 공정과 업체를 선택할 수 있어요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} showRecycling={false} view="progress" onLotChange={setLot} /></>
       ) : null}
       </div>
       {tracking && lot && activeTab === 'info' && <LotPanel lotId={lot.id} initialLot={lot} showRecycling={false} view="info" />}
