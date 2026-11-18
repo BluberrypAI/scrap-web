@@ -621,8 +621,8 @@ function ProgressStatus({ lot, name }) {
   return <section className="wf-progress-status" aria-label="현재 인계 현황">
     <span>현재 진행 상황</span><h2>{message}</h2>
     <p>현재 담당 · {company}{site !== company && ` · ${site}`}</p>
-    <ol>{stages.map((stage, index) => <li key={stage} className={index === current ? 'is-current' : index < current ? 'is-done' : ''}>
-      <span aria-hidden="true">{index < current ? '✓' : String(index + 1).padStart(2, '0')}</span>{stage}
+    <ol>{stages.map((stage, index) => <li key={stage} className={index === current ? (lot.status === 'completed' ? 'is-done is-current' : 'is-current') : index < current ? 'is-done' : ''}>
+      <span aria-hidden="true">{index < current || lot.status === 'completed' ? '✓' : String(index + 1).padStart(2, '0')}</span>{stage}
     </li>)}</ol>
   </section>;
 }

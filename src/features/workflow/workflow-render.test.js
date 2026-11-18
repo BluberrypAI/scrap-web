@@ -124,6 +124,7 @@ test('최신 인계 UI가 조건부·QR·실제 산출물·완료 단계의 행�
         events: [{ action: '처리 완료 확인', company_id: 'b', at: '2026-11-17T00:00:00Z', reference: 'TEST-FINISH', intended_use: '시험용 원료' }] } };
     assert.match(render(done), /900/);
     assert.match(render(done), /처리 완료 확인/);
+    assert.match(render(done), /is-done is-current"><span aria-hidden="true">✓<\/span>처리 완료/);
     assert.doesNotMatch(render(done), /입고 QR 발급|AI 검토하고 후보 보기/);
     const evidence = render(done, { view: 'info' });
     assert.match(evidence, /TEST-FINISH/);
