@@ -8,12 +8,14 @@ import './documents.css';
 
 // 확정된 문진 건의 법정 서식(제6·12·5호) 작성. 서버에서 칸별 값을 받아 미리 보여 주고 한글(HWPX) 또는 PDF로 내려받는다.
 // 파일은 서버에 저장되지 않고 기관에 자동 제출되지 않는다.
+// 입력 초안은 사업자등록번호·대표자·전화번호를 담으므로 이 탭(sessionStorage)에만 둔다.
+// 탭을 닫으면 지워져 공용 PC의 다음 사용자에게 남지 않는다.
 const draftKey = (caseId, kind) => `legal-form-draft:${caseId}:${kind}`;
 const emptyDraft = () => ({ company: {}, waste: {}, submit: { date: todayString() } });
 
 function loadDraft(caseId, kind) {
   try {
-    const saved = JSON.parse(localStorage.getItem(draftKey(caseId, kind)) ?? 'null');
+    const saved = JSON.parse(sessionStorage.getItem(draftKey(caseId, kind)) ?? 'null');
     if (saved && typeof saved === 'object') {
       const base = emptyDraft();
       // 서명은 저장하지 않는다 (혹시 남아 있어도 버린다)
@@ -24,7 +26,9 @@ function loadDraft(caseId, kind) {
   return emptyDraft();
 }
 function saveDraft(caseId, kind, draft) {
-  try { localStorage.setItem(draftKey(caseId, kind), JSON.stringify(draft)); } catch { /* 무시 */ }
+  try { sessionStorage.setItem(draftKey(caseId, kind), JSON.stringify(draft)); } catch { /* 무시 */ }
+  // 이전 버전이 localStorage에 남긴 초안은 지운다
+  try { localStorage.removeItem(draftKey(caseId, kind)); } catch { /* 무시 */ }
 }
 
 function Sheet({ kind, items, layout }) {
