@@ -4,6 +4,25 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
+test('기존 아고라 orb는 서버 단계와 실제 완료 수를 보여주며 낡은 작업은 실행 중으로 보지 않는다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { ReviewOrb, reviewProgressText, reviewIsRunning } = await vite.ssrLoadModule('/src/features/workflow/ReviewOrb.jsx');
+    assert.match(reviewProgressText({ phase: 'road_distance' })[0], /정렬/);
+    assert.match(reviewProgressText(null)[0], /기다리고/);
+    assert.match(reviewProgressText({ phase: 'photo_observation' })[0], /사진/);
+    assert.match(reviewProgressText({ phase: 'facility_review' })[0], /반입 근거/);
+    assert.equal(reviewIsRunning({ revision: 4, review_progress: { revision: 3, status: 'running' } }), false);
+    assert.equal(reviewIsRunning({ revision: 4, review_progress: { revision: 4, status: 'running' } }), true);
+    const html = renderToStaticMarkup(React.createElement(ReviewOrb, { progress: {
+      phase: 'facility_review', completed: 3, selected: 2, target: 5, total: 14,
+    } }));
+    assert.match(html, /wf-thinking-animation/);
+    assert.match(html, /검토 <b>3<\/b>곳/);
+    assert.match(html, /근거 확인 <b>2<\/b> \/ 5곳/);
+  } finally { await vite.close(); }
+});
+
 test('폐기물 카드의 진행 그림도 서버가 준 인수 대기 문구를 유지한다', async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
   try {

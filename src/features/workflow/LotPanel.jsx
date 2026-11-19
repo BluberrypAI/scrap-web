@@ -1,4 +1,5 @@
 import { canRequestIntake, invalidReviewPhotos } from './review-policy.js';
+import { ReviewOrb, reviewIsRunning } from './ReviewOrb.jsx';
 import { PhotoConflict, PhotoConflictReceipt } from './PhotoConflict.jsx';
 import { InquiryPacket } from './InquiryPacket.jsx';
 import { SupplierPolicySummary, InquiryConversation } from './SupplierPolicy.jsx';
@@ -34,7 +35,9 @@ const ResourceMapbox = lazy(() => import('../../pages/map/ResourceMapbox.jsx').t
 export function LotPanel({ lotId, initialLot = null, showRecycling = true, view = 'progress', onLotChange }) {
   const [lot, setLot] = useState(initialLot);
   const [error, setError] = useState('');
-  const [busy, setBusy] = useState('');
+  const [action, setBusy] = useState('');
+  const reviewRunning = reviewIsRunning(lot);
+  const busy = action || (reviewRunning ? 'review' : '');
   const actionVersion = useRef(0);
   const actionBusy = useRef(false);
   const lastSnapshot = useRef(initialLot ? JSON.stringify(initialLot) : '');
@@ -63,6 +66,21 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
     version: () => actionVersion.current,
     apply: applyLot,
   }), [lotId, applyLot]);
+
+  useEffect(() => {
+    if (!reviewRunning) return;
+    let live = true;
+    let timer;
+    async function poll() {
+      try {
+        const next = await workflowApi.getLot(lotId);
+        if (live) applyLot(next);
+      } catch { /* A temporary fetch error does not discard the saved server job. */ }
+      if (live) timer = setTimeout(poll, 1200);
+    }
+    timer = setTimeout(poll, 500);
+    return () => { live = false; clearTimeout(timer); };
+  }, [lotId, reviewRunning, applyLot]);
 
   // 서버 호출 공통: 잠금, 오류 문구, 충돌이면 새로 불러오기
   async function run(label, call) {
@@ -144,7 +162,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
             error={error}
             showRecycling={showRecycling}
             busy={busy}
-            onReview={() => run('review', () => workflowApi.reviewCandidates(lot))}
+            onReview={() => run('review', () => workflowApi.startCandidateReview(lot))}
             onOffer={(key) => run('offer', () => workflowApi.sendOffer(lot, key))}
             onAnswers={(key, answers) => run('answers', () => workflowApi.saveIntakeAnswers(lot, key, answers))}
             onDirectorySave={(transition, listing, cursor, answers) => run('directory', () => workflowApi.saveDirectoryInquiry(lot, transition, listing, cursor, answers))}
@@ -335,19 +353,39 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
       <button className="button button-primary" type="button" onClick={onReview} disabled={!!busy}>
         {busy === 'review' ? '업체를 검토하는 중…' : review ? '다시 검토' : 'AI 검토하고 후보 보기'}
       </button>
-      {busy === 'review' && <div className="wf-review-loading" role="status" aria-live="polite">
-        <span className="wf-review-orbit" aria-hidden="true"><i /><i /><i /></span>
-        <strong>업체의 공개 근거를 확인하고 있어요</strong>
-        <p>현재 물량과 사진을 후보 업체의 반입 조건에 대조합니다. 결과가 나오면 이 화면에 표시돼요.</p>
-      </div>}
+      {busy === 'review' && <ReviewOrb key={reviewIsRunning(lot) ? lot.review_progress.id : 'starting'}
+        progress={reviewIsRunning(lot) ? lot.review_progress : null} />}
+      {['failed', 'interrupted'].includes(lot.review_progress?.status) && busy !== 'review'
+        && <p className="wf-alert" role="alert">{lot.review_progress.message || '검토가 중단됐어요. 완료된 결과를 유지하고 다시 시도할 수 있어요.'}</p>}
       {error && busy !== 'review' && <p className="wf-alert" role="alert">검토 결과를 받지 못했어요. {error}</p>}
       {review && (review.analysis_version !== 'isolated-vision-v2' || !review.recycling_checksum) && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
+      {review?.selection && <p className="wf-muted" role="status">
+        도로거리순 {review.selection.examined_count}개 공정·업체 조합을 검토해 {review.selection.selected_keys.length}곳의 반입 근거를 확인했어요.
+        {review.selection.selected_keys.length < review.selection.target && ' 근거가 확인된 업체만 표시하며, 5곳을 임의로 채우지 않아요.'}
+      </p>}
+      {review?.selection?.unavailable_keys?.length > 0 && <p className="wf-muted">
+        일부 업체의 AI 검토가 미완료예요. 표시된 업체는 근거가 확인된 후보이며, 전체 업체 중 최종 상위 5곳이 확정됐다는 뜻은 아니에요.
+      </p>}
       {review && candidateKeys.length > 0 && <p className={reviewedCount < candidateKeys.length ? 'wf-alert' : 'wf-muted'} role="status">
         공정·업체 조합 {candidateKeys.length}건 중 {reviewedCount}건 검토 완료.
         {reviewedCount < candidateKeys.length ? ` ${candidateKeys.length - reviewedCount}건은 미완료예요. 다시 검토하면 같은 조건에서 완료된 결과를 유지하고 미완료 후보만 재시도해요.` : ' 실제 반입은 수신 기업이 확인해요.'}
       </p>}
       {review && <RouteOutcome next={next} currentLabel={stateLabel(lot, lot.data?.current?.state_key)} code={lot.data?.handoff?.waste_code} />}
+      {review?.selection?.other_options?.length > 0 && <details className="wf-more">
+        <summary>추가 확인·미검토 업체 보기</summary>
+        <p className="wf-muted">뒤 후보는 보존돼요. 미검토·거리 미확인은 부적합 판정이 아니에요.</p>
+        <ul>{review.selection.other_options.flatMap(option => option.facilities.map(facility => {
+          const key = facility.capability_key;
+          const s = review.selection;
+          const label = s.distance_unknown_keys.includes(key) ? '도로거리 미확인'
+            : s.restricted_keys.includes(key) ? '공개 자료에서 반입 제한 확인'
+            : s.needs_evidence_keys.includes(key) ? '반입 근거 추가 확인 필요'
+            : s.unavailable_keys.includes(key) ? 'AI 검토 미완료' : '이번 조회에서 미검토';
+          return <li key={key}><strong>{facility.label}</strong> · {label}
+            {facility.road_distance_status === 'available' && ` · 도로 ${facility.road_distance_km.toFixed(1)}km`}</li>;
+        }))}</ul>
+      </details>}
       {next?.options && (
         <CandidateBrowser
           options={next.options}
@@ -629,10 +667,9 @@ function ProgressStatus({ lot, name }) {
 
 function HandoffMap({ lot }) {
   const origin = lot.data.initial?.origin;
-  const handoffs = lot.offers.filter((offer) => ['received', 'processed'].includes(offer.status)
-    || (offer.status === 'accepted' && offer.data.dispatch));
+  const handoffs = lot.offers.filter((offer) => ['pending', 'conditional', 'accepted', 'received', 'processed'].includes(offer.status));
   const [road, setRoad] = useState(null);
-  const routeKey = JSON.stringify(handoffs.map(offer => [offer.id, offer.data.origin, offer.data.facility?.location]));
+  const routeKey = JSON.stringify(handoffs.map(offer => [offer.id, offer.status, !!offer.data.dispatch, offer.data.origin, offer.data.facility?.location]));
   useEffect(() => {
     let live = true;
     setRoad(null);
@@ -652,17 +689,18 @@ function HandoffMap({ lot }) {
     latitude: site.point.latitude, longitude: site.point.longitude,
   }));
   const segments = (road?.segments || []).filter(segment => segment.status === 'available');
-  const routeLines = segments.map(segment => segment.coordinates);
+  const routeLines = segments.filter(segment => segment.phase !== 'planned').map(segment => segment.coordinates);
+  const plannedRouteLines = segments.filter(segment => segment.phase === 'planned').map(segment => segment.coordinates);
   const roadDistance = segments.reduce((sum, segment) => sum + segment.distance_km, 0);
   const providers = [...new Set(segments.map(segment => segment.provider === 'kakao' ? '카카오모빌리티' : 'OSRM'))].join(' · ');
   return <section className="wf-handoff-map" aria-label="인계 사업장 지도">
-    <header><strong>인계 경로</strong><span>운송·입고 사업장</span></header>
+    <header><strong>인계 경로</strong><span>{plannedRouteLines.length ? '점선: 예정 경로 · 실선: 운송·입고 구간' : '운송·입고 사업장'}</span></header>
     <div className="wf-handoff-map-canvas"><Suspense fallback={<p>지도를 불러오는 중이에요.</p>}>
       <ResourceMapbox factories={factories} origin={validLocation(origin) ? { ...origin, label: '배출 사업장' } : null}
-        routeLines={routeLines} label="인계 사업장과 조회된 자동차 도로 경로 지도" />
+        routeLines={routeLines} plannedRouteLines={plannedRouteLines} label="인계 사업장과 조회된 자동차 도로 경로 지도" />
     </Suspense></div>
-    <p>{!handoffs.length ? '운송을 시작하면 도로 경로를 표시해요.' : !road ? '도로 경로를 조회하고 있어요.'
-      : segments.length ? `자동차 도로 경로 ${roadDistance.toFixed(1)}km · ${providers}. 실제 차량 GPS 기록은 아니에요.`
+    <p>{!handoffs.length ? '인수 요청을 보내면 두 사업장과 예정 도로 경로를 표시해요.' : !road ? '도로 경로를 조회하고 있어요.'
+      : segments.length ? `${plannedRouteLines.length ? '예정 구간 포함 · ' : ''}자동차 도로 경로 ${roadDistance.toFixed(1)}km · ${providers}. 실제 차량 GPS 기록은 아니에요.`
         : '도로 경로를 불러오지 못해 사업장 위치만 표시해요.'}</p>
     {road && segments.length > 0 && segments.length < handoffs.length && <p>일부 구간의 도로 경로는 확인되지 않았어요.</p>}
     {handoffs.length > factories.length && <p>일부 사업장 좌표가 없어 지도에 표시하지 못했어요.</p>}

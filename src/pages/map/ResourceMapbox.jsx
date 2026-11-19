@@ -45,7 +45,7 @@ export function ResourceMapbox(props) {
   return import.meta.env.VITE_KAKAO_MAP_APP_KEY?.trim() ? <KakaoResourceMap {...props} /> : <OpenResourceMap {...props} />;
 }
 
-function OpenResourceMap({ factories, selectedId, focusId, onSelect, origin = null, routePoints = [], routeLines = [], onPick, label = '전국 순환자원 처리업체 위치 지도', onStateChange }) {
+function OpenResourceMap({ factories, selectedId, focusId, onSelect, origin = null, routePoints = [], routeLines = [], plannedRouteLines = [], onPick, label = '전국 순환자원 처리업체 위치 지도', onStateChange }) {
   const hostRef = useRef(null);
   const mapRef = useRef(null);
   const markerRefs = useRef(new Map());
@@ -56,7 +56,7 @@ function OpenResourceMap({ factories, selectedId, focusId, onSelect, origin = nu
   const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim();
   const signature = useMemo(() => factories.map((factory) => [
     factory.id, factory.longitude, factory.latitude,
-  ]).join(':') + (origin ? `|${origin.longitude},${origin.latitude}` : '') + `|${JSON.stringify([routePoints, routeLines])}`, [factories, origin, routePoints, routeLines]);
+  ]).join(':') + (origin ? `|${origin.longitude},${origin.latitude}` : '') + `|${JSON.stringify([routePoints, routeLines, plannedRouteLines])}`, [factories, origin, routePoints, routeLines, plannedRouteLines]);
 
   onSelectRef.current = onSelect;
   useEffect(() => { onStateChange?.(loadState); }, [loadState, onStateChange]);
@@ -116,6 +116,14 @@ function OpenResourceMap({ factories, selectedId, focusId, onSelect, origin = nu
         } });
         map.addLayer({ id: 'actual-handoff-route-outline', type: 'line', source: 'actual-handoff-route', paint: { 'line-color': '#fff', 'line-width': 8, 'line-opacity': .9 } });
         map.addLayer({ id: 'actual-handoff-route-line', type: 'line', source: 'actual-handoff-route', paint: { 'line-color': '#7754a6', 'line-width': 4, 'line-opacity': .95 } });
+      }
+      if (plannedRouteLines.length) {
+        map.addSource('planned-handoff-route', { type: 'geojson', data: {
+          type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: plannedRouteLines },
+        } });
+        map.addLayer({ id: 'planned-handoff-route-line', type: 'line', source: 'planned-handoff-route', paint: {
+          'line-color': '#7754a6', 'line-width': 4, 'line-dasharray': [2, 2], 'line-opacity': .85,
+        } });
       }
       factories.forEach((factory) => {
         const element = createCompassMarker(factory, (id) => onSelectRef.current?.(id));
