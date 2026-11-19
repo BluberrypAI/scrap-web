@@ -30,7 +30,7 @@ export function createThinkingOrb(container) {
     context.setTransform(ratio, 0, 0, ratio, 0, 0); context.clearRect(0, 0, size, size);
     const cx = size / 2, cy = size / 2 - 2;
     const aura = context.createRadialGradient(cx, cy, 8, cx, cy, 105);
-    aura.addColorStop(0, '#ffffffaa'); aura.addColorStop(.7, '#deece429'); aura.addColorStop(1, '#deece400');
+    aura.addColorStop(0, '#ffffffaa'); aura.addColorStop(.7, '#e9ddfa55'); aura.addColorStop(1, '#e9ddfa00');
     context.fillStyle = aura; context.fillRect(0, 0, size, size);
     const dots = [], radius = 70 * (1 + .018 * Math.sin(time * 1.3));
     const turn = time * .24, tilt = -.31;
@@ -52,10 +52,10 @@ export function createThinkingOrb(container) {
         const scan = .65 + .35 * Math.pow(Math.max(0, Math.cos(angle - time * .9)), 6);
         point(Math.cos(latitude) * Math.cos(angle) * radius * ripple,
           Math.sin(latitude) * radius, Math.cos(latitude) * Math.sin(angle) * radius * ripple,
-          '#315f53', scan, .92);
+          '#7053b7', scan, .92);
       }
     }
-    const colors = ['#258fce', '#77ab3c', '#e3a636', '#e77552'];
+    const colors = ['#7053b7', '#9b7de0', '#b9a5ed', '#5e43a2'];
     for (let orbit = 0; orbit < 4; orbit++) {
       const lean = .65 + orbit * Math.PI / 3, direction = orbit % 2 ? -1 : 1;
       for (let index = 0; index < 72; index++) {

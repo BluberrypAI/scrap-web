@@ -11,7 +11,8 @@ test('기존 아고라 orb는 서버 단계와 실제 완료 수를 보여주며
     assert.match(reviewProgressText({ phase: 'road_distance' })[0], /정렬/);
     assert.match(reviewProgressText(null)[0], /기다리고/);
     assert.match(reviewProgressText({ phase: 'photo_observation' })[0], /사진/);
-    assert.match(reviewProgressText({ phase: 'facility_review' })[0], /반입 근거/);
+    assert.match(reviewProgressText({ phase: 'facility_review' })[0], /이번 물량/);
+    assert.match(reviewProgressText({ phase: 'public_evidence' })[1], /재사용/);
     assert.equal(reviewIsRunning({ revision: 4, review_progress: { revision: 3, status: 'running' } }), false);
     assert.equal(reviewIsRunning({ revision: 4, review_progress: { revision: 4, status: 'running' } }), true);
     const html = renderToStaticMarkup(React.createElement(ReviewOrb, { progress: {
