@@ -18,5 +18,7 @@ FROM nginx:1.27-alpine
 # 컨테이너 실행 시 -e SCRAP_SERVER_URL=... 로 바꿀 수 있음
 ENV SCRAP_SERVER_URL=http://host.docker.internal:8000
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY nginx/19-scrap-resolver.sh /docker-entrypoint.d/19-scrap-resolver.sh
+RUN chmod +x /docker-entrypoint.d/19-scrap-resolver.sh
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80

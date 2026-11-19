@@ -12,7 +12,9 @@ server {
         proxy_connect_timeout 5s;
         proxy_send_timeout 30s;
         proxy_read_timeout 600s;
-        proxy_pass ${SCRAP_SERVER_URL};
+        # 서버 컨테이너 재생성으로 IP가 바뀌어도 런타임 DNS로 다시 찾는다.
+        set $scrap_backend ${SCRAP_SERVER_URL};
+        proxy_pass $scrap_backend;
         proxy_set_header Host $proxy_host;
         # server가 https 주소일 때 TLS 이름(SNI)을 같이 보냄
         proxy_ssl_server_name on;

@@ -6,7 +6,8 @@
 }
 .wf-page .detail-header { margin-bottom: 16px; }
 .wf-code { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.wf-panel { display: grid; gap: 16px; }
+.wf-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.wf-panel > * { min-width: 0; }
 .wf-card {
   display: grid;
   gap: 10px;
