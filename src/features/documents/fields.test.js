@@ -37,3 +37,10 @@ test('제출 정보는 제6·12호만 보내고 빈 값은 뺀다', () => {
   assert.equal(buildBody('form12', { submit: {} }).submit, undefined);
   assert.equal(todayString(new Date(2026, 10, 7)), '2026-11-07');
 });
+
+test('availableForms: 지정폐기물인데 세부 번호를 못 정한 결론도 제12호·제5호 초안', () => {
+  const codeNeeded = { result_type: 'NO_CODE', outcome: 'DESIGNATED_CODE_NEEDED', category: 'DESIGNATED', route_guidance: { action: 'MANUAL_CLASSIFICATION' } };
+  assert.deepEqual(availableForms(codeNeeded), ['form12', 'form5']);
+  assert.deepEqual(availableForms({ ...codeNeeded, outcome: 'INTERPRETATION_NEEDED' }), []);
+  assert.deepEqual(availableForms({ ...codeNeeded, category: 'GENERAL' }), []);
+});

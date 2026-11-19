@@ -19,9 +19,9 @@ export function WasteJourneyPreview({ waste, active }) {
   const journey = waste.caseId || waste.lotId
     ? wasteJourneyState(waste, waste.lot || null)
     : wasteJourneyState(waste, getTreatmentCase(waste), readFieldChecks(waste.id));
-  const message = waste.lot?.status === 'processed' && !waste.lot.offers?.some((offer) => ['pending', 'conditional', 'accepted'].includes(offer.status))
+  const message = waste.message ?? (waste.lot?.status === 'processed' && !waste.lot.offers?.some((offer) => ['pending', 'conditional', 'accepted'].includes(offer.status))
     ? '현재 업체가 산출물을 기록했어요. 다음 인계를 준비 중이에요.'
-    : messages[waste.status] || wasteStatusMessage(waste);
+    : messages[waste.status] || wasteStatusMessage(waste));
   return <>
     <header className="waste-journey-heading">
       <span>분류 코드 {hasConfirmedCode(waste) ? waste.code : '미정'}</span>

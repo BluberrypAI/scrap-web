@@ -195,7 +195,7 @@ export default function DiagnosisChatPage({ id, afterConfirm = null }) {
     else if (turn.branch === 'RESOLVE_CONFLICT' && turn.ui.conflicts.length) card = <ConflictCard conflicts={turn.ui.conflicts} disabled={busy} onReply={sendReply} onAction={onAction} />;
     else if (q && !showEvidence) asking = true;
     if (showEvidence) card = <EvidenceCard docs={turn.ui.requested_documents} disabled={busy} onUpload={sendFile} onText={sendText} onClose={upload ? () => setUpload(false) : null} unread={unread} />;
-  } else if (turn.ui.result) card = <FinalCard turn={turn} confirmed handoff={handoff} />;
+  } else if (turn.ui.result) card = <FinalCard turn={turn} confirmed handoff={handoff} caseId={id} />;
 
   /** 베리의 말: 질문이면 질문 내용, 아니면 AI가 쓴 문장 */
   const berrySays = (m, i) => {

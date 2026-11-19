@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { workflowApi } from './api.js';
-import { CandidateBrowser } from './CandidateBrowser.jsx';
-import { Icon } from '../../components/Icon.jsx';
 import berry from '../../assets/berry.png';
 import { canRegisterLot } from './labels.js';
 import { registerLot } from './registration.js';
 import { RecyclingTypes } from './RecyclingTypes.jsx';
 import { RouteOutcome } from './RouteOutcome.jsx';
-import { hasFacilities } from './route-result.js';
+import { handoffDesignated } from '../diagnosis/lib/designated.js';
+import { DesignatedBanner, DesignatedNextActions } from '../diagnosis/components/DesignatedNotice.jsx';
 
-// 확정 문진 → 첫 처리 공정과 후보 업체.
+// 확정 문진 → 물량 입력. 후보 표시는 사진·상태 검토 이후 LotPanel에서 한 번만 한다.
 // 분류번호·재질·사업장 위치는 서버가 확정 문진과 기업 정보에서 읽고, 화면은 현재 형태만 고른다.
 export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, lotRecycling, recyclingFollowUp = false, onLotCreated, view = 'route', hasLot = false }) {
   const [form, setForm] = useState(null);
@@ -18,12 +17,6 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
   const [context, setContext] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [reviewing, setReviewing] = useState(false);
-  const [selectedKey, setSelectedKey] = useState(null);
-  const [preferred, setPreferred] = useState(null);
-  const registerSection = useRef(null);
-  const candidatesSection = useRef(null);
-  const scrolledForm = useRef(null);
   const [reload, setReload] = useState(0);
   const retry = () => setReload((value) => value + 1);
 
@@ -32,7 +25,6 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
     setLoading(true);
     setError('');
     setContext(null);
-    setSelectedKey(null);
     workflowApi
       .caseNextStep(caseId, form, solidConfirmed, materialDetail)
       .then((next) => live && setContext(next))
@@ -43,37 +35,16 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
     };
   }, [caseId, form, solidConfirmed, materialDetail, reload]);
 
-  useEffect(() => {
-    if (form && form !== scrolledForm.current && !loading && context?.status === 'ready' && view === 'route' && !hasLot) {
-      candidatesSection.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      scrolledForm.current = form;
-    }
-  }, [form, loading, context, view, hasLot]);
-
-  async function review() {
-    setReviewing(true);
-    setError('');
-    try {
-      setContext(await workflowApi.caseIntakeReviews(caseId, form, solidConfirmed, materialDetail));
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setReviewing(false);
-    }
-  }
-
   if (loading && !context) return <p className="wf-muted" role="status">처리 공정을 불러오는 중…</p>;
   if (error && !context) return <div hidden={view !== 'route'}><RouteOutcome error={error} caseId={caseId} currentLabel={caseTitle} code={wasteCode} onRetry={retry} /></div>;
   if (!context) return null;
 
   const next = context.next_step;
-  const reviews = context.reviews?.results;
-  const reviewItems = Object.values(reviews || {});
-  const reviewUnavailable = reviewItems.length > 0 && reviewItems.every((item) => item.status === 'model_unavailable');
+  const designatedInfo = handoffDesignated(context.handoff);
   const canRegister = !loading && canRegisterLot(context, form);
 
   return (
-    <div className="wf-panel route-recommendations" aria-busy={loading || reviewing}>
+    <div className="wf-panel route-recommendations" aria-busy={loading}>
       <div hidden={view !== 'info'}>
         <div className="wf-evidence-page-head"><span>분류 · 법적 근거</span><h2>확인 사항과 판단 근거</h2><p>확정 분류, 법령표의 재활용 유형, 다음 공정의 확인 사항을 구분해 확인하세요.</p></div>
         <div className="route-evidence-layout" aria-label="분류·확인 사항">
@@ -96,13 +67,14 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
         </div>
       </div>
       <div hidden={view !== 'route' || hasLot} className="route-recommendations-main">
-      {context.requires_solid_confirmation && <label className="wf-card"><input type="checkbox" checked={solidConfirmed} disabled={reviewing} onChange={(event) => { setSolidConfirmed(event.target.checked); setForm(null); }} />현재 물량은 내용물을 비운 고체이며 액체·슬러지가 섞이지 않았어요.</label>}
-      <RouteOutcome status={context.status} next={next} message={context.status !== 'ready' ? context.message : undefined} currentLabel={next?.current_state?.label || caseTitle} code={context.handoff?.waste_code || wasteCode} caseId={caseId} onRetry={retry} busy={reviewing} />
-      {context.available_materials?.length > 0 && <fieldset className="wf-forms" disabled={reviewing}><legend>확인된 세부 재질</legend><p className="wf-muted">분류번호는 그대로 유지해요. 재질 표시나 성적서로 확인한 값만 선택하세요.</p>{[...context.available_materials, { value: 'unknown', label: '모름 · 혼합물이거나 목록에 없음' }].map((option) => <label key={option.value}><input type="radio" name="material-detail" value={option.value} checked={materialDetail === option.value} onChange={() => { setForm(null); setMaterialDetail(option.value); }} />{option.label}</label>)}</fieldset>}
+      {designatedInfo && <section className="designated-route" aria-label="지정폐기물 안내"><DesignatedBanner notice={designatedInfo} /><DesignatedNextActions notice={designatedInfo} caseId={caseId} handoff={context.handoff} /></section>}
+      {context.requires_solid_confirmation && <label className="wf-card"><input type="checkbox" checked={solidConfirmed} disabled={loading} onChange={(event) => { setSolidConfirmed(event.target.checked); setForm(null); }} />현재 물량은 내용물을 비운 고체이며 액체·슬러지가 섞이지 않았어요.</label>}
+      <RouteOutcome status={context.status} next={next} message={context.status !== 'ready' ? context.message : undefined} currentLabel={next?.current_state?.label || caseTitle} code={context.handoff?.waste_code || wasteCode} caseId={caseId} onRetry={retry} busy={loading} />
+      {context.available_materials?.length > 0 && <fieldset className="wf-forms" disabled={loading}><legend>확인된 세부 재질</legend><p className="wf-muted">분류번호는 그대로 유지해요. 재질 표시나 성적서로 확인한 값만 선택하세요.</p>{[...context.available_materials, { value: 'unknown', label: '모름 · 혼합물이거나 목록에 없음' }].map((option) => <label key={option.value}><input type="radio" name="material-detail" value={option.value} checked={materialDetail === option.value} onChange={() => { setForm(null); setMaterialDetail(option.value); }} />{option.label}</label>)}</fieldset>}
       {context.available_forms?.length > 0 && (
         <section className="route-form-card" aria-labelledby="route-form-title">
-          <div className="route-form-heading"><img src={berry} alt="" /><div className="route-form-speech"><h2 id="route-form-title">지금 가지고 계신 폐기물은 어떤 형태인가요?</h2><p>형태를 알려주시면 다음 공정과 업체를 찾아볼게요.</p></div></div>
-          <fieldset className="wf-forms route-form-choice" disabled={reviewing} aria-label="현재 물량 형태">
+          <div className="route-form-heading"><img src={berry} alt="" /><div className="route-form-speech"><h2 id="route-form-title">지금 가지고 계신 폐기물은 어떤 형태인가요?</h2><p>현재 형태와 물량을 입력한 뒤 사진·상태를 검토해 공정과 업체 후보를 보여드려요.</p></div></div>
+          <fieldset className="wf-forms route-form-choice" disabled={loading} aria-label="현재 물량 형태">
           {context.available_forms.map((option) => (
             <label key={option.value}>
               <input
@@ -110,7 +82,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
                 name="input-form"
                 value={option.value}
                 checked={form === option.value}
-                onChange={() => { setForm(option.value); setPreferred(null); setSelectedKey(null); }}
+                onChange={() => setForm(option.value)}
               />
               {option.label}
             </label>
@@ -120,24 +92,14 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
       )}
       {context.origin_label && <p className="wf-muted">출발 사업장: {context.origin_label}</p>}
       {error && <p className="wf-alert" role="alert">{error}</p>}
-      {loading && <p className="wf-muted" role="status">선택한 형태의 공정과 업체를 불러오고 있어요…</p>}
+      {loading && <p className="wf-muted" role="status">선택한 형태를 확인하고 있어요…</p>}
       {!loading && context.status === 'ready' && next && (
         <>
-          <div ref={candidatesSection} className="route-candidate-anchor">
-          <CandidateBrowser key={form || 'initial'} options={next.options} reviews={reviewUnavailable ? null : reviews} origin={context.origin} originLabel={context.origin_label} selectedKey={selectedKey} onSelect={setSelectedKey}
-            renderAction={(facility) => canRegister && <button className="facility-select facility-choose" type="button" aria-pressed={preferred?.capability_key === facility.capability_key} onClick={() => { setPreferred(facility); setSelectedKey(facility.facility_key); registerSection.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>{preferred?.capability_key === facility.capability_key ? '선택한 업체 · 물량 입력하기' : '이 업체 선택하기'}</button>} />
-          </div>
-          {next.status === 'candidates' && hasFacilities(next) && <section className="candidate-review-bar" aria-label="공개 근거 AI 검토"><div><Icon name="spark" size={19} /><span><strong>공개 근거 AI 검토</strong><small>업체 후보의 공개 자료에서 반입 형태와 제한 조건을 다시 확인합니다. 실제 인수 승인과는 별개예요.</small></span></div>
-            <button className="button button-quiet" type="button" onClick={review} disabled={reviewing}>
-              {reviewing ? '업체별 공개 근거를 검토하는 중…' : reviewUnavailable ? 'AI 검토 다시 시도' : reviews ? '공개 근거 다시 확인' : 'AI 검토 시작'}
-            </button>
-            {reviewUnavailable && <p className="candidate-review-unavailable" role="status">AI 검토 결과를 받지 못했어요. 업체의 반입 불가 판정은 아니며, 공개 자료는 각 업체 카드에서 확인할 수 있어요.</p>}
-          </section>}
           {canRegister ? (
-            <div ref={registerSection} className="lot-registration"><LotRegisterForm caseId={caseId} inputForm={form} solidConfirmed={solidConfirmed} materialDetail={materialDetail} preferred={preferred} onCreated={onLotCreated} /></div>
+            <div className="lot-registration"><LotRegisterForm key={`${form}:${materialDetail}`} caseId={caseId} inputForm={form} solidConfirmed={solidConfirmed} materialDetail={materialDetail} onCreated={onLotCreated} /></div>
           ) : (
             <p className="wf-card wf-muted">
-              현재 선택한 재질·형태는 처리 건 등록을 지원하지 않아요. 이 물량은 후보 업체와 공개 근거까지 확인할 수 있어요.
+              현재 선택한 재질·형태는 처리 건 등록을 지원하지 않아요. 분류·형태를 확인해 주세요.
             </p>
           )}
         </>
@@ -148,7 +110,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
 }
 
 // 지원 재질·형태는 실제 물량을 등록하면 업체에 인수 요청을 보내고 QR로 인계할 수 있다
-function LotRegisterForm({ caseId, inputForm, solidConfirmed, materialDetail, preferred, onCreated }) {
+function LotRegisterForm({ caseId, inputForm, solidConfirmed, materialDetail, onCreated }) {
   const [mass, setMass] = useState('');
   const [condition, setCondition] = useState('');
   const [busy, setBusy] = useState(false);
@@ -170,7 +132,7 @@ function LotRegisterForm({ caseId, inputForm, solidConfirmed, materialDetail, pr
           materialDetail,
           massKg: Number(mass),
           condition: condition.trim(),
-        }), preferred,
+        }),
       );
     } catch (e) {
       setError(e.message);
@@ -182,8 +144,8 @@ function LotRegisterForm({ caseId, inputForm, solidConfirmed, materialDetail, pr
   }
   return (
     <form className="wf-card wf-form" onSubmit={submit} noValidate aria-busy={busy}>
-      <h3>{preferred ? `${preferred.label} 검토 준비` : '처리할 물량 등록'}</h3>
-      <p className="wf-muted">중량과 상태를 입력해 주세요. 등록 후 업체 검토를 거쳐 인수 요청을 보낼 수 있어요.</p>
+      <h3>현재 물량 알려주기</h3>
+      <p className="wf-muted">현재 물량을 저장하면 사진을 첨부할 수 있어요. AI 검토가 끝난 뒤 공정·업체 후보에서 인수 요청할 곳을 선택하세요.</p>
       <label>
         중량(kg)
         <input type="number" min="0" step="any" required disabled={busy} value={mass} onChange={(e) => setMass(e.target.value)} placeholder="예: 250" />
@@ -203,7 +165,7 @@ function LotRegisterForm({ caseId, inputForm, solidConfirmed, materialDetail, pr
       </label>
       {error && <p ref={errorMessage} tabIndex={-1} className="wf-alert" role="alert">{error}</p>}
       <button className="register-submit facility-select facility-choose" type="submit" disabled={busy}>
-        {busy ? '등록하는 중…' : '처리 건 등록하고 계속'}
+        {busy ? '등록하는 중…' : '물량 저장하고 사진 추가'}
       </button>
     </form>
   );

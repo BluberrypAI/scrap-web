@@ -34,10 +34,10 @@ export function RouteMapPanel({ waste }) {
   const visibleStops = visibleRouteStops(phase, stops);
   const berryMessage = {
     loading: '대한민국 지도를 불러오고 있어요. 잠시만 기다려 주세요!',
-    'missing-token': 'Mapbox 연결 정보가 없어요. 공개 액세스 토큰을 확인해 주세요.',
+    'missing-token': '지도 연결 설정을 확인해 주세요.',
     unsupported: '이 브라우저에서는 지도를 표시하기 어려워요. WebGL을 지원하는 최신 브라우저에서 다시 열어 주세요.',
     timeout: '지도를 불러오는 데 시간이 오래 걸리고 있어요. 네트워크를 확인한 뒤 새로고침해 주세요.',
-    error: '지도를 불러오지 못했어요. 토큰의 허용 URL과 브라우저 콘솔을 확인해 주세요.',
+    error: '지도를 불러오지 못했어요. 지도 앱의 허용 도메인과 연결 설정을 확인해 주세요.',
   }[mapLoadState];
   const description = phase === 'complete'
     ? '처리가 완료됐어요. 이동한 경로와 처리 결과를 확인할 수 있어요.'

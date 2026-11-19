@@ -29,18 +29,26 @@ export const workflowApi = {
   // ---- 기업 간 인계 ----
   listLots: () => apiFetch('/workflow/lots'),
   getLot: (lotId) => apiFetch(`/workflow/lots/${enc(lotId)}`),
+  getRoadRoute: (lotId) => apiFetch(`/workflow/lots/${enc(lotId)}/road-route`),
   /** 확정 문진으로 처리 건 등록. 같은 문진으로 이미 만든 건이 있으면 그 건을 돌려준다 */
   createLot: ({ diagnosisId, inputForm, massKg, condition, solidConfirmed = false, materialDetail = null }) =>
     apiFetch('/workflow/lots', {
       method: 'POST',
       body: { diagnosis_id: diagnosisId, input_form: inputForm, mass_kg: massKg, condition, solid_confirmed: solidConfirmed, material_detail: materialDetail },
     }),
-  addPhoto: (lotId, file) => {
+  addPhoto: (lotId, file, replacement = null) => {
     const form = new FormData();
     form.append('file', file, file.name || 'photo.jpg');
+    if (replacement) {
+      form.append('replace_photo_id', replacement.photoId);
+      form.append('revision', String(replacement.revision));
+    }
     return apiFetch(`/workflow/lots/${enc(lotId)}/photos`, { method: 'POST', body: form });
   },
   photoUrl: (photo) => photo.url,
+  resolvePhotoConflict: (lot, body) => apiFetch(`/workflow/lots/${enc(lot.id)}/photo-conflict-resolution`, {
+    method: 'POST', body: { ...body, revision: lot.revision },
+  }),
   /** 현재 물량 기준 다음 공정 업체 검토(사진·상태 AI 관찰 포함) */
   reviewCandidates: (lot) =>
     apiFetch(`/workflow/lots/${enc(lot.id)}/candidates`, { method: 'POST', body: { revision: lot.revision } }),
@@ -81,6 +89,8 @@ export const workflowApi = {
         resolved_condition_ids: resolvedConditionIds,
       },
     }),
+  dispatch: (lot, offerId) =>
+    apiFetch(`/workflow/offers/${enc(offerId)}/dispatch`, { method: 'POST', body: { revision: lot.revision } }),
   /** 입고 QR 발급. 토큰 원문은 이 응답에만 있고 서버에는 해시만 남는다 */
   issueQr: (lot, offerId) =>
     apiFetch(`/workflow/offers/${enc(offerId)}/qr`, { method: 'POST', body: { revision: lot.revision } }),

@@ -116,6 +116,25 @@ export function normalizeBoard(turn) {
   };
 }
 
+/** 지정폐기물 안내(엔진이 주는 선택 필드). 없거나 모양이 다르면 null — 옛 엔진이면 화면이 예전 그대로 나온다 */
+export function normalizeDesignated(d) {
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return null;
+  const text = (x) => (typeof x === 'string' && x.trim() ? x : null);
+  return {
+    reason: text(d.reason),
+    warning: text(d.warning),
+    next_actions: (Array.isArray(d.next_actions) ? d.next_actions : [])
+      .filter((a) => a && text(a.text))
+      .map((a, i) => ({ id: a.id || `action-${i}`, text: a.text, source_id: a.source_id ?? null, source_title: text(a.source_title), source_ref: text(a.source_ref), form: a.form ?? null })),
+  };
+}
+
+/** ui.result에 designated가 있으면 null-안전하게 맞춘다(없으면 키를 만들지 않는다) */
+function withDesignated(result) {
+  if (!result || !('designated' in result)) return result;
+  return { ...result, designated: normalizeDesignated(result.designated) };
+}
+
 /** @param {any} turn */
 function deriveResult(turn) {
   const v = turn.verdict || {};
@@ -125,6 +144,7 @@ function deriveResult(turn) {
     code,
     name: v.waste_name || null,
     category: v.category || null,
+    ...(v.designated ? { designated: normalizeDesignated(v.designated) } : {}),
     outcome: v.outcome || null,
     conclusion: code ? `분류번호 ${code} ${v.waste_name || ''}로 판정됩니다`.replace(' 로', '로') : firstSentence(turn.message),
     next_step: code ? '확정하면 경로 추천으로 넘어갑니다' : '확정하면 다음 단계에서 어떻게 처리하면 되는지 안내해 드립니다',
@@ -157,7 +177,7 @@ export function normalizeTurn(turn) {
       question,
       board,
       conflicts: Array.isArray(ui.conflicts) ? ui.conflicts : [],
-      result: ui.result || (turn.branch === 'FINAL_REVIEW' ? deriveResult(turn) : null),
+      result: withDesignated(ui.result) || (turn.branch === 'FINAL_REVIEW' ? deriveResult(turn) : null),
     },
     _fallback: fb,
   };

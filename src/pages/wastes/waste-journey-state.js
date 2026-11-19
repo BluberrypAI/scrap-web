@@ -8,7 +8,11 @@ export function wasteJourneyState(waste, treatment, checks = {}) {
   // 문진·처리 건 카드는 서버 상태를 따른다. 브라우저에 남은 데모 경로/현장 체크가
   // 실제 처리 단계보다 앞서 보이게 하지 않는다.
   if (waste.caseId || waste.lotId) {
-    const phase = waste.status === '완료' ? 'complete' : waste.status === '처리 진행' ? 'processing' : 'ready';
+    // 목록의 '처리 진행'은 인수 요청부터 포함한다. 실제 입고 전에는
+    // 공장 가동 장면으로 표시하지 않고 서버의 인계 상태를 우선한다.
+    const phase = treatment?.status
+      ? treatment.status === 'completed' ? 'complete' : treatment.status === 'processing' ? 'processing' : 'ready'
+      : waste.status === '완료' ? 'complete' : waste.status === '처리 진행' ? 'processing' : 'ready';
     const completed = (treatment?.data?.completed || []).map((step, index) => ({
       facility_key: step.capability_key || `completed-${index}`,
       kind: 'recycling',
