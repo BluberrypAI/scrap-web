@@ -4,6 +4,7 @@
 #   vars:    ACR_LOGIN_SERVER, ACR_USERNAME
 #   secrets: ACR_PASSWORD, DISCORD_WEBHOOK_URL (배포 실패 알림)
 #            VITE_MAPBOX_ACCESS_TOKEN (지도, 빌드할 때 들어감)
+#            VITE_KAKAO_MAP_APP_KEY (카카오 지도 JavaScript 키, 선택)
 # ACR_LOGIN_SERVER가 없으면 건너뜀
 
 name: Deploy Azure
@@ -37,9 +38,11 @@ jobs:
         env:
           REGISTRY: ${{ vars.ACR_LOGIN_SERVER }}
           MAPBOX: ${{ secrets.VITE_MAPBOX_ACCESS_TOKEN }}
+          # 카카오맵 SDK 공개 JavaScript 키(없으면 기존 지도 사용)
+          KAKAO_MAP: ${{ secrets.VITE_KAKAO_MAP_APP_KEY }}
         run: |
           image="$REGISTRY/$APP"
-          docker build -t "$image:${GITHUB_SHA::12}" -t "$image:main" --build-arg VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX" --build-arg VITE_ENABLE_DEV_LOGIN=false .
+          docker build -t "$image:${GITHUB_SHA::12}" -t "$image:main" --build-arg VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX" --build-arg VITE_KAKAO_MAP_APP_KEY="$KAKAO_MAP" --build-arg VITE_ENABLE_DEV_LOGIN=false .
           docker push "$image:${GITHUB_SHA::12}"
           docker push "$image:main"
 
