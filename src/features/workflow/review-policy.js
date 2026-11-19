@@ -19,6 +19,7 @@ export function canRequestIntake(review, facility, result, conflictGate) {
     && review?.reference_checksum && review?.conditions_checksum
     && ['reviewed', 'needs_evidence'].includes(result?.status)
     && result?.finding !== 'restriction_mentioned'
+    && !['unverified', 'mismatch'].includes(result?.process_match)
     && result?.lot_review?.status === 'reviewed'
     && ['isolated_vision', 'no_photo'].includes(result?.lot_review?.observation_method));
 }

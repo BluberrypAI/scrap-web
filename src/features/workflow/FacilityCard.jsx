@@ -24,7 +24,7 @@ export function FacilityCard({ facility, review, action = null, selected = false
             : '이 업체와 연결된 수신 계정이 없어요. 인수 요청을 보낼 수 없어요.'}
         </p>
       )}
-      {facility.checks?.length > 0 && (
+      {!review?.process_match && facility.checks?.length > 0 && (
         <section className="facility-facts" aria-label="업체 확인 사항"><h4>업체 확인 사항</h4>
         <ul className="wf-checks">
           {facility.checks.map((check) => (
@@ -36,9 +36,18 @@ export function FacilityCard({ facility, review, action = null, selected = false
       {review && (
         <div className="wf-review" data-status={review.status}>
           <p>
-            <strong>{REVIEW_STATUS[review.status] || review.status}</strong>
-            {review.finding && ` · ${REVIEW_FINDING[review.finding] || review.finding}`}
+            <strong>{review.process_match === 'matched' ? '공정 관련 업체' : review.process_match === 'mismatch' ? '재질·공정 불일치' : REVIEW_STATUS[review.status] || review.status}</strong>
+            {!review.process_match && review.finding && ` · ${REVIEW_FINDING[review.finding] || review.finding}`}
           </p>
+          {review.process_match && <><p className="wf-muted">세부 반입조건은 사진·물량을 보내고 업체와 대화로 확인해요.</p>
+            {review.process_quote && <details><summary>공정 연결 근거</summary><blockquote>{review.process_quote}</blockquote>
+              {review.process_source && <a href={review.process_source.url} target="_blank" rel="noopener noreferrer">{review.process_source.publisher} · 수집 자료</a>}
+            </details>}
+            {lotReview?.concerns?.length > 0 && <details><summary>사진·상태 검토</summary>
+              {lotReview.concerns.map((c, i) => <p key={i}><span className="wf-chip">{CONCERN_CATEGORY[c.category] || c.category}</span> {c.concern}</p>)}
+            </details>}
+          </>}
+          {!review.process_match && <>
           <div className="facility-review-facts">
           {review.evidence_gaps?.length > 0 && <ul className="wf-checks">{review.evidence_gaps.map((gap) => <li key={gap}>{EVIDENCE_GAP[gap] || '반입 근거를 더 확인해야 해요'}</li>)}</ul>}
           {review.quote && <blockquote>{review.quote}</blockquote>}
@@ -69,11 +78,12 @@ export function FacilityCard({ facility, review, action = null, selected = false
             </div>
           )}
           </div>
+          </>}
         </div>
       )}
       {facility.sources?.length > 0 && (
-        <section className="facility-facts" aria-label="공개 자료">
-          <h4>공개 자료 {facility.sources.length}건</h4>
+        <details className="facility-facts" aria-label="공개 자료">
+          <summary>공개 자료 {facility.sources.length}건</summary>
           <ul className="wf-sources">
             {facility.sources.map((s) => (
               <li key={s.url + s.locator}>
@@ -83,7 +93,7 @@ export function FacilityCard({ facility, review, action = null, selected = false
               </li>
             ))}
           </ul>
-        </section>
+        </details>
       )}
       {action}
     </li>

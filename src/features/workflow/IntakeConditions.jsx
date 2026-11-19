@@ -61,16 +61,16 @@ export function DirectoryCandidates({ lot, transitionKey, onSave }) {
         {p.straight_line_distance_km != null && <p>직선 {p.straight_line_distance_km}km · 도로 거리 미확인</p>}
         <a href={p.source_url} target="_blank" rel="noreferrer">명부 출처</a>
         <p className="wf-muted">{p.next_action}</p>
-        <IntakeQuestions form={p.intake_conditions} busy={busy} onSave={async answers => {
+        <button className="button button-quiet button-small" disabled={busy} onClick={async () => {
           setBusy(true);
-          try { const saved = await onSave(r.listing_id, cursor, answers); if (saved) setPage(null); }
+          try { const saved = await onSave(r.listing_id, cursor, {}); if (saved) setPage(null); }
           catch (e) { setError(e.message); }
           finally { setBusy(false); }
-        }} />
+        }}>업체 조사 목록에 저장</button>
       </li>; })}</ul>
       {page.pagination.has_more && <button className="button button-quiet" disabled={busy} onClick={() => load(page.pagination.next_cursor)}>다음 업체 10곳</button>}
     </>}
     {busy && <p role="status">업체 명부 조회 중…</p>}
-    {Object.values(lot.data.directory_inquiries?.[String(lot.data.completed.length)] || {}).filter(i => i.transition_key === transitionKey).map(i => <p key={i.listing_id}><strong>{i.name}</strong> · 질문 답변 저장됨 · 사업장 근거와 수신계정 확인 대기</p>)}
+    {Object.values(lot.data.directory_inquiries?.[String(lot.data.completed.length)] || {}).filter(i => i.transition_key === transitionKey).map(i => <p key={i.listing_id}><strong>{i.name}</strong> · 업체 조사·수신계정 확인 대기</p>)}
   </details>;
 }

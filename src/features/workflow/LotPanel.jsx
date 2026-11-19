@@ -11,7 +11,7 @@ import { CandidateBrowser } from './CandidateBrowser.jsx';
 import { QrPreview } from './QrPreview.jsx';
 import { RecyclingTypes } from './RecyclingTypes.jsx';
 import { RouteOutcome } from './RouteOutcome.jsx';
-import { IntakeQuestions, ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
+import { ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
 import { validLocation } from './route-result.js';
 import { startLotSync } from './lot-sync.js';
 import {
@@ -177,7 +177,6 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
           <InquiryConversation lot={lot} offer={pendingOffer} busy={!!busy}
             readOnly={![pendingOffer.sender_id, pendingOffer.recipient_id].includes(me)}
             onSend={(text) => run('message', () => workflowApi.replyInquiry(lot, pendingOffer.id, text))} />
-          <IntakeQuestions form={pendingOffer.data.intake_conditions} readOnly />
           {pendingOffer.status === 'conditional' && <ConditionalResponse lot={lot} offer={pendingOffer} busy={!!busy}
             onRespond={(values) => run('conditions', () => workflowApi.respondConditions(lot, pendingOffer.id, values))} />}
           {pendingOffer.can_decide ? (
@@ -361,11 +360,11 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
       {review && (review.analysis_version !== 'isolated-vision-v2' || !review.recycling_checksum) && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
       {review?.selection && <p className="wf-muted" role="status">
-        도로거리순 {review.selection.examined_count}개 공정·업체 조합을 검토해 {review.selection.selected_keys.length}곳의 반입 근거를 확인했어요.
-        {review.selection.selected_keys.length < review.selection.target && ' 근거가 확인된 업체만 표시하며, 5곳을 임의로 채우지 않아요.'}
+        공정 관련 업체를 도로거리순으로 최대 5곳 보여드려요. 현재 {review.selection.selected_keys.length}곳이에요.
+        {' '}사진·물량을 보내면 업체가 대화에서 세부 조건을 확인하고 수락해요.
       </p>}
       {review?.selection?.unavailable_keys?.length > 0 && <p className="wf-muted">
-        일부 업체의 AI 검토가 미완료예요. 표시된 업체는 근거가 확인된 후보이며, 전체 업체 중 최종 상위 5곳이 확정됐다는 뜻은 아니에요.
+        일부 업체의 공정 검토가 미완료예요. 미완료 업체를 부적합으로 판단하지 않아요.
       </p>}
       {review && candidateKeys.length > 0 && <p className={reviewedCount < candidateKeys.length ? 'wf-alert' : 'wf-muted'} role="status">
         공정·업체 조합 {candidateKeys.length}건 중 {reviewedCount}건 검토 완료.
@@ -380,7 +379,8 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
           const s = review.selection;
           const label = s.distance_unknown_keys.includes(key) ? '도로거리 미확인'
             : s.restricted_keys.includes(key) ? '공개 자료에서 반입 제한 확인'
-            : s.needs_evidence_keys.includes(key) ? '반입 근거 추가 확인 필요'
+            : s.mismatch_keys?.includes(key) ? '재질·공정 불일치'
+            : s.needs_evidence_keys.includes(key) ? '공정 연결 자료 추가 조사 대상'
             : s.unavailable_keys.includes(key) ? 'AI 검토 미완료' : '이번 조회에서 미검토';
           return <li key={key}><strong>{facility.label}</strong> · {label}
             {facility.road_distance_status === 'available' && ` · 도로 ${facility.road_distance_km.toFixed(1)}km`}</li>;
@@ -397,8 +397,6 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
           renderAction={(facility, result) => <>
             <SupplierPolicySummary value={facility.supplier_policy} />
             <InquiryPacket lot={lot} facility={facility} busy={!!busy} />
-            <IntakeQuestions key={facility.capability_key + lot.revision} form={facility.intake_conditions} busy={!!busy}
-              onSave={(answers) => onAnswers(facility.capability_key, answers)} />
             {sendable(facility, result) ? (
               <button className="button button-quiet button-small" type="button" disabled={!!busy}
                 onClick={() => onOffer(facility.capability_key)}>
@@ -408,7 +406,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
               <p className="wf-alert">사진·설명 불일치 확인 전이라 인수 요청을 보류했어요. 위 확인 영역에서 수정하거나 확인 사유를 남겨 주세요.</p>
             ) : result?.status === 'model_unavailable' || result?.lot_review?.status === 'model_unavailable' ? (
               <p className="wf-muted">AI 검토가 끝나지 않아 요청을 보낼 수 없어요. 다시 검토해 주세요.</p>
-            ) : <p className="wf-muted">{!facility.recipient ? '업체의 수신 계정 연결 후 인수 요청을 보낼 수 있어요.' : result?.finding === 'restriction_mentioned' ? '반입 제한이 확인되어 요청을 보낼 수 없어요.' : '필요한 답변을 입력하고 업체 검토를 완료해 주세요.'}</p>}</>}
+            ) : <p className="wf-muted">{!facility.recipient ? '업체의 수신 계정 연결 후 인수 요청을 보낼 수 있어요.' : result?.finding === 'restriction_mentioned' ? '반입 제한이 확인되어 요청을 보낼 수 없어요.' : '공정·물량 검토를 완료해 주세요.'}</p>}</>}
           renderExtra={(option) => <DirectoryCandidates lot={lot} transitionKey={option.transition_key} onSave={(listing, cursor, answers) => onDirectorySave(option.transition_key, listing, cursor, answers)} />}
         />
       )}
@@ -445,8 +443,7 @@ function OfferCard({ lot, offer, name, children }) {
 
 function DecisionForm({ busy, onDecide, onConditions, offer }) {
   const [note, setNote] = useState('');
-  const [scope, setScope] = useState(false);
-  const [intake, setIntake] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const requiredChecks = offer?.data.facility?.supplier_policy?.policy?.required_checks || [];
   const [conditionsText, setConditionsText] = useState(requiredChecks.join('\n'));
   const [resolved, setResolved] = useState([]);
@@ -459,21 +456,20 @@ function DecisionForm({ busy, onDecide, onConditions, offer }) {
         메모 (수락·거절 이유)
         <textarea rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
       </label>
-      <label className="wf-check"><input type="checkbox" checked={scope} onChange={(e) => setScope(e.target.checked)} /> 우리 허가 범위에 이 물량이 들어가는지 확인했어요</label>
-      <label className="wf-check"><input type="checkbox" checked={intake} onChange={(e) => setIntake(e.target.checked)} /> 반입 규격(형태·상태·중량)을 확인했어요</label>
-      <p className="wf-muted">수락은 이번 물량을 받는다는 업무상 응답이에요. 허가 검증을 대신하지 않아요.</p>
+      <p className="wf-muted">사진·물량과 대화를 확인하고, 필요한 조건은 메시지로 협의해 주세요.</p>
+      <label className="wf-check"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> 우리 사업장의 처리 범위와 이번 물량의 반입조건을 확인했어요</label>
       {conditions.map(c => <label className="wf-check" key={c.id}><input type="checkbox" checked={resolved.includes(c.id)} disabled={!offer.data.condition_responses?.[c.id]?.text}
         onChange={e => setResolved(e.target.checked ? [...resolved, c.id] : resolved.filter(id => id !== c.id))} />제출 자료로 확인했어요: {c.text}</label>)}
       {offer?.status === 'pending' && <label>추가 반입조건 (한 줄에 하나씩, 최대 12개)
         <textarea rows={3} maxLength={4000} placeholder="예: 오염물 제거 후 사진과 샘플 검사번호를 제출해 주세요." value={conditionsText} onChange={e => setConditionsText(e.target.value)} />
       </label>}
       <div className="wf-actions">
-        <button className="button button-primary" type="button" disabled={!!busy || !ok || !scope || !intake || !conditionsReady}
-          onClick={() => onDecide({ accept: true, note: note.trim(), scopeChecked: scope, intakeChecked: intake, resolvedConditionIds: resolved })}>{conditions.length ? '조건 확인 후 최종 수락' : '수락'}</button>
+        <button className="button button-primary" type="button" disabled={!!busy || !ok || !confirmed || !conditionsReady}
+          onClick={() => onDecide({ accept: true, note: note.trim(), scopeChecked: confirmed, intakeChecked: confirmed, resolvedConditionIds: resolved })}>{conditions.length ? '조건 확인 후 최종 수락' : '수락'}</button>
         {offer?.status === 'pending' && <button className="button button-quiet" disabled={!!busy || !ok || conditionsText.trim().length < 3}
           onClick={() => onConditions(conditionsText.split('\n').map(s => s.trim()).filter(Boolean), note.trim())}>조건부 수락</button>}
         <button className="button button-quiet" type="button" disabled={!!busy || !ok}
-          onClick={() => onDecide({ accept: false, note: note.trim(), scopeChecked: scope, intakeChecked: intake })}>거절</button>
+          onClick={() => onDecide({ accept: false, note: note.trim(), scopeChecked: confirmed, intakeChecked: confirmed })}>거절</button>
       </div>
     </div>
   );
