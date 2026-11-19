@@ -36,6 +36,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   const [lot, setLot] = useState(initialLot);
   const [error, setError] = useState('');
   const [action, setBusy] = useState('');
+  const [outputAction, setOutputAction] = useState(null);
   const reviewRunning = reviewIsRunning(lot);
   const busy = action || (reviewRunning ? 'review' : '');
   const actionVersion = useRef(0);
@@ -120,6 +121,11 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   const material = lotMaterial(lot);
   const diagnosisId = lot.diagnosis_id || lot.data.handoff?.case_id;
   const canFinish = manage && lot.status === 'processed' && (lot.terminal_states || FINISH_STATES[material] || []).includes(current.state_key);
+  const outputActionKey = `${lot.id}:${stage}:${current.state_key}:${lot.current_company_id}`;
+  const selectedOutputAction = outputAction?.key === outputActionKey
+    ? outputAction.value
+    : (lot.review || reviewRunning ? 'forward' : null);
+  const chooseOutputAction = (value) => setOutputAction({ key: outputActionKey, value });
 
   const progress = lotProgress(lot, me);
   const summary = (
@@ -152,8 +158,23 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
         <p className="wf-alert">기록한 산출물이 예상한 형태와 달라 다음 단계를 보류했어요. 담당자 확인이 필요해요.</p>
       )}
 
-      {/* 지금 물량을 가진 기업: 사진 → 업체 검토 → 인수 요청, 또는 완료 */}
-      {manage && ['ready', 'processed'].includes(lot.status) && !canFinish && (
+      {canFinish && (
+        <section className="wf-card wf-output-choice" aria-label="처리 결과 다음 행동">
+          <h3>이 물량을 어떻게 진행할까요?</h3>
+          <p className="wf-muted">현재 산출물로 처리를 완료하거나, 추가 가공할 업체로 보낼 수 있어요.</p>
+          <div className="wf-actions">
+            <button type="button" className={`button ${selectedOutputAction === 'finish' ? 'button-primary' : 'button-quiet'}`}
+              aria-pressed={selectedOutputAction === 'finish'} disabled={!!busy}
+              onClick={() => chooseOutputAction('finish')}>여기서 처리 완료</button>
+            <button type="button" className={`button ${selectedOutputAction === 'forward' ? 'button-primary' : 'button-quiet'}`}
+              aria-pressed={selectedOutputAction === 'forward'} disabled={!!busy}
+              onClick={() => chooseOutputAction('forward')}>다음 업체로 보내기</button>
+          </div>
+        </section>
+      )}
+
+      {/* 완료 가능한 형태도 보유 기업이 후속 인계를 선택할 수 있다. */}
+      {manage && ['ready', 'processed'].includes(lot.status) && (!canFinish || selectedOutputAction === 'forward') && (
         <>
           <PhotoSection lot={lot} photos={stagePhotos} busy={busy} onAdd={(file, photoId = null) => run('photo', () => workflowApi.addPhoto(lot.id, file, photoId ? { photoId, revision: lot.revision } : null))} />
           <PhotoConflict key={`conflict-${lot.revision}-${lot.review?.at}`} lot={lot} busy={busy} onResolve={body => run('conflict', () => workflowApi.resolvePhotoConflict(lot, body))} />
@@ -170,7 +191,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
           />
         </>
       )}
-      {canFinish && <FinishForm material={material} busy={busy} onFinish={(v) => run('finish', () => workflowApi.finish(lot, v))} />}
+      {canFinish && selectedOutputAction === 'finish' && <FinishForm material={material} busy={busy} onFinish={(v) => run('finish', () => workflowApi.finish(lot, v))} />}
 
       {pendingOffer && (
         <OfferCard lot={lot} offer={pendingOffer} name={name}>

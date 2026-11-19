@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-20",
+  "environment": "local Docker scrap-full-review",
+  "synthetic_accounts_and_quantities": true,
+  "public_sites": {
+    "A": "엔피씨 화성",
+    "B": "새롬이엔지 화성 제1공장",
+    "C": "디와이폴리머 평택"
+  },
+  "setup_scope": "Actual diagnosis and A-B admission APIs; B output onward operated in browser",
+  "checks": {
+    "web_tests_passed": 106,
+    "vite_build": "passed",
+    "docker_web_build": "passed",
+    "switch_finish_forward_before_request": true,
+    "reload_during_review_preserves_forward": true,
+    "new_stage_does_not_inherit_previous_choice": true,
+    "owner_readback_both_completed": true,
+    "finished_lot_hides_actions": true
+  },
+  "runs": [
+    {
+      "lot": "2296ccb4-e3a6-445a-b579-0d87b2b06126",
+      "status": "completed",
+      "output_state": "pet-flake",
+      "input_mass_kg": 100,
+      "output_mass_kg": 90,
+      "process_steps": 1,
+      "qr_receipts": 1,
+      "finish_actor": "B"
+    },
+    {
+      "lot": "129fefa5-f352-4fb2-82c2-22e6f0d22daf",
+      "status": "completed",
+      "output_state": "pet-pellet",
+      "input_mass_kg": 100,
+      "b_output_mass_kg": 90,
+      "output_mass_kg": 85,
+      "process_steps": 2,
+      "qr_receipts": 2,
+      "finish_actor": "C",
+      "b_c_review": {
+        "selected_sites": 5,
+        "public_cache_hits": 3,
+        "public_model_calls": 2,
+        "lot_model_calls": 5,
+        "seconds": 29.36
+      },
+      "road_distance_provider": "kakao",
+      "a_b_road_distance_km": 11.229,
+      "b_c_road_distance_km": 37.35
+    }
+  ]
+}

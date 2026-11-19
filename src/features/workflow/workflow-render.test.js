@@ -131,7 +131,9 @@ test('최신 인계 UI가 조건부·QR·실제 산출물·완료 단계의 행�
     const finalOutput = render({ ...base, status: 'processed', current_company_id: 'b',
       terminal_states: ['pp-pellet'], data: { ...base.data,
         current: { ...current, state_key: 'pp-pellet', mass_kg: 950 } } });
-    assert.match(finalOutput, /완료 근거/);
+    assert.match(finalOutput, /여기서 처리 완료/);
+    assert.match(finalOutput, /다음 업체로 보내기/);
+    assert.doesNotMatch(finalOutput, /완료 근거\(출고/);
     assert.doesNotMatch(finalOutput, /현재 물량 사진|사진·상태로 공정·업체 검토|AI 검토하고 후보 보기/);
     const intermediateOutput = render({ ...base, status: 'processed', current_company_id: 'b',
       terminal_states: ['pp-pellet'], data: { ...base.data,
@@ -174,6 +176,28 @@ test('AI 검토 전에는 사진 입력과 한 번의 검토 진입만 있고 �
     assert.ok(html.indexOf('현재 물량 사진') < html.indexOf('>AI 검토하고 후보 보기<'));
     assert.doesNotMatch(html, /이 업체 선택하기|선택한 검토 후보|에 인수 요청 보내기/);
     assert.doesNotMatch(html, /처리 업체 후보|공개 근거 AI 검토/);
+  } finally { await vite.close(); }
+});
+
+test('PET 플레이크·펠릿은 보유 기업에 완료와 다음 업체 선택을 함께 제공한다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { LotPanel } = await vite.ssrLoadModule('/src/features/workflow/LotPanel.jsx');
+    for (const state of ['pet-flake', 'pet-pellet']) {
+      const lot = { id: `choice-${state}`, revision: 3, status: 'processed', can_manage: true,
+        current_company_id: 'b', owner_company_id: 'a', companies: { a: '시험 A', b: '시험 B' },
+        photos: [], offers: [], terminal_states: ['pet-flake', 'pet-pellet'],
+        data: { current: { state_key: state, mass_kg: 90, condition: '합성 PET 시험 물량' },
+          initial: { material: 'pet' }, completed: [], events: [] } };
+      const render = (value) => renderToStaticMarkup(React.createElement(LotPanel, { lotId: value.id, initialLot: value }));
+      const html = render(lot);
+      assert.match(html, /여기서 처리 완료/);
+      assert.match(html, /다음 업체로 보내기/);
+      assert.doesNotMatch(html, /aria-pressed="true"|완료 근거\(출고|AI 검토하고 후보 보기/);
+      for (const changed of [{ can_manage: false }, { status: 'review_required' }, { status: 'offered' }, { status: 'completed' }]) {
+        assert.doesNotMatch(render({ ...lot, ...changed }), /여기서 처리 완료|다음 업체로 보내기/);
+      }
+    }
   } finally { await vite.close(); }
 });
 
