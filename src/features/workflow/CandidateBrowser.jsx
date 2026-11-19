@@ -9,7 +9,7 @@ import './candidates.css';
 export function CandidateBrowser({ options = [], reviews, origin, originLabel, selectedKey, onSelect, renderAction, renderExtra }) {
   const [query, setQuery] = useState('');
   const [activeProcess, setActiveProcess] = useState(options[0]?.transition_key || '');
-  const [sort, setSort] = useState('default');
+  const [sort, setSort] = useState('distance');
   const resultsRef = useRef(null);
   const processNavRef = useRef(null);
   const term = query.trim().toLocaleLowerCase();
@@ -34,7 +34,7 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
     window.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
     return () => { window.removeEventListener('scroll', update); window.removeEventListener('resize', update); };
-  }, [visibleKeys]);
+  }, [visibleKeys, sort, term]);
   useEffect(() => {
     const list = processNavRef.current;
     const button = [...list?.querySelectorAll('button') || []].find((item) => item.dataset.processKey === activeProcess);
@@ -51,6 +51,12 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   const count = new Set(visible.flatMap((o) => o.facilities.map((f) => f.facility_key))).size;
+  const ordered = visible.flatMap(option => option.facilities.map(facility => ({ option, facility }))).sort((a, b) => {
+    if (sort === 'name') return a.facility.label.localeCompare(b.facility.label, 'ko');
+    if (sort === 'distance') return comparisonDistance(a.facility, basis) - comparisonDistance(b.facility, basis)
+      || a.facility.facility_key.localeCompare(b.facility.facility_key);
+    return 0;
+  });
   const mapOptions = candidateMapOptions(visible, origin, selectedKey, basis);
   const hasMap = validLocation(origin) || mapFactories(mapOptions).length > 0;
   return (
@@ -69,10 +75,10 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
       <div className={`candidate-layout${hasMap ? '' : ' without-map'}`}>
         <div className="candidate-results" ref={resultsRef}>
           {count === 0 && <div className="candidate-empty"><Icon name="building" size={30} /><h3>{term ? '검색 결과가 없어요' : '표시할 후보 업체가 없어요'}</h3><p>{term ? '다른 업체명이나 지역으로 찾아보세요.' : '업체 명부를 확인해 주세요.'}</p>{term && <button className="button button-quiet" type="button" onClick={() => setQuery('')}>검색 초기화</button>}</div>}
-          {visible.map((option, index) => <div className="candidate-process-section" data-process-key={option.transition_key} key={option.transition_key}>
-            <ProcessOption option={option} index={index} reviews={reviews} selectedKey={selectedKey} onSelect={onSelect} renderAction={renderAction} />
-            {renderExtra?.(option)}
+          {ordered.map(({ option, facility }) => <div className="candidate-process-section" data-process-key={option.transition_key} key={facility.capability_key}>
+            <ProcessOption option={{ ...option, facilities: [facility] }} index={options.findIndex((item) => item.transition_key === option.transition_key)} reviews={reviews} selectedKey={selectedKey} onSelect={onSelect} renderAction={renderAction} />
           </div>)}
+          {visible.map(option => <div key={`extra-${option.transition_key}`}>{renderExtra?.(option)}</div>)}
         </div>
         {hasMap && <aside className="candidate-map-panel"><div className="candidate-map-heading"><Icon name="map" size={18} /><strong>업체 위치</strong></div><FacilityMap options={mapOptions} origin={origin} originLabel={originLabel} selectedKey={selectedKey} onSelect={onSelect} /></aside>}
       </div>

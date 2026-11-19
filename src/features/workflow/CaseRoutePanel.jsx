@@ -9,7 +9,7 @@ import { handoffDesignated } from '../diagnosis/lib/designated.js';
 import { DesignatedBanner, DesignatedNextActions } from '../diagnosis/components/DesignatedNotice.jsx';
 
 // 확정 문진 → 물량 입력. 후보 표시는 사진·상태 검토 이후 LotPanel에서 한 번만 한다.
-// 분류번호·재질·사업장 위치는 서버가 확정 문진과 기업 정보에서 읽고, 화면은 현재 형태만 고른다.
+// 문진에서 이미 말한 형태는 서버가 이어받고, 화면은 누락되거나 수정할 때만 묻는다.
 export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, lotRecycling, recyclingFollowUp = false, onLotCreated, view = 'route', hasLot = false }) {
   const [form, setForm] = useState(null);
   const [materialDetail, setMaterialDetail] = useState(null);
@@ -41,7 +41,8 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
 
   const next = context.next_step;
   const designatedInfo = handoffDesignated(context.handoff);
-  const canRegister = !loading && canRegisterLot(context, form);
+  const currentForm = form ?? context.selected_form ?? null;
+  const canRegister = !loading && canRegisterLot(context, currentForm);
 
   return (
     <div className="wf-panel route-recommendations" aria-busy={loading}>
@@ -71,32 +72,14 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
       {context.requires_solid_confirmation && <label className="wf-card"><input type="checkbox" checked={solidConfirmed} disabled={loading} onChange={(event) => { setSolidConfirmed(event.target.checked); setForm(null); }} />현재 물량은 내용물을 비운 고체이며 액체·슬러지가 섞이지 않았어요.</label>}
       <RouteOutcome status={context.status} next={next} message={context.status !== 'ready' ? context.message : undefined} currentLabel={next?.current_state?.label || caseTitle} code={context.handoff?.waste_code || wasteCode} caseId={caseId} onRetry={retry} busy={loading} />
       {context.available_materials?.length > 0 && <fieldset className="wf-forms" disabled={loading}><legend>확인된 세부 재질</legend><p className="wf-muted">분류번호는 그대로 유지해요. 재질 표시나 성적서로 확인한 값만 선택하세요.</p>{[...context.available_materials, { value: 'unknown', label: '모름 · 혼합물이거나 목록에 없음' }].map((option) => <label key={option.value}><input type="radio" name="material-detail" value={option.value} checked={materialDetail === option.value} onChange={() => { setForm(null); setMaterialDetail(option.value); }} />{option.label}</label>)}</fieldset>}
-      {context.available_forms?.length > 0 && (
-        <section className="route-form-card" aria-labelledby="route-form-title">
-          <div className="route-form-heading"><img src={berry} alt="" /><div className="route-form-speech"><h2 id="route-form-title">지금 가지고 계신 폐기물은 어떤 형태인가요?</h2><p>현재 형태와 물량을 입력한 뒤 사진·상태를 검토해 공정과 업체 후보를 보여드려요.</p></div></div>
-          <fieldset className="wf-forms route-form-choice" disabled={loading} aria-label="현재 물량 형태">
-          {context.available_forms.map((option) => (
-            <label key={option.value}>
-              <input
-                type="radio"
-                name="input-form"
-                value={option.value}
-                checked={form === option.value}
-                onChange={() => setForm(option.value)}
-              />
-              {option.label}
-            </label>
-          ))}
-          </fieldset>
-        </section>
-      )}
+      {context.available_forms?.length > 0 && <CurrentForm context={context} value={currentForm} disabled={loading} onChange={setForm} />}
       {context.origin_label && <p className="wf-muted">출발 사업장: {context.origin_label}</p>}
       {error && <p className="wf-alert" role="alert">{error}</p>}
       {loading && <p className="wf-muted" role="status">선택한 형태를 확인하고 있어요…</p>}
       {!loading && context.status === 'ready' && next && (
         <>
           {canRegister ? (
-            <div className="lot-registration"><LotRegisterForm key={`${form}:${materialDetail}`} caseId={caseId} inputForm={form} solidConfirmed={solidConfirmed} materialDetail={materialDetail} onCreated={onLotCreated} /></div>
+            <div className="lot-registration"><LotRegisterForm key={`${currentForm}:${materialDetail}`} caseId={caseId} inputForm={currentForm} solidConfirmed={solidConfirmed} materialDetail={materialDetail} onCreated={onLotCreated} /></div>
           ) : (
             <p className="wf-card wf-muted">
               현재 선택한 재질·형태는 처리 건 등록을 지원하지 않아요. 분류·형태를 확인해 주세요.
@@ -107,6 +90,24 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
       </div>
     </div>
   );
+}
+
+export function CurrentForm({ context, value, disabled, onChange }) {
+  const [editing, setEditing] = useState(false);
+  const label = context.available_forms?.find(option => option.value === value)?.label || context.selected_form_label;
+  const inherited = ['handoff', 'conversation'].includes(context.form_source);
+  return <section className="route-form-card" aria-labelledby="route-form-title">
+    {value && !editing ? <>
+      <div className="route-form-heading"><img src={berry} alt="" /><div className="route-form-speech"><h2 id="route-form-title">{inherited ? '문진에서 이어받은 현재 형태' : '현재 물량 형태'}</h2><p><strong>{label || '형태 확인 필요'}</strong></p></div></div>
+      {inherited && context.form_quote && <details><summary>문진에서 말한 내용</summary><blockquote>{context.form_quote}</blockquote></details>}
+      <button type="button" className="button button-quiet button-small" disabled={disabled} onClick={() => setEditing(true)}>형태 수정</button>
+    </> : <>
+      <div className="route-form-heading"><img src={berry} alt="" /><div className="route-form-speech"><h2 id="route-form-title">{editing ? '현재 물량의 형태를 수정해 주세요' : '지금 가지고 계신 폐기물은 어떤 형태인가요?'}</h2><p>{editing ? '분류번호와 소재는 그대로 유지돼요.' : '문진에서 확인되지 않은 현재 형태만 알려 주세요.'}</p></div></div>
+      <fieldset className="wf-forms route-form-choice" disabled={disabled} aria-label="현재 물량 형태">
+        {context.available_forms?.map(option => <label key={option.value}><input type="radio" name="input-form" value={option.value} checked={value === option.value} onChange={() => { onChange(option.value); setEditing(false); }} />{option.label}</label>)}
+      </fieldset>
+    </>}
+  </section>;
 }
 
 // 지원 재질·형태는 실제 물량을 등록하면 업체에 인수 요청을 보내고 QR로 인계할 수 있다
