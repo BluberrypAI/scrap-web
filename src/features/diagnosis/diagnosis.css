@@ -380,3 +380,11 @@
   width: var(--app-content-width, min(100% - 96px, 1320px));
   margin: 0 auto;
 }
+
+/* 묶음 체크 방식(allow_pick, 실험) */
+.qpick-hint { margin: 0 0 6px; }
+.qpick-item { display: flex; gap: 10px; align-items: flex-start; }
+.qpick-item input { margin-top: 3px; flex: none; }
+.qpick-item.is-picked { border-color: var(--color-primary, #2f7d5b); }
+.qpick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.qpick-actions .qopt { width: auto; }
