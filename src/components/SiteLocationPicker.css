@@ -1,0 +1,13 @@
+.site-location-picker { border: 1px solid #ded8ed; border-radius: 16px; padding: 16px; min-width: 0; }
+.site-location-picker > p { margin: 10px 0; line-height: 1.6; }
+.site-location-help { font-size: 12px; color: #625a70; }
+.site-location-results { display: grid; gap: 8px; margin: 14px 0; }
+.site-location-results button { display: grid; gap: 5px; text-align: left; background: white; border: 1px solid #ded8ed; border-radius: 12px; padding: 12px; color: #292133; cursor: pointer; overflow-wrap: anywhere; }
+.site-location-results button[aria-pressed="true"] { border-color: #7852b6; background: #f2edf9; }
+.site-location-results small { color: #655b73; }
+.site-location-alert { color: #8c3a20; }
+
+.site-location-manual { margin: 16px 0; }
+.site-location-manual summary { cursor: pointer; }
+.site-location-manual label { display: inline-grid; gap: 6px; margin: 10px 12px 10px 0; max-width: 180px; }
+.site-location-manual input { width: 100%; min-width: 0; }

@@ -120,7 +120,8 @@
 .wf-progress-status ol { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; list-style: none; margin: 25px 0 0; padding: 0; }
 .wf-progress-status li { display: grid; gap: 9px; padding-top: 12px; border-top: 3px solid #e8e4ec; color: #938b9c; font-size: 12px; }
 .wf-progress-status li span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #f2eef5; font-size: 11px; font-weight: 700; }
-.wf-progress-status li.is-done { border-color: #b69bcf; color: #6b5680; }
+.wf-progress-status li.is-done { border-color: #7959a4; color: #6b5680; }
+.wf-progress-status li.is-done span { background: #7959a4; color: white; }
 .wf-progress-status li.is-current { border-color: #7959a4; color: #49345f; font-weight: 750; }
 .wf-progress-status li.is-current span { background: #7959a4; color: white; }
 @media (max-width: 640px) { .wf-progress-status { padding: 22px 18px; } .wf-progress-status ol { overflow-x: auto; grid-template-columns: repeat(5, minmax(100px,1fr)); } }
@@ -149,7 +150,9 @@
 .wf-history-timeline { margin: 0; padding: 24px 0 0; list-style: none; }
 .wf-history-timeline > li { display: grid; grid-template-columns: 25px minmax(0,1fr); gap: 15px; position: relative; padding-bottom: 25px; }
 .wf-history-timeline > li:not(:last-child)::before { content: ''; position: absolute; top: 17px; bottom: -1px; left: 8px; width: 1px; background: #e5dced; }
-.wf-history-marker { width: 17px; height: 17px; border: 4px solid #dcd1e9; border-radius: 50%; background: #fff; z-index: 1; }
+.wf-history-marker { box-sizing: border-box; display: grid; place-items: center; width: 17px; height: 17px; border: 2px solid #dcd1e9; border-radius: 50%; background: #fff; z-index: 1; font-size: 10px; line-height: 1; font-weight: 800; color: white; }
+.wf-history-timeline > li.is-done:not(:last-child)::before { width: 2px; background: #7959a4; }
+.wf-history-timeline .is-done .wf-history-marker { border-color: #7959a4; background: #7959a4; }
 .wf-history-timeline .is-current .wf-history-marker { border-color: #7959a4; background: #7959a4; box-shadow: 0 0 0 5px #f2ecf8; }
 .wf-history-entry { min-width: 0; }
 .wf-history-entry-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -281,3 +284,5 @@
 }
 .wf-inquiry-actions { display: flex; flex-wrap: wrap; gap: 8px; flex: 0 0 auto; }
 .wf-inquiry-actions button { padding: 9px 12px; font-size: 14px; border: 1px solid #d7cbe9; border-radius: 8px; background: #f1ecfa; color: #422b6c; cursor: pointer; }
+
+.wf-photos > div { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }

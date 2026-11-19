@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { CATEGORY_LABEL, DOCUMENT_ACCEPT, EVIDENCE_REFUSE_REPLY, REVIEW_LABEL, ROUTE_ACTION_LABEL } from '../lib/labels.js';
 import { formatDateTime, formatValue } from '../lib/format.js';
 import { factLabel, getCatalog } from '../lib/normalize.js';
+import { confirmPrompt, designatedNotice, handoffDesignated } from '../lib/designated.js';
+import { DesignatedBanner, DesignatedNextActions } from './DesignatedNotice.jsx';
 
 /** 숫자 칸에서 고를 수 있는 값 모양: 그대로 / 미만(불검출이면 검출한계를 적는다) */
 const NUMBER_MODES = [
@@ -307,19 +309,21 @@ export function UnsupportedCard({ message, pending, unread = {}, disabled, onVal
 const MARK = { true: '✔', false: '✗' };
 
 /** FINAL_REVIEW(확정 전) / 인계 요약(확정 후) */
-export function FinalCard({ turn, confirmed, handoff, busy, onConfirm, onRecheck }) {
+export function FinalCard({ turn, confirmed, handoff, caseId, busy, onConfirm, onRecheck }) {
   const [json, setJson] = useState(false);
   const [asking, setAsking] = useState(false); // 확정 전 화면 안 확인(네이티브 confirm은 테마·자동화 불가)
   const r = turn.ui.result;
   const v = turn.verdict;
   const guide = handoff?.route_guidance;
+  const notice = designatedNotice(r) || (confirmed ? handoffDesignated(handoff) : null);
   return (
     <section className="wd-card qcard final" aria-label="판정 결과">
+      <DesignatedBanner notice={notice} />
       <div className="row between">
         <h3>{r.code ? <><strong>{r.code}</strong> {r.name}</> : r.conclusion}</h3>
         <span className="wd-chip is-review">{REVIEW_LABEL[r.review] || r.review}</span>
       </div>
-      {r.code && <p>{r.conclusion} {r.category && <span className="muted">({CATEGORY_LABEL[r.category] || r.category})</span>}</p>}
+      {r.code && <p>{r.conclusion} {r.category && (notice ? <span className="wd-chip is-designated">{CATEGORY_LABEL[r.category] || r.category}</span> : <span className="muted">({CATEGORY_LABEL[r.category] || r.category})</span>)}</p>}
       {/* 왜 이 결론인지와 할 일. 번호를 못 정한 결론일수록 이게 먼저 보여야 한다 */}
       {r.reason && (
         <div className="wd-note final-reason" role="note">
@@ -346,6 +350,7 @@ export function FinalCard({ turn, confirmed, handoff, busy, onConfirm, onRecheck
       )}
       {!confirmed && (
         <>
+          <DesignatedNextActions notice={notice} caseId={caseId} handoff={handoff} />
           <p className="muted">{r.next_step}</p>
           {!asking ? (
             <div className="row">
@@ -354,7 +359,7 @@ export function FinalCard({ turn, confirmed, handoff, busy, onConfirm, onRecheck
             </div>
           ) : (
             <div className="row" role="alertdialog" aria-label="확정 확인">
-              <span>확정하면 판정이 기록되고 다음 단계로 넘어갑니다. 확정할까요?</span>
+              <span>{confirmPrompt(r.category)}</span>
               <button type="button" className="button button-quiet" disabled={busy} onClick={() => setAsking(false)}>취소</button>
               <button type="button" className="button button-primary" disabled={busy} onClick={() => { setAsking(false); onConfirm(); }}>확정하기</button>
             </div>
@@ -363,6 +368,7 @@ export function FinalCard({ turn, confirmed, handoff, busy, onConfirm, onRecheck
       )}
       {confirmed && (
         <div className="handoff">
+          <DesignatedNextActions notice={notice} caseId={caseId} handoff={handoff} />
           <h4>다음 단계로 넘기는 내용</h4>
           {guide ? (
             <>

@@ -55,8 +55,10 @@ export const hintFor = (field, kind) => (typeof field.hint === 'object' ? field.
 
 /** 인계(handoff)로 쓸 수 있는 서식 목록. 경로 추천이 아니거나 분류번호가 없으면 빈 배열 */
 export function availableForms(handoff) {
+  const result = handoff?.result ?? handoff;
+  // 지정폐기물은 확실하지만 세부 번호를 못 정한 결론: 번호 칸을 비운 제출 전 초안으로 만든다
+  if (result?.result_type === 'NO_CODE' && result.outcome === 'DESIGNATED_CODE_NEEDED' && result.category === 'DESIGNATED') return ['form12', 'form5'];
   if (handoff?.route_guidance?.action !== 'RECOMMEND_ROUTE') return [];
-  const result = handoff.result ?? handoff;
   if (result?.result_type !== 'WASTE_CODE') return [];
   if (result.category === 'GENERAL') return ['form6', 'form5'];
   if (result.category === 'DESIGNATED') return ['form12', 'form5'];

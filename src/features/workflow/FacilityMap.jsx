@@ -2,7 +2,7 @@ import { Suspense, lazy, useMemo } from 'react';
 import '../../pages/map/ResourceMapPage.css';
 import { facilityMapData, validLocation } from './route-result.js';
 
-// 순환자원지도와 같은 Mapbox 지도. 지도 라이브러리가 커서 이 화면에서도 나중에 불러온다
+// 순환자원지도·가입 위치 선택과 같은 공통 지도 연결을 사용한다.
 const ResourceMapbox = lazy(() =>
   import('../../pages/map/ResourceMapbox.jsx').then((module) => ({ default: module.ResourceMapbox })),
 );

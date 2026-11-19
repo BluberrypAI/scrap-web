@@ -1,4 +1,5 @@
-import { canRequestIntake } from './review-policy.js';
+import { canRequestIntake, invalidReviewPhotos } from './review-policy.js';
+import { PhotoConflict, PhotoConflictReceipt } from './PhotoConflict.jsx';
 import { InquiryPacket } from './InquiryPacket.jsx';
 import { SupplierPolicySummary, InquiryConversation } from './SupplierPolicy.jsx';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
@@ -11,8 +12,10 @@ import { RecyclingTypes } from './RecyclingTypes.jsx';
 import { RouteOutcome } from './RouteOutcome.jsx';
 import { IntakeQuestions, ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
 import { validLocation } from './route-result.js';
+import { startLotSync } from './lot-sync.js';
 import {
   LOT_STATUS,
+  lotStatusLabel,
   OFFER_STATUS,
   FINISH_STATES,
   OUTPUT_STATES,
@@ -28,28 +31,48 @@ const ResourceMapbox = lazy(() => import('../../pages/map/ResourceMapbox.jsx').t
 
 // 처리 건(로트) 하나. 지금 물량을 가진 기업(can_manage)과 요청받은 기업이 각자 할 일을 본다.
 // 모든 변경은 revision을 함께 보내고, 다른 화면에서 바뀌었으면(409) 새로 불러온다.
-export function LotPanel({ lotId, initialLot = null, preferredFacility = null, showRecycling = true, view = 'progress', onLotChange }) {
+export function LotPanel({ lotId, initialLot = null, showRecycling = true, view = 'progress', onLotChange }) {
   const [lot, setLot] = useState(initialLot);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
+  const actionVersion = useRef(0);
+  const actionBusy = useRef(false);
+  const lastSnapshot = useRef(initialLot ? JSON.stringify(initialLot) : '');
   const me = useSession().company?.id;
+
+  const applyLot = useCallback((next) => {
+    const snapshot = JSON.stringify(next);
+    if (snapshot === lastSnapshot.current) return;
+    lastSnapshot.current = snapshot;
+    setLot(next);
+    onLotChange?.(next);
+  }, [onLotChange]);
 
   const reload = useCallback(() => {
     setError('');
-    return workflowApi.getLot(lotId).then((next) => { setLot(next); onLotChange?.(next); }).catch((e) => setError(e.message));
-  }, [lotId, onLotChange]);
+    return workflowApi.getLot(lotId).then(applyLot).catch((e) => setError(e.message));
+  }, [lotId, applyLot]);
 
   useEffect(() => {
     if (!initialLot) reload();
   }, [initialLot, reload]);
 
+  useEffect(() => startLotSync({
+    read: () => workflowApi.getLot(lotId),
+    canRefresh: () => !actionBusy.current,
+    version: () => actionVersion.current,
+    apply: applyLot,
+  }), [lotId, applyLot]);
+
   // 서버 호출 공통: 잠금, 오류 문구, 충돌이면 새로 불러오기
   async function run(label, call) {
+    actionBusy.current = true;
+    actionVersion.current += 1;
     setBusy(label);
     setError('');
     try {
       const next = await call();
-      if (next?.id && next?.revision) { setLot(next); onLotChange?.(next); }
+      if (next?.id && next?.revision) applyLot(next);
       return next;
     } catch (e) {
       setError(e.message);
@@ -57,11 +80,12 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null, s
         // Keep the conflict reason visible while updating the revision.
         try {
           const next = await workflowApi.getLot(lotId);
-          setLot(next); onLotChange?.(next);
+          applyLot(next);
         } catch { /* Preserve the original action error. */ }
       }
       return null;
     } finally {
+      actionBusy.current = false;
       setBusy('');
     }
   }
@@ -70,7 +94,7 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null, s
 
   const current = lot.data.current;
   const stage = lot.data.completed.length;
-  const stagePhotos = lot.photos.filter((p) => p.stage === stage);
+  const stagePhotos = lot.photos.filter((p) => p.stage === stage && p.active !== false);
   const pendingOffer = lot.offers.find((o) => ['pending', 'conditional'].includes(o.status));
   const acceptedOffer = lot.offers.find((o) => o.status === 'accepted');
   const name = (id) => lot.companies[id] || '알 수 없는 기업';
@@ -83,7 +107,7 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null, s
   const summary = (
       <section className="wf-card wf-summary" aria-label="현재 처리 건 상태와 물량">
         <div className="wf-summary-head">
-          <div><span className="wf-summary-eyebrow">처리 건 현황</span><h2><span className="wf-status" data-status={lot.status}>{LOT_STATUS[lot.status] || lot.status}</span></h2></div>
+          <div><span className="wf-summary-eyebrow">처리 건 현황</span><h2><span className="wf-status" data-status={lot.status}>{lotStatusLabel(lot)}</span></h2></div>
           <button className="button button-quiet button-small" type="button" onClick={reload} disabled={!!busy}>
             새로고침
           </button>
@@ -111,23 +135,23 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null, s
       )}
 
       {/* 지금 물량을 가진 기업: 사진 → 업체 검토 → 인수 요청, 또는 완료 */}
-      {manage && ['ready', 'processed'].includes(lot.status) && (
+      {manage && ['ready', 'processed'].includes(lot.status) && !canFinish && (
         <>
-          <PhotoSection lot={lot} photos={stagePhotos} busy={busy} onAdd={(file) => run('photo', () => workflowApi.addPhoto(lot.id, file))} />
+          <PhotoSection lot={lot} photos={stagePhotos} busy={busy} onAdd={(file, photoId = null) => run('photo', () => workflowApi.addPhoto(lot.id, file, photoId ? { photoId, revision: lot.revision } : null))} />
+          <PhotoConflict key={`conflict-${lot.revision}-${lot.review?.at}`} lot={lot} busy={busy} onResolve={body => run('conflict', () => workflowApi.resolvePhotoConflict(lot, body))} />
           <CandidateSection
             lot={lot}
             error={error}
             showRecycling={showRecycling}
-            preferredFacility={preferredFacility}
             busy={busy}
             onReview={() => run('review', () => workflowApi.reviewCandidates(lot))}
             onOffer={(key) => run('offer', () => workflowApi.sendOffer(lot, key))}
             onAnswers={(key, answers) => run('answers', () => workflowApi.saveIntakeAnswers(lot, key, answers))}
             onDirectorySave={(transition, listing, cursor, answers) => run('directory', () => workflowApi.saveDirectoryInquiry(lot, transition, listing, cursor, answers))}
           />
-          {canFinish && <FinishForm material={material} busy={busy} onFinish={(v) => run('finish', () => workflowApi.finish(lot, v))} />}
         </>
       )}
+      {canFinish && <FinishForm material={material} busy={busy} onFinish={(v) => run('finish', () => workflowApi.finish(lot, v))} />}
 
       {pendingOffer && (
         <OfferCard lot={lot} offer={pendingOffer} name={name}>
@@ -145,7 +169,7 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null, s
           ) : (
             <p className="wf-muted">
               {name(pendingOffer.recipient_id)}의 응답을 기다리고 있어요.
-              {pendingOffer.sender_id === me && ' 수락되면 여기서 입고 QR을 발급할 수 있어요. 새로고침해 확인해 주세요.'}
+              {pendingOffer.sender_id === me && ' 수락되면 여기서 입고 QR을 발급할 수 있어요. 응답은 자동으로 반영돼요.'}
             </p>
           )}
         </OfferCard>
@@ -154,6 +178,8 @@ export function LotPanel({ lotId, initialLot = null, preferredFacility = null, s
       {acceptedOffer && (
         <OfferCard lot={lot} offer={acceptedOffer} name={name}>
           <InquiryConversation lot={lot} offer={acceptedOffer} readOnly />
+          {acceptedOffer.can_dispatch && <div className="wf-qr"><p className="wf-muted">물량을 실제로 출발시킬 때 눌러 주세요. 인수 수락만으로 운송이 시작되지는 않아요.</p><button type="button" className="button button-primary wf-qr-issue-button" disabled={!!busy} onClick={() => run('dispatch', () => workflowApi.dispatch(lot, acceptedOffer.id))}>운송 시작</button></div>}
+          {acceptedOffer.data.dispatch && <p className="wf-muted">운송 중 · 도착 후 수신 기업이 QR로 입고를 확인해요.</p>}
           {acceptedOffer.can_issue_qr && <QrIssue lot={lot} offer={acceptedOffer} busy={busy} run={run} />}
           {acceptedOffer.can_receive && (
             <p className="wf-muted">물량이 도착하면 발송 기업이 준 입고 QR을 휴대전화로 스캔해 입고를 확인해 주세요.</p>
@@ -259,8 +285,14 @@ function PhotoSection({ lot, photos, busy, onAdd }) {
       <h3>현재 물량 사진 ({photos.length}/4)</h3>
       <p className="wf-muted">사진과 상태 설명은 업체 검토를 위해 AI(Azure)로 전달돼요. JPEG·PNG·WebP, 3MB 이하.</p>
       <div className="wf-photos">
-        {photos.map((p) => (
-          <img key={p.id} src={workflowApi.photoUrl(p)} alt="현재 물량 사진" loading="lazy" />
+        {photos.map((p, index) => (
+          <div key={p.id}>
+            <img src={workflowApi.photoUrl(p)} alt={`현재 물량 사진 ${index + 1}`} loading="lazy" />
+            <label className="button button-quiet button-small wf-file">사진 {index + 1} 교체
+              <input type="file" aria-label={`사진 ${index + 1} 교체`} accept="image/jpeg,image/png,image/webp" disabled={!!busy}
+                onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) onAdd(file, p.id); }} />
+            </label>
+          </div>
         ))}
       </div>
       {photos.length < 4 && (
@@ -283,9 +315,10 @@ function PhotoSection({ lot, photos, busy, onAdd }) {
   );
 }
 
-function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDirectorySave, preferredFacility, showRecycling }) {
-  const [selectedKey, setSelectedKey] = useState(preferredFacility?.facility_key || null);
+function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDirectorySave, showRecycling }) {
+  const [selectedKey, setSelectedKey] = useState(null);
   const review = lot.review;
+  if (invalidReviewPhotos(review).length || lot.photo_conflict_gate?.invalid_photos?.length) return null;
   const next = review?.next_step;
   const candidateKeys = [...new Set((next?.options || []).flatMap(o => (o.facilities || []).map(f => f.capability_key)))];
   const reviewedCount = candidateKeys.filter(key => {
@@ -293,15 +326,14 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
     return ['reviewed', 'needs_evidence'].includes(r?.status) && r?.lot_review?.status === 'reviewed'
       && ['isolated_vision', 'no_photo'].includes(r?.lot_review?.observation_method);
   }).length;
-  const sendable = (facility, result) => canRequestIntake(review, facility, result);
+  const sendable = (facility, result) => canRequestIntake(review, facility, result, lot.photo_conflict_gate);
   return (
     <section className="wf-card wf-candidate-section">
-      <h3>다음 처리 업체</h3>
-      {preferredFacility && <p className="wf-muted">선택한 검토 후보: <strong>{preferredFacility.label}</strong></p>}
+      <h3>{review ? '공정·업체 검토 결과' : '사진·상태로 공정·업체 검토'}</h3>
       {showRecycling && <RecyclingTypes assessment={lot.data.recycling} followUp={lot.data.completed.length > 0} />}
-      {!review && <p className="wf-muted">현재 물량·사진으로 다음 공정 후보 업체를 모두 검토해요. 후보 수와 AI 응답에 따라 시간이 걸릴 수 있어요.</p>}
+      {!review && <p className="wf-muted">분류번호·재질·현재 형태로 찾은 후보를 사진·상태 설명 및 업체 공개 근거와 대조해요. 검토가 끝난 뒤 보낼 업체를 선택하세요. 사진이 없으면 상태 설명만 검토하며 사진으로 확인한 것처럼 판단하지 않아요.</p>}
       <button className="button button-primary" type="button" onClick={onReview} disabled={!!busy}>
-        {busy === 'review' ? '업체를 검토하는 중…' : review ? '다시 검토' : '업체 검토 시작'}
+        {busy === 'review' ? '업체를 검토하는 중…' : review ? '다시 검토' : 'AI 검토하고 후보 보기'}
       </button>
       {busy === 'review' && <div className="wf-review-loading" role="status" aria-live="polite">
         <span className="wf-review-orbit" aria-hidden="true"><i /><i /><i /></span>
@@ -334,6 +366,8 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
                 onClick={() => onOffer(facility.capability_key)}>
                 {facility.recipient.name}에 인수 요청 보내기
               </button>
+            ) : lot.photo_conflict_gate?.blocked ? (
+              <p className="wf-alert">사진·설명 불일치 확인 전이라 인수 요청을 보류했어요. 위 확인 영역에서 수정하거나 확인 사유를 남겨 주세요.</p>
             ) : result?.status === 'model_unavailable' || result?.lot_review?.status === 'model_unavailable' ? (
               <p className="wf-muted">AI 검토가 끝나지 않아 요청을 보낼 수 없어요. 다시 검토해 주세요.</p>
             ) : <p className="wf-muted">{!facility.recipient ? '업체의 수신 계정 연결 후 인수 요청을 보낼 수 있어요.' : result?.finding === 'restriction_mentioned' ? '반입 제한이 확인되어 요청을 보낼 수 없어요.' : '필요한 답변을 입력하고 업체 검토를 완료해 주세요.'}</p>}</>}
@@ -365,6 +399,7 @@ function OfferCard({ lot, offer, name, children }) {
         </div>
       )}
       {data.decision && <p className="wf-muted">응답 메모: {data.decision.note}</p>}
+      <PhotoConflictReceipt value={data.photo_conflict_resolution} />
       {children}
     </section>
   );
@@ -520,8 +555,8 @@ function History({ lot, name }) {
       {events.length ? (
         <ol className="wf-history-timeline">
           {events.map((e, i) => (
-            <li key={i} className={i === 0 ? 'is-current' : ''}>
-              <span className="wf-history-marker" aria-hidden="true" />
+            <li key={`${e.at}-${e.action}-${i}`} className={i === 0 ? 'is-done is-current' : 'is-done'}>
+              <span className="wf-history-marker" aria-hidden="true">✓</span>
               <div className="wf-history-entry">
                 <div className="wf-history-entry-top"><strong>{e.action}</strong>{i === 0 && <span>최근 단계</span>}</div>
                 <p>{name(e.company_id)}{e.facility && ` · ${e.facility}`}</p>
@@ -548,6 +583,7 @@ function LotChecks({ lot, name }) {
         <InquiryConversation lot={lot} offer={offer} readOnly />
       </details>
     )}
+    {lot.offers.filter(offer => offer.data.photo_conflict_resolution).map(offer => <PhotoConflictReceipt key={offer.id} value={offer.data.photo_conflict_resolution} />)}
     {lot.data.warnings?.length > 0 && <div className="wf-evidence-alert"><strong>먼저 확인할 사항</strong><ul>{lot.data.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
     {offersWithConditions.map((offer) => <details className="wf-evidence-accordion" key={offer.id}>
       <summary><span><strong>{name(offer.recipient_id)} 반입 조건</strong><small>{OFFER_STATUS[offer.status] || offer.status} · {offer.data.conditions.length}건</small></span><span className="wf-disclosure-arrow" aria-hidden="true">⌄</span></summary>
@@ -577,21 +613,34 @@ function ProgressStatus({ lot, name }) {
   const message = lot.status === 'processing' ? `${site}에서 처리 중이에요`
     : lot.status === 'completed' ? `${site}에서 처리를 완료했어요`
       : lot.status === 'processed' ? `${site}에서 처리 결과를 기록했어요`
-        : lot.status === 'accepted' ? `${awaitingRecipient ? name(awaitingRecipient.recipient_id) : '수신 기업'}의 입고를 기다리고 있어요`
+        : lot.status === 'accepted' ? (awaitingRecipient?.data?.dispatch
+          ? `${name(awaitingRecipient.recipient_id)}으로 운송 중이에요`
+          : `${awaitingRecipient ? name(awaitingRecipient.recipient_id) : '수신 기업'}의 입고를 기다리고 있어요`)
           : lot.status === 'offered' || lot.status === 'conditional' ? '업체의 인수 확인을 기다리고 있어요'
             : `${company}에서 다음 인계를 준비하고 있어요`;
   return <section className="wf-progress-status" aria-label="현재 인계 현황">
     <span>현재 진행 상황</span><h2>{message}</h2>
     <p>현재 담당 · {company}{site !== company && ` · ${site}`}</p>
-    <ol>{stages.map((stage, index) => <li key={stage} className={index === current ? 'is-current' : index < current ? 'is-done' : ''}>
-      <span aria-hidden="true">{index < current ? '✓' : String(index + 1).padStart(2, '0')}</span>{stage}
+    <ol>{stages.map((stage, index) => <li key={stage} className={index === current ? (lot.status === 'completed' ? 'is-done is-current' : 'is-current') : index < current ? 'is-done' : ''}>
+      <span aria-hidden="true">{index < current || lot.status === 'completed' ? '✓' : String(index + 1).padStart(2, '0')}</span>{stage}
     </li>)}</ol>
   </section>;
 }
 
 function HandoffMap({ lot }) {
   const origin = lot.data.initial?.origin;
-  const handoffs = lot.offers.filter((offer) => ['received', 'processed'].includes(offer.status));
+  const handoffs = lot.offers.filter((offer) => ['received', 'processed'].includes(offer.status)
+    || (offer.status === 'accepted' && offer.data.dispatch));
+  const [road, setRoad] = useState(null);
+  const routeKey = JSON.stringify(handoffs.map(offer => [offer.id, offer.data.origin, offer.data.facility?.location]));
+  useEffect(() => {
+    let live = true;
+    setRoad(null);
+    if (handoffs.length) workflowApi.getRoadRoute(lot.id)
+      .then(value => { if (live) setRoad(value); })
+      .catch(() => { if (live) setRoad({ segments: [] }); });
+    return () => { live = false; };
+  }, [lot.id, routeKey]);
   const locations = handoffs.map((offer) => ({
     id: offer.id,
     name: offer.data.facility?.label || lot.companies[offer.recipient_id] || '처리 사업장',
@@ -602,18 +651,20 @@ function HandoffMap({ lot }) {
     id: site.id, name: site.name, location: site.location,
     latitude: site.point.latitude, longitude: site.point.longitude,
   }));
-  const routePoints = validLocation(origin) ? [[origin.longitude, origin.latitude]] : [];
-  for (const site of locations) {
-    if (!validLocation(site.point) || !routePoints.length) break;
-    routePoints.push([site.point.longitude, site.point.latitude]);
-  }
+  const segments = (road?.segments || []).filter(segment => segment.status === 'available');
+  const routeLines = segments.map(segment => segment.coordinates);
+  const roadDistance = segments.reduce((sum, segment) => sum + segment.distance_km, 0);
+  const providers = [...new Set(segments.map(segment => segment.provider === 'kakao' ? '카카오모빌리티' : 'OSRM'))].join(' · ');
   return <section className="wf-handoff-map" aria-label="인계 사업장 지도">
-    <header><strong>인계 경로</strong><span>입고 확인된 사업장</span></header>
+    <header><strong>인계 경로</strong><span>운송·입고 사업장</span></header>
     <div className="wf-handoff-map-canvas"><Suspense fallback={<p>지도를 불러오는 중이에요.</p>}>
       <ResourceMapbox factories={factories} origin={validLocation(origin) ? { ...origin, label: '배출 사업장' } : null}
-        routePoints={routePoints} label="실제 인계 사업장 위치와 이동 순서 지도" />
+        routeLines={routeLines} label="인계 사업장과 조회된 자동차 도로 경로 지도" />
     </Suspense></div>
-    <p>{handoffs.length ? `${handoffs.length}곳에 입고가 확인됐어요. 선은 확인된 사업장 좌표 간 직선 연결이며 실제 운송 GPS 경로는 아니에요.` : '아직 입고가 확인된 업체가 없어요. 입고 후 이동 순서를 표시합니다.'}</p>
+    <p>{!handoffs.length ? '운송을 시작하면 도로 경로를 표시해요.' : !road ? '도로 경로를 조회하고 있어요.'
+      : segments.length ? `자동차 도로 경로 ${roadDistance.toFixed(1)}km · ${providers}. 실제 차량 GPS 기록은 아니에요.`
+        : '도로 경로를 불러오지 못해 사업장 위치만 표시해요.'}</p>
+    {road && segments.length > 0 && segments.length < handoffs.length && <p>일부 구간의 도로 경로는 확인되지 않았어요.</p>}
     {handoffs.length > factories.length && <p>일부 사업장 좌표가 없어 지도에 표시하지 못했어요.</p>}
   </section>;
 }

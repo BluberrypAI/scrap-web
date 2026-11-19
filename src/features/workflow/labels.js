@@ -12,6 +12,11 @@ export const LOT_STATUS = {
   completed: '완료',
 };
 
+export function lotStatusLabel(lot) {
+  if (lot?.status === 'accepted' && lot.offers?.some((offer) => offer.status === 'accepted' && offer.data?.dispatch)) return '운송 중';
+  return LOT_STATUS[lot?.status] || lot?.status || '처리 진행';
+}
+
 /** 인수 요청 status → 화면 문구 */
 export const OFFER_STATUS = {
   pending: '응답 대기',
@@ -215,6 +220,10 @@ export function lotCardText(lot, me) {
   if (progress.kind === 'handed_off') return { displayStatus: '전달 완료', message: '처리 추적 중' };
   const offer = (lot.offers || []).find((o) => ['pending', 'conditional', 'accepted'].includes(o.status));
   const displayStatus = LOT_STATUS[lot.status] || lot.status;
+  if (offer?.status === 'accepted' && offer.data?.dispatch) {
+    return { displayStatus: '운송 중', message: offer.recipient_id === me
+      ? '물량이 도착하면 QR로 입고를 확인해 주세요' : '수신 기업의 QR 입고 확인을 기다리고 있어요' };
+  }
   if (offer?.recipient_id === me) {
     return { displayStatus, message: offer.status === 'accepted'
       ? '도착한 물량의 QR로 입고를 확인해 주세요'

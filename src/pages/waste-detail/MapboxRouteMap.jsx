@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { KakaoResourceMap } from '../map/KakaoResourceMap.jsx';
 import { hideRoadNumberShields, styleKoreaMapContext } from '../../lib/mapbox-style.js';
 import { routeMapMarkerState, routeMapSegmentState } from './route-visual-state.js';
 
@@ -175,7 +176,21 @@ function addRouteLayers(map, routeData) {
   });
 }
 
-export function MapboxRouteMap({ stops, origin, phase, activeStopIndex, activeSegmentIndex,
+export function MapboxRouteMap(props) {
+  if (import.meta.env.VITE_KAKAO_MAP_APP_KEY?.trim()) {
+    const { stops = [], origin, onLoadStateChange } = props;
+    const point = value => value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude);
+    const factories = stops.filter(stop => point(stop.location || stop.coordinates)).map((stop, index) => ({
+      id: stop.facility_key || String(index), name: stop.mapLabel || stop.label,
+      location: stop.region, ...(stop.location || stop.coordinates),
+    }));
+    return <KakaoResourceMap factories={factories} origin={point(origin) ? origin : null}
+      onStateChange={onLoadStateChange} label="처리 사업장 위치 지도" />;
+  }
+  return <LegacyMapboxRouteMap {...props} />;
+}
+
+function LegacyMapboxRouteMap({ stops, origin, phase, activeStopIndex, activeSegmentIndex,
   onLoadStateChange }) {
   const mapHostRef = useRef(null);
   const [loadState, setLoadState] = useState('loading');

@@ -2,6 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { wasteJourneyState } from './waste-journey-state.js';
 
+test('인수 요청·조건부 수락·QR 대기 단계는 입고 전 공장을 가동하지 않는다', () => {
+  const waste = { lotId: 'real-lot', code: '51-03-01', status: '처리 진행' };
+  for (const status of ['ready', 'offered', 'conditional', 'accepted', 'processed']) {
+    const lot = { status, data: { completed: [] }, offers: [] };
+    assert.equal(wasteJourneyState(waste, lot).phase, 'ready', status);
+  }
+  assert.equal(wasteJourneyState(waste, { status: 'processing' }).phase, 'processing');
+  assert.equal(wasteJourneyState(waste, { status: 'completed' }).phase, 'complete');
+});
+
 test('서버 문진 카드는 남은 데모 처리 기록으로 다음 단계에 앞서 가지 않는다', () => {
   const waste = { id: 'case-1', caseId: '1', code: '51-03-01', status: '확정' };
   const staleTreatment = { input: { originType: 'demo', material: 'pp' }, completed: [], pending: { facility: '옛 업체' } };

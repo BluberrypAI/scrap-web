@@ -83,7 +83,7 @@ export function QuestionOptions({ question: q, disabled, onSend }) {
       <div className={`qopts-list${many ? ' is-many' : ''}`}>
         {opts.map((o, i) => (
           <button key={i} type="button" className="qopt" disabled={disabled} onClick={() => reply(o)}>
-            {q.input === 'code' ? <><strong>{o.value}</strong> {o.label}</> : o.label}
+            {q.input === 'code' ? <><strong>{o.value}</strong> {String(o.label || '').startsWith(`${o.value} `) ? o.label.slice(String(o.value).length + 1) : o.label}</> : o.label}
           </button>
         ))}
         {unknown && (

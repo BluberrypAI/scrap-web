@@ -1,5 +1,7 @@
 # SCRAP 웹
 
+**11/18 로컬 지도 전환:** 회원가입·기업정보 수정의 주소 검색/위치 지정, 업체 후보·인계·순환자원 지도를 카카오 지도에 연결했습니다. `VITE_KAKAO_MAP_APP_KEY`는 JavaScript 키이며 서버용 REST 키와 다릅니다. 인계 지도는 카카오 길찾기의 도로선을 표시합니다. 상세 검증 기록은 server 레포의 `docs/kakao-map-validation-20261118.md`에 있습니다.
+
 업체 후보 카드의 **업체에 보낼 문의서**로 현재 물량·AI 확인사항·질문을 미리 보고 복사하거나 텍스트로 저장할 수 있습니다. 수신 계정이 없는 업체에도 문의 준비가 가능하며 자동 발송·인수 승인은 하지 않습니다. server의 `POST /api/v1/workflow/lots/{id}/inquiry-packet`와 함께 적용하세요. 사업장 변경 후에는 다시 검토해야 합니다.
 
 Re:Source AI의 **frontend** 레포. 화면, 3D 시각화, server API 호출을 담당함.

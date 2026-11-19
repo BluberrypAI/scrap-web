@@ -70,6 +70,7 @@ export const api = {
   me: () => apiFetch('/users/me'),
   withdraw: () => apiFetch('/users/me/withdraw', { method: 'POST', body: { confirm: true } }),
 
+  searchSiteLocation: (query) => apiFetch('/companies/location-search', { method: 'POST', body: { query } }),
   createCompany: (company) => apiFetch('/companies', { method: 'POST', body: company }),
   myCompany: () => apiFetch('/companies/me'),
   // changes에는 바꿀 필드만 담는다. profileVersion은 조회 때 받은 값이다.
