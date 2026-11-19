@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isLimitedKey, limitQuestion } from '../lib/supportedMaterials.js';
 
 /**
  * 질문 하나를 두 부분으로 나눠 그린다.
@@ -58,7 +59,10 @@ export function QuestionBody({ question: q }) {
   );
 }
 
-export function QuestionOptions({ question: q, disabled, onSend }) {
+export function QuestionOptions({ question, disabled, onSend }) {
+  // 소재 선택지는 처리업체 연결까지 검증된 재질만 보여 준다(엔진 응답은 그대로)
+  const q = limitQuestion(question);
+  const limited = isLimitedKey(q.key);
   const [filter, setFilter] = useState('');
   const [num, setNum] = useState('');
 
@@ -89,7 +93,8 @@ export function QuestionOptions({ question: q, disabled, onSend }) {
         {unknown && (
           <button type="button" className="qopt is-unknown" disabled={disabled} onClick={() => reply(unknown)}>{unknown.label}</button>
         )}
-        {q.input === 'material' && opts.length === 0 && <p className="muted">맞는 소재가 없어요.</p>}
+        {q.input === 'material' && opts.length === 0 && filter.trim() && <p className="muted">맞는 소재가 없어요.</p>}
+        {limited && q.options.length === 0 && <p className="muted">이 분류의 소재는 아직 처리업체 연결을 지원하지 않아요. 지금은 PP·PE·PET·철·알루미늄만 진행할 수 있어요.</p>}
       </div>
       {q.input === 'number' && q.allow_free_number && (
         <div className="qcard-number">

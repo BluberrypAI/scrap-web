@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { OUTCOME_LABEL } from '../lib/labels.js';
 import { formatValue } from '../lib/format.js';
 import { getCatalog } from '../lib/normalize.js';
+import { limitOptions } from '../lib/supportedMaterials.js';
 
 function FactRow({ f, locked, onReply }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState('');
-  const e = f.edit || {};
+  // 소재 고치기도 처리업체 연결까지 검증된 재질로만 바꿀 수 있게 한다
+  const e = f.edit?.options ? { ...f.edit, options: limitOptions(f.key, f.edit.options) } : f.edit || {};
   const badge = f.status === 'EVIDENCED' ? '서류로 확인' : f.source_type === 'UTTERANCE' ? '직접 답변' : f.source_label;
   const save = () => {
     let v = val;
