@@ -158,6 +158,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
           <PhotoSection lot={lot} photos={stagePhotos} busy={busy} onAdd={(file, photoId = null) => run('photo', () => workflowApi.addPhoto(lot.id, file, photoId ? { photoId, revision: lot.revision } : null))} />
           <PhotoConflict key={`conflict-${lot.revision}-${lot.review?.at}`} lot={lot} busy={busy} onResolve={body => run('conflict', () => workflowApi.resolvePhotoConflict(lot, body))} />
           <CandidateSection
+            key={`${stage}:${current.state_key}`}
             lot={lot}
             error={error}
             showRecycling={showRecycling}
@@ -388,6 +389,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
       </details>}
       {next?.options && (
         <CandidateBrowser
+          key={lot.data.current.state_key}
           options={next.options}
           origin={review.origin}
           originLabel={review.origin_label}

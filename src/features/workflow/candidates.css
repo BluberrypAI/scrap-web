@@ -188,6 +188,8 @@
 .candidate-process-nav .candidate-filters button[aria-current='step'] { background: #76529a; color: #fff; }
 .candidate-process-nav .candidate-filters button[aria-current='step'] span { color: #e7d8f1; }
 .candidate-process-nav .candidate-filters button:focus-visible { outline: 2px solid #76529a; outline-offset: -2px; }
+.candidate-preparation { padding: 2px 5px; border-radius: 4px; background: #f4edf8; color: #704785; font-size: 10px; font-weight: 700; }
+.candidate-process-nav button[aria-current='step'] .candidate-preparation { background: #ffffff26; color: #fff; }
 .candidate-results { gap: 32px; }
 .candidate-results > .candidate-process-section { min-width: 0; padding: 0; border: 0; border-radius: 0; background: transparent; scroll-margin-top: 152px; }
 .candidate-results > .candidate-process-section + .candidate-process-section { padding-top: 24px; border-top: 1px solid #ddd1e6; }
