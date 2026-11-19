@@ -22,7 +22,7 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
       return 0;
     }),
   })).filter((option) => !term || option.facilities.length > 0);
-  const visibleKeys = [sort, query, ...visible.map((option) => option.transition_key)].join('|');
+  const visibleKeys = visible.map((option) => option.transition_key).join('|');
   useEffect(() => {
     const update = () => {
       const sections = [...resultsRef.current?.querySelectorAll('[data-process-key]') || []];
@@ -34,7 +34,7 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
     window.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
     return () => { window.removeEventListener('scroll', update); window.removeEventListener('resize', update); };
-  }, [visibleKeys]);
+  }, [visibleKeys, sort, term]);
   useEffect(() => {
     const list = processNavRef.current;
     const button = [...list?.querySelectorAll('button') || []].find((item) => item.dataset.processKey === activeProcess);
@@ -51,7 +51,6 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   const count = new Set(visible.flatMap((o) => o.facilities.map((f) => f.facility_key))).size;
-  // Keep the global road-distance order even when sites use different processes.
   const ordered = visible.flatMap(option => option.facilities.map(facility => ({ option, facility }))).sort((a, b) => {
     if (sort === 'name') return a.facility.label.localeCompare(b.facility.label, 'ko');
     if (sort === 'distance') return comparisonDistance(a.facility, basis) - comparisonDistance(b.facility, basis)
@@ -62,7 +61,7 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
   const hasMap = validLocation(origin) || mapFactories(mapOptions).length > 0;
   return (
     <section className="candidate-browser" aria-label="처리 업체 후보">
-      <div className="candidate-heading"><div><span className="candidate-eyebrow">처리 경로 · 업체 후보</span><h2>선택 가능한 다음 공정 {options.length}개 · 후보 업체 <span>{count}곳</span></h2><p>표시된 공정을 모두 순서대로 거치는 것은 아니에요. 현재 물량에서 이어질 수 있는 공정 후보이며, 세부 반입조건과 이번 물량의 수락은 업체와 대화로 확인해요.</p></div></div>
+      <div className="candidate-heading"><div><span className="candidate-eyebrow">처리 경로 · 업체 후보</span><h2>선택 가능한 다음 공정 {options.length}개 · 후보 업체 <span>{count}곳</span></h2><p>표시된 공정을 모두 순서대로 거치는 것은 아니에요. 현재 물량에서 이어질 수 있는 공정 후보이며, 실제 반입 가능 여부는 업체 검토 후 결정돼요.</p></div></div>
       <div className="candidate-browser-toolbar"><div className="candidate-controls">
         <label className="candidate-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg><input aria-label="업체명 또는 지역 검색" placeholder="업체명 또는 지역으로 검색" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
         <select aria-label="업체 정렬" value={sort} onChange={(e) => setSort(e.target.value)}><option value="default">기본 순</option><option value="distance">가까운 순 · {basis === 'road' ? '도로거리' : '직선거리'}</option><option value="name">이름 순</option></select>
@@ -77,7 +76,7 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
         <div className="candidate-results" ref={resultsRef}>
           {count === 0 && <div className="candidate-empty"><Icon name="building" size={30} /><h3>{term ? '검색 결과가 없어요' : '표시할 후보 업체가 없어요'}</h3><p>{term ? '다른 업체명이나 지역으로 찾아보세요.' : '업체 명부를 확인해 주세요.'}</p>{term && <button className="button button-quiet" type="button" onClick={() => setQuery('')}>검색 초기화</button>}</div>}
           {ordered.map(({ option, facility }) => <div className="candidate-process-section" data-process-key={option.transition_key} key={facility.capability_key}>
-            <ProcessOption option={{ ...option, facilities: [facility] }} index={options.findIndex(item => item.transition_key === option.transition_key)} reviews={reviews} selectedKey={selectedKey} onSelect={onSelect} renderAction={renderAction} />
+            <ProcessOption option={{ ...option, facilities: [facility] }} index={options.findIndex((item) => item.transition_key === option.transition_key)} reviews={reviews} selectedKey={selectedKey} onSelect={onSelect} renderAction={renderAction} />
           </div>)}
           {visible.map(option => <div key={`extra-${option.transition_key}`}>{renderExtra?.(option)}</div>)}
         </div>

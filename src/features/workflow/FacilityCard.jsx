@@ -7,8 +7,15 @@ import { distanceLabel, hasRoadDistance } from './route-result.js';
 export function FacilityCard({ facility, review, action = null, selected = false, onSelect }) {
   const lotReview = review?.lot_review;
   const hasDistance = hasRoadDistance(facility) || Number.isFinite(facility.straight_line_distance_km);
-  const processMatched = Boolean(review?.process_match);
-  const reviewHasDetails = Boolean(review && (review.process_quote || review.process_source || review.evidence_gaps?.length || review.quote || review.next_check || review.source || lotReview?.photo_observations?.length || lotReview?.concerns?.length || lotReview?.questions?.length));
+  const processMatch = review?.process_match;
+  const checks = processMatch ? [] : facility.checks || [];
+  const reviewTitle = processMatch === 'matched' ? '공정 관련 업체'
+    : processMatch === 'mismatch' ? '재질·공정 불일치'
+      : review ? REVIEW_STATUS[review.status] || review.status : '';
+  const reviewHasDetails = Boolean(review && (processMatch
+    ? review.process_quote || review.process_source || lotReview?.concerns?.length
+    : review.evidence_gaps?.length || review.quote || review.next_check || review.source
+      || lotReview?.photo_observations?.length || lotReview?.concerns?.length || lotReview?.questions?.length));
   return (
     <li className={`wf-facility${selected ? ' is-selected' : ''}`} id={`facility-${facility.facility_key}`}>
       <div className="wf-facility-head">
@@ -20,28 +27,33 @@ export function FacilityCard({ facility, review, action = null, selected = false
       </div>
       <dl className="facility-summary">
         <div className="facility-summary-row"><dt>거리</dt><dd>{hasDistance ? distanceLabel(facility) : <span className="facility-empty" aria-label="정보 없음">—</span>}</dd></div>
-        <div className="facility-summary-row is-attention"><dt>업체 확인 사항</dt><dd>{!processMatched && facility.checks?.length ? <ul className="wf-checks">{facility.checks.map((check) => <li key={check}>{check}</li>)}</ul> : processMatched ? <span>세부 반입조건은 업체와 대화로 확인해요.</span> : <span className="facility-empty" aria-label="정보 없음">—</span>}</dd></div>
-        <div className="facility-summary-row" data-status={review?.process_match || review?.status || 'unreviewed'}><dt>AI 검토</dt><dd>
+        <div className="facility-summary-row is-attention"><dt>업체 확인 사항</dt><dd>{checks.length ? <ul className="wf-checks">{checks.map((check) => <li key={check}>{check}</li>)}</ul> : <span className="facility-empty" aria-label="정보 없음">—</span>}</dd></div>
+        <div className="facility-summary-row" data-status={review?.status || 'unreviewed'}><dt>AI 검토</dt><dd>
           {review ? <>
-            <strong className="facility-review-status">{review.process_match === 'matched' ? '공정 관련 업체' : review.process_match === 'mismatch' ? '재질·공정 불일치' : REVIEW_STATUS[review.status] || review.status}</strong>
-            {!processMatched && review.finding && <span className="facility-review-finding">{REVIEW_FINDING[review.finding] || review.finding}</span>}
+            <strong className="facility-review-status">{reviewTitle}</strong>
+            {processMatch === 'matched' && <span className="facility-review-finding">세부 반입조건은 사진·물량을 보내고 업체와 대화로 확인해요.</span>}
+            {!processMatch && review.finding && <span className="facility-review-finding">{REVIEW_FINDING[review.finding] || review.finding}</span>}
             {reviewHasDetails && <details className="facility-row-details"><summary>검토 내용 보기</summary>
-              {review.process_quote && <blockquote>{review.process_quote}</blockquote>}
-              {review.process_source && <a href={review.process_source.url} target="_blank" rel="noopener noreferrer">{review.process_source.publisher} · 공정 연결 자료</a>}
-              {!processMatched && review.evidence_gaps?.length > 0 && <ul className="wf-checks">{review.evidence_gaps.map((gap) => <li key={gap}>{EVIDENCE_GAP[gap] || '반입 근거를 더 확인해야 해요'}</li>)}</ul>}
-              {!processMatched && review.quote && <blockquote>{review.quote}</blockquote>}
-              {!processMatched && review.next_check && <p>다음 확인: {review.next_check}</p>}
-              {!processMatched && review.source && <a href={review.source.url} target="_blank" rel="noopener noreferrer">근거: {review.source.publisher} {review.source.locator}</a>}
-              {lotReview?.status === 'reviewed' && <div className="wf-lot-review">
-                {lotReview.photo_observations?.map((o) => <p key={o.photo_id}>사진 관찰: {o.description}</p>)}
-                {lotReview.concerns?.map((c, i) => <p key={i}><span className="wf-chip">{CONCERN_CATEGORY[c.category] || c.category}</span> {c.concern}<span className="wf-muted"> → {c.next_check}</span></p>)}
-                {!processMatched && lotReview.questions?.length > 0 && <ul>{lotReview.questions.map((q) => <li key={q}>{q}</li>)}</ul>}
-              </div>}
+              {processMatch ? <>
+                {review.process_quote && <blockquote>{review.process_quote}</blockquote>}
+                {review.process_source && <a href={review.process_source.url} target="_blank" rel="noopener noreferrer">{review.process_source.publisher} · 수집 자료</a>}
+                {lotReview?.concerns?.length > 0 && <div className="wf-lot-review">{lotReview.concerns.map((concern, index) => <p key={index}><span className="wf-chip">{CONCERN_CATEGORY[concern.category] || concern.category}</span> {concern.concern}</p>)}</div>}
+              </> : <>
+                {review.evidence_gaps?.length > 0 && <ul className="wf-checks">{review.evidence_gaps.map((gap) => <li key={gap}>{EVIDENCE_GAP[gap] || '반입 근거를 더 확인해야 해요'}</li>)}</ul>}
+                {review.quote && <blockquote>{review.quote}</blockquote>}
+                {review.next_check && <p>다음 확인: {review.next_check}</p>}
+                {review.source && <a href={review.source.url} target="_blank" rel="noopener noreferrer">근거: {review.source.publisher} {review.source.locator}</a>}
+                {lotReview?.status === 'reviewed' && <div className="wf-lot-review">
+                  {lotReview.photo_observations?.map((observation) => <p key={observation.photo_id}>사진 관찰: {observation.description}</p>)}
+                  {lotReview.concerns?.map((concern, index) => <p key={index}><span className="wf-chip">{CONCERN_CATEGORY[concern.category] || concern.category}</span> {concern.concern}<span className="wf-muted"> → {concern.next_check}</span></p>)}
+                  {lotReview.questions?.length > 0 && <ul>{lotReview.questions.map((question) => <li key={question}>{question}</li>)}</ul>}
+                </div>}
+              </>}
             </details>}
           </> : <span className="facility-empty" aria-label="검토 전">—</span>}
         </dd></div>
         <div className="facility-summary-row"><dt>공개 자료</dt><dd>{facility.sources?.length ? <details className="facility-row-details"><summary>{facility.sources.length}건 · 자료 보기</summary><ul className="wf-sources">{facility.sources.map((source) => <li key={source.url + source.locator}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.publisher} · {source.locator}</a></li>)}</ul></details> : <span className="facility-empty" aria-label="정보 없음">—</span>}</dd></div>
-        <div className="facility-summary-row"><dt>수신 계정</dt><dd>{facility.recipient ? `${facility.recipient.name}${facility.recipient.synthetic ? ' (시연용 계정)' : ''}` : facility.recipient === null ? <span>업체 계정 연결 후 인수 요청할 수 있어요.</span> : <span className="facility-empty" aria-label="정보 없음">—</span>}</dd></div>
+        <div className="facility-summary-row"><dt>수신 계정</dt><dd>{facility.recipient ? `${facility.recipient.name}${facility.recipient.synthetic ? ' (시연용 계정)' : ''}` : <span className="facility-empty" aria-label={facility.recipient === null ? '연결된 수신 계정 없음' : '정보 없음'}>—</span>}</dd></div>
       </dl>
       {action && <div className="facility-card-actions">{action}</div>}
     </li>
