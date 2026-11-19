@@ -19,7 +19,7 @@ function loadSdk(key) {
 }
 
 export function KakaoResourceMap({ factories = [], selectedId, focusId, onSelect, origin = null,
-  routePoints = [], routeLines = [], onPick, label = '사업장 위치 지도', onStateChange }) {
+  routePoints = [], routeLines = [], plannedRouteLines = [], onPick, label = '사업장 위치 지도', onStateChange }) {
   const host = useRef(null);
   const mapRef = useRef(null);
   const markerRefs = useRef(new Map());
@@ -27,7 +27,7 @@ export function KakaoResourceMap({ factories = [], selectedId, focusId, onSelect
   callbacks.current = { onSelect, onPick };
   const [state, setState] = useState('loading');
   const key = import.meta.env.VITE_KAKAO_MAP_APP_KEY?.trim();
-  const signature = JSON.stringify([factories.map(f => [f.id, f.latitude, f.longitude, f.name]), origin, routePoints, routeLines]);
+  const signature = JSON.stringify([factories.map(f => [f.id, f.latitude, f.longitude, f.name]), origin, routePoints, routeLines, plannedRouteLines]);
   useEffect(() => { onStateChange?.(state); }, [state, onStateChange]);
   useEffect(() => {
     let cancelled = false;
@@ -77,11 +77,14 @@ export function KakaoResourceMap({ factories = [], selectedId, focusId, onSelect
           maps.event.addListener(marker, 'dragend', drag); listeners.push([marker, 'dragend', drag]);
         }
       }
-      for (const coordinates of [...routeLines, ...(routePoints.length > 1 ? [routePoints] : [])]) {
+      const paths = [...routeLines.map(coordinates => ({ coordinates, planned: false })),
+        ...plannedRouteLines.map(coordinates => ({ coordinates, planned: true })),
+        ...(routePoints.length > 1 ? [{ coordinates: routePoints, planned: false }] : [])];
+      for (const { coordinates, planned } of paths) {
         if (coordinates.length < 2) continue;
         const path = coordinates.map(([lon, lat]) => new maps.LatLng(lat, lon));
         overlays.push(new maps.Polyline({ map, path, strokeWeight: 8, strokeColor: '#ffffff', strokeOpacity: .95 }));
-        overlays.push(new maps.Polyline({ map, path, strokeWeight: 5, strokeColor: '#7754a6', strokeOpacity: 1 }));
+        overlays.push(new maps.Polyline({ map, path, strokeWeight: 5, strokeColor: '#7754a6', strokeOpacity: planned ? .8 : 1, strokeStyle: planned ? 'dash' : 'solid' }));
         path.forEach(extend);
       }
       if (points > 1) map.setBounds(bounds, 65, 65, 65, 65);

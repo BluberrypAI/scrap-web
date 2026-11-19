@@ -96,7 +96,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
       ) : null}
       </div>
       {tracking && lot && activeTab === 'info' && <LotPanel lotId={lot.id} initialLot={lot} showRecycling={false} view="info" />}
-      {confirmed && lot !== undefined && !tracking && <CaseRoutePanel caseId={caseId} caseTitle={kase.summary?.title} wasteCode={code} classification={kase.summary?.result_label || kase.summary?.status_label} lotRecycling={lot?.data.recycling} recyclingFollowUp={lot?.data.completed?.length > 0} view={activeTab} hasLot={!!lot} onLotCreated={(created) => { setRegistered(true); setLot(created); setActiveTab('route'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />}
+      {confirmed && lot !== undefined && !tracking && <CaseRoutePanel key={caseId} caseId={caseId} caseTitle={kase.summary?.title} wasteCode={code} classification={kase.summary?.result_label || kase.summary?.status_label} lotRecycling={lot?.data.recycling} recyclingFollowUp={lot?.data.completed?.length > 0} view={activeTab} hasLot={!!lot} onLotCreated={(created) => { setRegistered(true); setLot(created); setActiveTab('route'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />}
       {confirmed && acceptedOffer && <div className="route-legal-form-link"><LegalFormLink caseId={caseId} handoff={detail.handoff} facilityName={acceptedOffer.data?.facility?.label || '처리업체'} /></div>}
     </main>
   );

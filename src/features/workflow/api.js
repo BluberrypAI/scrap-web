@@ -52,6 +52,8 @@ export const workflowApi = {
   /** 현재 물량 기준 다음 공정 업체 검토(사진·상태 AI 관찰 포함) */
   reviewCandidates: (lot) =>
     apiFetch(`/workflow/lots/${enc(lot.id)}/candidates`, { method: 'POST', body: { revision: lot.revision } }),
+  startCandidateReview: (lot) =>
+    apiFetch(`/workflow/lots/${enc(lot.id)}/review-jobs`, { method: 'POST', body: { revision: lot.revision } }),
   sendOffer: (lot, capabilityKey) =>
     apiFetch(`/workflow/lots/${enc(lot.id)}/offers`, {
       method: 'POST',
