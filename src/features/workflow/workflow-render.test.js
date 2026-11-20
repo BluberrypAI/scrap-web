@@ -4,6 +4,22 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
+test('문진 확정 뒤 처리 경로 준비 상태는 베리 말풍선으로 안내한다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { BerryRouteStatus } = await vite.ssrLoadModule('/src/features/workflow/BerryRouteStatus.jsx');
+    const html = renderToStaticMarkup(React.createElement(BerryRouteStatus, {
+      text: '문진 결과에 맞는 공정과 업체를 찾고 있어요',
+    }));
+    assert.match(html, /berry-route-status/);
+    assert.match(html, /berry-speech/);
+    assert.match(html, /문진 결과에 맞는 공정과 업체를 찾고 있어요/);
+    assert.match(html, /berry-dots/);
+  } finally {
+    await vite.close();
+  }
+});
+
 test('기존 아고라 orb는 서버 단계와 실제 완료 수를 보여주며 낡은 작업은 실행 중으로 보지 않는다', async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
   try {

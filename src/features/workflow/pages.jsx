@@ -11,6 +11,7 @@ import { LotPanel } from './LotPanel.jsx';
 import { LOT_STATUS, lotStatusLabel, lotCardStatus, stateLabel, formatKg } from './labels.js';
 import { Icon } from '../../components/Icon.jsx';
 import { LegalFormLink } from '../documents/LegalFormPage.jsx';
+import { BerryRouteStatus } from './BerryRouteStatus.jsx';
 import './workflow.css';
 
 export function CaseDetailPage({ caseId, onStageChange }) {
@@ -41,7 +42,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
   }, [detail, lot, onStageChange]);
 
   if (error) return <main className="wf-page"><p className="wf-alert" role="alert">{error} <a href="/wastes">목록으로</a></p></main>;
-  if (!detail) return <main className="session-gate" aria-busy="true" />;
+  if (!detail) return <main className="wf-page"><BerryRouteStatus text="확정된 분류 결과를 확인하고 있어요" /></main>;
 
   const kase = detail.case;
   const confirmed = ['CODE_CONFIRMED', 'IN_TRANSIT', 'COMPLETED'].includes(kase.status);
@@ -90,7 +91,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
           <a href={`/wastes/case-${caseId}/survey`}>문진 이어서 하기</a>
         </section>
       ) : lot === undefined ? (
-        <p className="wf-muted">불러오는 중…</p>
+        <BerryRouteStatus text="처리 건과 업체 연결 상태를 확인하고 있어요" />
       ) : lot ? (
         <>{registered && lot.status === 'ready' && !lot.review && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>필요하면 사진을 첨부하고 AI 검토를 시작하세요. 검토 결과에서 공정과 업체를 선택할 수 있어요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} showRecycling={false} view="progress" onLotChange={setLot} /></>
       ) : null}
