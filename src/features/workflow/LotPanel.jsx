@@ -35,7 +35,8 @@ const ResourceMapbox = lazy(() => import('../../pages/map/ResourceMapbox.jsx').t
 // 모든 변경은 revision을 함께 보내고, 다른 화면에서 바뀌었으면(409) 새로 불러온다.
 export function LotPanel({ lotId, initialLot = null, showRecycling = true, view = 'progress', onLotChange }) {
   const [lot, setLot] = useState(initialLot);
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState(null);
+  const error = failure?.message || '';
   const [action, setBusy] = useState('');
   const reviewRunning = reviewIsRunning(lot);
   const busy = action || (reviewRunning ? 'review' : '');
@@ -53,8 +54,8 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   }, [onLotChange]);
 
   const reload = useCallback(() => {
-    setError('');
-    return workflowApi.getLot(lotId).then(applyLot).catch((e) => setError(e.message));
+    setFailure(null);
+    return workflowApi.getLot(lotId).then(applyLot).catch((e) => setFailure({ message: e.message }));
   }, [lotId, applyLot]);
 
   useEffect(() => {
@@ -88,13 +89,13 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
     actionBusy.current = true;
     actionVersion.current += 1;
     setBusy(label);
-    setError('');
+    setFailure(null);
     try {
       const next = await call();
       if (next?.id && next?.revision) applyLot(next);
       return next;
     } catch (e) {
-      setError(e.message);
+      setFailure({ message: e.message, action: label });
       if (e.status === 409) {
         // Keep the conflict reason visible while updating the revision.
         try {
@@ -167,6 +168,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
             key={`${stage}:${current.state_key}`}
             lot={lot}
             error={error}
+            offerFailed={failure?.action === 'offer'}
             showRecycling={showRecycling}
             busy={busy}
             onReview={() => run('review', () => workflowApi.startCandidateReview(lot))}
@@ -338,7 +340,7 @@ function PhotoSection({ lot, photos, busy, onAdd }) {
   );
 }
 
-function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDirectorySave, showRecycling }) {
+function CandidateSection({ lot, busy, error, offerFailed, onReview, onOffer, onAnswers, onDirectorySave, showRecycling }) {
   const review = lot.review;
   if (invalidReviewPhotos(review).length || lot.photo_conflict_gate?.invalid_photos?.length) return null;
   const next = review?.next_step;
@@ -355,7 +357,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
     if (sendable(facility, result)) return { badge: { tone: 'ready', label: '인수 요청 가능' }, title: '인수 요청을 보낼 수 있어요',
       text: `현재 물량·사진·검토 결과가 ${recipient}에 전달돼요. 실제 반입 여부는 받는 업체가 확인하고 답해요.` };
     if (lot.photo_conflict_gate?.blocked) return { badge: { tone: 'hold', label: '사진·설명 확인 필요' }, title: '사진과 설명이 맞는지 먼저 확인해 주세요',
-      text: '후보 목록 위의 불일치 확인 영역에서 설명을 고치거나 확인 사유를 남기면 요청할 수 있어요.' };
+      text: '후보 목록 위의 불일치 확인 영역에서 설명을 고치거나 확인 사유를 남겨 주세요.' };
     if (result?.status === 'model_unavailable' || result?.lot_review?.status === 'model_unavailable') return { badge: { tone: 'hold', label: 'AI 검토 미완료' }, title: 'AI 검토가 끝나지 않았어요',
       text: '후보 목록 위의 [다시 검토]를 누르면 미완료 업체만 다시 확인해요. 미완료는 부적합 판정이 아니에요.' };
     if (['mismatch', 'unverified'].includes(result?.process_match)) return { badge: { tone: 'off', label: '요청 불가' },
@@ -382,7 +384,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
         progress={reviewIsRunning(lot) ? lot.review_progress : null} />}
       {['failed', 'interrupted'].includes(lot.review_progress?.status) && busy !== 'review'
         && <p className="wf-alert" role="alert">{lot.review_progress.message || '검토가 중단됐어요. 완료된 결과를 유지하고 다시 시도할 수 있어요.'}</p>}
-      {error && busy !== 'review' && <p className="wf-alert" role="alert">검토 결과를 받지 못했어요. {error}</p>}
+      {error && busy !== 'review' && <p className="wf-alert" role="alert">{offerFailed ? '인수 요청을 보내지 못했어요.' : '검토 결과를 받지 못했어요.'} {error}</p>}
       {review && (review.analysis_version !== 'isolated-vision-v2' || !review.recycling_checksum) && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
       {review?.selection && <p className="wf-muted" role="status">
@@ -423,7 +425,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
           renderAction={(facility, result) => {
             const state = requestState(facility, result);
             const packet = <InquiryPacket lot={lot} facility={facility} busy={!!busy} />;
-            return <FacilityNextStep tone={state.badge.tone} title={state.title}
+            return <><FacilityNextStep tone={state.badge.tone} title={state.title}
               actions={state.badge.tone === 'ready' ? <>
                 <button className="button button-primary" type="button" disabled={!!busy}
                   onClick={() => onOffer(facility.capability_key)}>
@@ -432,7 +434,9 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
                 {packet}
               </> : packet}>
               {state.text}
-            </FacilityNextStep>;
+            </FacilityNextStep>
+              {offerFailed && <p className="wf-alert candidate-sheet-error" role="alert">인수 요청을 보내지 못했어요. {error}</p>}
+            </>;
           }}
           renderDetailExtra={(facility) => <SupplierPolicySummary value={facility.supplier_policy} />}
           renderExtra={(option) => <DirectoryCandidates lot={lot} transitionKey={option.transition_key} onSave={(listing, cursor, answers) => onDirectorySave(option.transition_key, listing, cursor, answers)} />}

@@ -367,9 +367,11 @@
 .candidate-panel-bar { display: none; }
 .candidate-panel-tabs { display: flex; gap: 4px; margin: 14px 16px 0; padding: 4px; border-radius: 12px; background: #f3eff7; }
 .candidate-panel-tabs button { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 6px; min-height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--cand-sub); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-.candidate-panel-tabs button[aria-selected='true'] { background: var(--color-card, #fff); color: #4f3577; box-shadow: 0 2px 8px #4a315914; }
+.candidate-panel-tabs button[aria-pressed='true'] { background: var(--color-card, #fff); color: #4f3577; box-shadow: 0 2px 8px #4a315914; }
 .candidate-panel-tabs button:focus-visible { outline: 2px solid var(--cand-primary); outline-offset: 1px; }
 .candidate-panel-body { min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.candidate-sheet-error { display: none; }
+dialog.candidate-panel[open] .candidate-sheet-error { display: block; margin: 0; }
 .candidate-panel-map .wf-map { height: clamp(320px, 58vh, 600px); border-radius: 0; }
 .candidate-panel-map-note { margin: 0; padding: 12px 20px 16px; color: var(--cand-sub); font-size: 12px; line-height: 1.6; }
 
@@ -413,7 +415,7 @@
 .facility-detail-section details.wf-card { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .facility-detail-section details.wf-card > summary { color: #69458a; font-size: 12px; font-weight: 700; cursor: pointer; }
 .facility-detail-section > .wf-muted { margin: 0; }
-body.candidate-sheet-open { overflow: hidden; }
+html.candidate-sheet-open { overflow: hidden; scrollbar-gutter: auto; }
 
 @media (max-width: 1180px) and (min-width: 901px) {
   .candidate-workspace { grid-template-columns: minmax(0, 1fr) minmax(340px, 1fr); gap: 18px; }
@@ -425,7 +427,7 @@ body.candidate-sheet-open { overflow: hidden; }
   .candidate-workspace { grid-template-columns: minmax(0, 1fr); }
   .candidate-map-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; padding: 0 14px; border: 1px solid #e7e1ec; border-radius: 13px; background: var(--color-card, #fff); color: #5d3f80; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
   .candidate-panel { display: none; }
-  .candidate-panel.is-open { position: fixed; inset: 0; z-index: 90; display: flex; max-height: none; border: 0; border-radius: 0; box-shadow: none; }
+  dialog.candidate-panel[open] { position: fixed; inset: 0; display: flex; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
   .candidate-panel-bar { position: sticky; top: 0; z-index: 1; display: flex; padding: 10px 12px; border-bottom: 1px solid var(--cand-line); background: var(--color-card, #fff); }
   .candidate-panel-back { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 10px; border: 0; border-radius: 10px; background: #f3eff7; color: #4f3577; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
   .candidate-panel-back svg { transform: rotate(180deg); }

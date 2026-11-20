@@ -6,9 +6,9 @@ import { distanceLabel, hasRoadDistance } from './route-result.js';
 export function reviewSummary(review) {
   if (!review) return null;
   const processMatch = review.process_match;
-  if (processMatch === 'matched') return { tone: 'good', title: '취급 소재가 맞는 업체', note: '세부 공정·반입조건은 사진·물량을 보내고 업체와 대화로 확인해요.' };
   if (processMatch === 'mismatch') return { tone: 'bad', title: '재질·공정 불일치', note: '' };
   if (review.finding === 'restriction_mentioned') return { tone: 'bad', title: '공개 자료에 반입 제한', note: REVIEW_FINDING.restriction_mentioned };
+  if (processMatch === 'matched' && ['reviewed', 'needs_evidence'].includes(review.status)) return { tone: 'good', title: '취급 소재가 맞는 업체', note: '세부 공정·반입조건은 사진·물량을 보내고 업체와 대화로 확인해요.' };
   const title = REVIEW_STATUS[review.status] || review.status;
   const note = review.finding ? REVIEW_FINDING[review.finding] || review.finding : '';
   return { tone: review.status === 'reviewed' ? 'good' : 'warn', title, note };
