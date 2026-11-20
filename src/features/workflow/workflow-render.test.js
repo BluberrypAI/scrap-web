@@ -182,16 +182,21 @@ test('AI 검토 전에는 사진 입력과 한 번의 검토 진입만 있고 �
   } finally { await vite.close(); }
 });
 
-test('PET 결과는 완료·추가 가공·보관을 한 폼에서 선택하고 별도 종료 버튼은 없다', async () => {
+test('PP·PE·PET·알루미늄 결과는 진행을 한 폼에서 선택하고 별도 종료 버튼은 없다', async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
   try {
     const { LotPanel } = await vite.ssrLoadModule('/src/features/workflow/LotPanel.jsx');
-    for (const state of ['pet-flake', 'pet-pellet']) {
+    for (const [material, state] of [
+      ['pp', 'pp-pellet'], ['pp', 'pp-compound'],
+      ['pe', 'pe-pellet'], ['pe', 'pe-compound'],
+      ['pet', 'pet-flake'], ['pet', 'pet-pellet'],
+      ['aluminium', 'al-sheet'], ['aluminium', 'al-granule'],
+    ]) {
       const lot = { id: `choice-${state}`, revision: 3, status: 'processed', can_manage: true,
         current_company_id: 'b', owner_company_id: 'a', companies: { a: '시험 A', b: '시험 B' },
-        photos: [], offers: [], terminal_states: ['pet-flake', 'pet-pellet'],
-        data: { current: { state_key: state, mass_kg: 90, condition: '합성 PET 시험 물량' },
-          initial: { material: 'pet' }, completed: [], events: [] } };
+        photos: [], offers: [], terminal_states: [state],
+        data: { current: { state_key: state, mass_kg: 90, condition: '합성 소재별 시험 물량' },
+          initial: { material }, completed: [], events: [] } };
       const render = (value) => renderToStaticMarkup(React.createElement(LotPanel, { lotId: value.id, initialLot: value }));
       const html = render(lot);
       assert.match(html, /value="complete"/);
