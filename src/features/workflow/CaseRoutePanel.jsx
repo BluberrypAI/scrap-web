@@ -54,6 +54,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
               <p>{classification}</p>
               <div className="route-info-links"><a href={`/wastes/case-${caseId}/survey`}>문진 대화</a><a href={`/wastes/case-${caseId}/history`}>판정 기록</a></div>
             </section>
+            <InheritedForm context={context} />
             {(hasLot || context.recycling) && <section className="wf-evidence-panel"><div className="wf-evidence-panel-head"><div><span>법령표 근거</span><h3>재활용 유형과 분석 조건</h3></div></div>
               <RecyclingTypes assessment={hasLot ? lotRecycling || context.recycling : context.recycling} followUp={recyclingFollowUp} compact />
             </section>}
@@ -89,6 +90,15 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
       </div>
     </div>
   );
+}
+
+// 문진에서 이어받은 현재 형태를 '분류·확인 사항'에 보여 준다. 선택·수정은 하지 않는다.
+export function InheritedForm({ context }) {
+  if (!context.selected_form) return null;
+  return <section className="wf-evidence-panel route-current-form" aria-label="현재 형태">
+    <div className="wf-evidence-panel-head"><div><span>현재 형태</span><h3>문진에서 확인한 물량 형태</h3></div><strong>{context.selected_form_label || context.selected_form}</strong></div>
+    {context.form_quote && <details><summary>문진에서 말한 내용</summary><blockquote>{context.form_quote}</blockquote></details>}
+  </section>;
 }
 
 // 문진 엔진의 형태 인계를 기다리며, 새 형태를 선택하거나 분류번호를 바꾸지 않는다.
