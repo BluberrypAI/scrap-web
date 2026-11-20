@@ -81,9 +81,14 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, r
   useEffect(() => {
     if (!sheetOpen) return undefined;
     document.body.classList.add('candidate-sheet-open');
-    const onKey = (event) => { if (event.key === 'Escape') closeSheet(); };
+    // 문의서 창이 열려 있으면 Esc는 그 창만 닫는다.
+    const onKey = (event) => { if (event.key === 'Escape' && !document.querySelector('dialog[open]')) closeSheet(); };
+    // 상세를 연 채 화면을 넓히면 전체 화면 상태와 스크롤 잠금을 푼다.
+    const wide = window.matchMedia?.(NARROW);
+    const onResize = () => { if (!wide.matches) setSheetOpen(false); };
     window.addEventListener('keydown', onKey);
-    return () => { document.body.classList.remove('candidate-sheet-open'); window.removeEventListener('keydown', onKey); };
+    wide?.addEventListener('change', onResize);
+    return () => { document.body.classList.remove('candidate-sheet-open'); window.removeEventListener('keydown', onKey); wide?.removeEventListener('change', onResize); };
   }, [sheetOpen]);
 
   function jumpToProcess(key) {
@@ -108,8 +113,10 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, r
     if (isNarrow()) openSheet('detail');
   }
   // 지도의 업체를 고르면 그 업체의 첫 공정 카드를 상세로 연다.
+  // 이미 보고 있는 업체의 핀이면 지금 공정을 유지해 요청 대상(capability_key)이 바뀌지 않게 한다.
   function selectFromMap(facilityKey) {
-    const entry = entries.find((item) => item.facility.facility_key === facilityKey);
+    const entry = active?.facility.facility_key === facilityKey ? active
+      : entries.find((item) => item.facility.facility_key === facilityKey);
     if (!entry) return;
     setActiveKey(entry.facility.capability_key);
     setTab('detail');
@@ -118,10 +125,10 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, r
 
   return (
     <section className="candidate-browser" aria-label="처리 업체 후보">
-      <div className="candidate-heading"><div><span className="candidate-eyebrow">처리 경로 · 업체 후보</span><h2>선택 가능한 다음 공정 {groups.length}개 · 후보 업체 <span>{count}곳</span></h2><p>표시된 공정을 모두 순서대로 거치는 것은 아니에요. 업체를 누르면 오른쪽에서 검토 내용과 지금 할 일을 확인할 수 있어요. 실제 반입 가능 여부는 업체가 결정해요.</p></div></div>
+      <div className="candidate-heading"><div><span className="candidate-eyebrow">처리 경로 · 업체 후보</span><h2>선택 가능한 다음 공정 {groups.length}개 · 후보 업체 <span>{count}곳</span></h2><p>표시된 공정을 모두 순서대로 거치는 것은 아니에요. 업체를 누르면 검토 내용과 지금 할 일을 확인할 수 있어요. 실제 반입 가능 여부는 업체가 결정해요.</p></div></div>
       {options.some(option => option.facilities?.length) && <div className="candidate-browser-toolbar"><div className="candidate-controls">
         <label className="candidate-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg><input aria-label="업체명 또는 지역 검색" placeholder="업체명 또는 지역으로 검색" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
-        <select aria-label="업체 정렬" value={sort} onChange={(e) => setSort(e.target.value)}><option value="default">기본 순</option><option value="distance">가까운 순 · {basis === 'road' ? '도로거리' : '직선거리'}</option><option value="name">이름 순</option></select>
+        <select aria-label="업체 정렬" value={sort} onChange={(e) => setSort(e.target.value)}><option value="default">기본 순</option><option value="distance">공정별 가까운 순 ·{basis === 'road' ? '도로거리' : '직선거리'}</option><option value="name">이름 순</option></select>
         {hasMap && <button type="button" className="candidate-map-toggle" onClick={() => openSheet('map')}><Icon name="map" size={16} />지도에서 보기</button>}
       </div></div>}
       {groups.length > 0 && <nav className="candidate-process-nav" aria-label="공정별 업체 바로가기">

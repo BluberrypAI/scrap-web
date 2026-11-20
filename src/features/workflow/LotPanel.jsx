@@ -355,9 +355,12 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
     if (sendable(facility, result)) return { badge: { tone: 'ready', label: '인수 요청 가능' }, title: '인수 요청을 보낼 수 있어요',
       text: `현재 물량·사진·검토 결과가 ${recipient}에 전달돼요. 실제 반입 여부는 받는 업체가 확인하고 답해요.` };
     if (lot.photo_conflict_gate?.blocked) return { badge: { tone: 'hold', label: '사진·설명 확인 필요' }, title: '사진과 설명이 맞는지 먼저 확인해 주세요',
-      text: '위의 불일치 확인 영역에서 설명을 고치거나 확인 사유를 남기면 요청할 수 있어요.' };
+      text: '후보 목록 위의 불일치 확인 영역에서 설명을 고치거나 확인 사유를 남기면 요청할 수 있어요.' };
     if (result?.status === 'model_unavailable' || result?.lot_review?.status === 'model_unavailable') return { badge: { tone: 'hold', label: 'AI 검토 미완료' }, title: 'AI 검토가 끝나지 않았어요',
-      text: '위의 [다시 검토]를 누르면 미완료 업체만 다시 확인해요. 미완료는 부적합 판정이 아니에요.' };
+      text: '후보 목록 위의 [다시 검토]를 누르면 미완료 업체만 다시 확인해요. 미완료는 부적합 판정이 아니에요.' };
+    if (['mismatch', 'unverified'].includes(result?.process_match)) return { badge: { tone: 'off', label: '요청 불가' },
+      title: result.process_match === 'mismatch' ? '현재 물량의 재질·공정과 맞지 않는 업체예요' : '이 업체의 공정 연결 근거가 아직 확인되지 않았어요',
+      text: '다시 검토해도 같은 결과일 수 있어요. 다른 후보 업체를 확인해 주세요.' };
     if (!facility.recipient) return { badge: { tone: 'off', label: '수신 계정 미연결' }, title: '이 업체는 아직 서비스 계정이 없어요',
       text: '인수 요청은 보낼 수 없지만, 문의서를 만들어 전화·메일로 반입 조건을 물어볼 수 있어요.' };
     if (facility.supplier_policy?.policy?.accepting_inquiries === false) return { badge: { tone: 'off', label: '새 문의 중단' }, title: '이 업체는 새 반입 문의를 잠시 받지 않아요',
@@ -365,7 +368,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
     if (result?.finding === 'restriction_mentioned') return { badge: { tone: 'off', label: '요청 불가' }, title: '공개 자료에서 반입 제한이 확인됐어요',
       text: '아래 검토 근거를 확인하고 다른 후보 업체를 살펴봐 주세요.' };
     return { badge: { tone: 'hold', label: '검토 필요' }, title: '공정·물량 검토를 마쳐야 요청할 수 있어요',
-      text: '위의 [다시 검토]로 현재 물량 기준 검토를 완료해 주세요.' };
+      text: '후보 목록 위의 [다시 검토]로 현재 물량 기준 검토를 완료해 주세요.' };
   }
   return (
     <section className="wf-card wf-candidate-section">
