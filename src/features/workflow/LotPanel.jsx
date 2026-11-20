@@ -12,7 +12,7 @@ import { QrPreview } from './QrPreview.jsx';
 import { RecyclingTypes } from './RecyclingTypes.jsx';
 import { RouteOutcome } from './RouteOutcome.jsx';
 import { ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
-import { validLocation } from './route-result.js';
+import { currentLotWarnings, validLocation } from './route-result.js';
 import { startLotSync } from './lot-sync.js';
 import {
   LOT_STATUS,
@@ -120,6 +120,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   const material = lotMaterial(lot);
   const diagnosisId = lot.diagnosis_id || lot.data.handoff?.case_id;
   const terminalStates = lot.terminal_states || FINISH_STATES[material] || [];
+  const warnings = currentLotWarnings(lot.data.warnings, lot.review?.origin);
 
   const progress = lotProgress(lot, me);
   const summary = (
@@ -137,10 +138,10 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
           {current.purity_percent != null && <div><dt>순도</dt><dd>{current.purity_percent}%</dd></div>}
         </dl>
         <p className="wf-muted">상태 설명: {current.condition}</p>
-        {lot.data.warnings?.length > 0 && (
+        {warnings.length > 0 && (
           <div className="wf-inline-checks"><strong>확인 사항</strong>
           <ul className="wf-warnings">
-            {lot.data.warnings.map((w) => <li key={w}>{w}</li>)}
+            {warnings.map((w) => <li key={w}>{w}</li>)}
           </ul>
           </div>
         )}
@@ -228,7 +229,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
         {lot.data.completed.length > 0 && <RecyclingTypes followUp />}
         {diagnosisId && <div className="route-info-links"><a href={`/wastes/case-${diagnosisId}/survey`}>문진 대화</a><a href={`/wastes/case-${diagnosisId}/history`}>판정 기록</a></div>}
       </section>
-      <LotChecks lot={lot} name={name} />
+      <LotChecks lot={lot} name={name} warnings={warnings} />
     </div>
   );
 
@@ -640,10 +641,10 @@ function History({ lot, name }) {
   );
 }
 
-function LotChecks({ lot, name }) {
+function LotChecks({ lot, name, warnings }) {
   const offersWithConditions = lot.offers.filter((offer) => offer.data.conditions?.length);
   return <section className="wf-evidence-panel wf-lot-checks" aria-label="현재 처리 건 확인 사항">
-    <div className="wf-evidence-panel-head"><div><span>물량 · 인계 확인</span><h3>현재 물량 확인 사항</h3></div><strong>{lot.data.warnings?.length || 0}건 확인 필요</strong></div>
+    <div className="wf-evidence-panel-head"><div><span>물량 · 인계 확인</span><h3>현재 물량 확인 사항</h3></div><strong>{warnings.length}건 확인 필요</strong></div>
     <div className="wf-current-condition"><span>현재 상태 설명</span><p>{lot.data.current.condition || '설명 없음'}</p></div>
     {lot.offers.filter(offer => offer.data.messages?.length || offer.data.facility?.supplier_policy).map(offer =>
       <details className="wf-evidence-accordion" key={`inquiry-${offer.id}`}>
@@ -653,7 +654,7 @@ function LotChecks({ lot, name }) {
       </details>
     )}
     {lot.offers.filter(offer => offer.data.photo_conflict_resolution).map(offer => <PhotoConflictReceipt key={offer.id} value={offer.data.photo_conflict_resolution} />)}
-    {lot.data.warnings?.length > 0 && <div className="wf-evidence-alert"><strong>먼저 확인할 사항</strong><ul>{lot.data.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
+    {warnings.length > 0 && <div className="wf-evidence-alert"><strong>먼저 확인할 사항</strong><ul>{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
     {offersWithConditions.map((offer) => <details className="wf-evidence-accordion" key={offer.id}>
       <summary><span><strong>{name(offer.recipient_id)} 반입 조건</strong><small>{OFFER_STATUS[offer.status] || offer.status} · {offer.data.conditions.length}건</small></span><span className="wf-disclosure-arrow" aria-hidden="true">⌄</span></summary>
       <div className="wf-evidence-accordion-body"><p className="wf-muted">{OFFER_STATUS[offer.status] || offer.status} · {offer.data.decision?.note}</p>

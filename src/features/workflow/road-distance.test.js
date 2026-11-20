@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { candidateMapOptions, distanceBasis, distanceLabel, comparisonDistance } from './route-result.js';
+import { candidateMapOptions, currentLotWarnings, distanceBasis, distanceLabel, comparisonDistance } from './route-result.js';
 
 const origin = { latitude: 37, longitude: 127 };
 const sites = Array.from({ length: 8 }, (_, i) => ({
@@ -30,4 +30,16 @@ test('키가 없거나 전부 실패하면 직선거리임을 유지한다', () 
   const options = [{ facilities: sites.map(f => ({ ...f, road_distance_status: 'not_configured', road_distance_km: null })) }];
   assert.equal(distanceBasis(options), 'straight_line');
   assert.deepEqual(candidateMapOptions(options, origin)[0].facilities.map(f => f.facility_key), ['site-0', 'site-1', 'site-2', 'site-3', 'site-4']);
+});
+
+test('새 검토에 출발지 좌표가 있으면 초기 좌표 안내만 숨긴다', () => {
+  const missingOrigin = '사업장 좌표가 없어 거리 순위는 표시하지 않습니다.';
+  const permitWarning = '공정 후보와 R유형 조회는 업체 허가·반입 승인을 뜻하지 않습니다.';
+  const warnings = [missingOrigin, permitWarning];
+
+  assert.deepEqual(currentLotWarnings(warnings), warnings);
+  assert.deepEqual(currentLotWarnings(warnings, origin), [permitWarning]);
+  assert.deepEqual(currentLotWarnings(undefined, origin), []);
+  assert.deepEqual(currentLotWarnings(null), []);
+  assert.deepEqual(currentLotWarnings(null, origin), []);
 });
