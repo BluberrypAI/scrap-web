@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
 import { caseToWaste } from '../../data/diagnosisCases.js';
 import { workflowApi } from '../../features/workflow/api.js';
+import { startLotSync } from '../../features/workflow/lot-sync.js';
 import { lotCardStatus, lotCardText, lotToWaste } from '../../features/workflow/labels.js';
 import { api } from '../../lib/api.js';
 import { currentRoute, navigate } from '../../lib/router.js';
@@ -149,17 +150,21 @@ export function WastesPage() {
   const [problem, setProblem] = useState('');
   const [creating, setCreating] = useState(false);
   useEffect(() => {
-    // 처리 건(기업 간 인계)은 목록을 못 불러와도 문진 카드는 보여 준다
-    Promise.all([
-      api.diagnosis.listCases(),
-      workflowApi.listLots().catch(() => { setProblem('처리 건을 불러오지 못해 진행 경로를 표시할 수 없어요. 새로고침해 주세요.'); return []; }),
-      api.myCompany().catch(() => null),
-    ])
-      .then(([page, lots, company]) => setWastes(mergeLots(page.items.map(caseToWaste), lots, company?.id)))
-      .catch((error) => {
-        setWastes([]);
+    return startLotSync({
+      immediate: true,
+      read: () => Promise.all([
+        api.diagnosis.listCases(), workflowApi.listLots(), api.myCompany().catch(() => null),
+      ]),
+      apply: ([page, lots, company]) => {
+        setWastes(mergeLots(page.items.map(caseToWaste), lots, company?.id));
+        setProblem('');
+      },
+      onError: (error) => {
+        // 연결이 잠시 끊겨도 이미 표시한 A→B→C 경로를 빈 목록으로 덮지 않는다.
+        setWastes((previous) => previous ?? []);
         setProblem(error?.message || '폐기물 목록을 불러오지 못했어요.');
-      });
+      },
+    });
   }, []);
   if (wastes === null) return <div className="home-content" role="status" aria-busy="true">폐기물과 처리 현황을 불러오는 중이에요…</div>;
   const createCase = async () => {

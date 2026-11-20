@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
+import { CONCERN_CATEGORY } from './labels.js';
 import { ProcessOption } from './FacilityCard.jsx';
 import { FacilityMap, mapFactories } from './FacilityMap.jsx';
 import { candidateMapOptions, validLocation, comparisonDistance, distanceBasis } from './route-result.js';
@@ -21,12 +22,12 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
       if (sort === 'name') return a.label.localeCompare(b.label, 'ko');
       return 0;
     }),
-  })).filter((option) => !term || option.facilities.length > 0);
+  })).filter((option) => option.facilities.length > 0);
   const visibleKeys = visible.map((option) => option.transition_key).join('|');
   useEffect(() => {
     const update = () => {
       const sections = [...resultsRef.current?.querySelectorAll('[data-process-key]') || []];
-      if (!sections.length) return;
+      if (!sections.length) { setActiveProcess(''); return; }
       const current = sections.filter((section) => section.getBoundingClientRect().top <= 180).at(-1) || sections[0];
       setActiveProcess(current.dataset.processKey);
     };
@@ -61,15 +62,21 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, s
   const hasMap = validLocation(origin) || mapFactories(mapOptions).length > 0;
   return (
     <section className="candidate-browser" aria-label="처리 업체 후보">
-      <div className="candidate-heading"><div><span className="candidate-eyebrow">처리 경로 · 업체 후보</span><h2>선택 가능한 다음 공정 {options.length}개 · 후보 업체 <span>{count}곳</span></h2><p>표시된 공정을 모두 순서대로 거치는 것은 아니에요. 현재 물량에서 이어질 수 있는 공정 후보이며, 실제 반입 가능 여부는 업체 검토 후 결정돼요.</p></div></div>
-      <div className="candidate-browser-toolbar"><div className="candidate-controls">
+      <div className="candidate-heading"><div><span className="candidate-eyebrow">처리 경로 · 업체 후보</span><h2>선택 가능한 다음 공정 {visible.length}개 · 후보 업체 <span>{count}곳</span></h2><p>표시된 공정을 모두 순서대로 거치는 것은 아니에요. 현재 물량에서 이어질 수 있는 공정 후보이며, 실제 반입 가능 여부는 업체 검토 후 결정돼요.</p></div></div>
+      {options.some(option => option.facilities?.length) && <div className="candidate-browser-toolbar"><div className="candidate-controls">
         <label className="candidate-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg><input aria-label="업체명 또는 지역 검색" placeholder="업체명 또는 지역으로 검색" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
         <select aria-label="업체 정렬" value={sort} onChange={(e) => setSort(e.target.value)}><option value="default">기본 순</option><option value="distance">가까운 순 · {basis === 'road' ? '도로거리' : '직선거리'}</option><option value="name">이름 순</option></select>
-      </div></div>
+      </div></div>}
       {visible.length > 0 && <nav className="candidate-process-nav" aria-label="공정별 업체 바로가기">
         <span className="candidate-process-nav-label">보고 있는 후보</span>
         <div className="candidate-filters" ref={processNavRef}>
-          {visible.map((option, index) => <button key={option.transition_key} data-process-key={option.transition_key} type="button" aria-current={activeProcess === option.transition_key ? 'step' : undefined} onClick={() => jumpToProcess(option.transition_key)}><span>{String(index + 1).padStart(2, '0')}</span>{option.label}</button>)}
+          {visible.map((option, index) => {
+            const preparation = ['sorting', 'cleaning', 'drying'].filter(category => option.facilities.some(f =>
+              reviews?.[f.capability_key]?.lot_review?.concerns?.some(c => c.category === category)));
+            return <button key={option.transition_key} data-process-key={option.transition_key} type="button" aria-current={activeProcess === option.transition_key ? 'step' : undefined} onClick={() => jumpToProcess(option.transition_key)}><span>{String(index + 1).padStart(2, '0')}</span>{option.label}
+              {preparation.length > 0 && <small className="candidate-preparation">{preparation.map(k => CONCERN_CATEGORY[k]).join('·')} 확인</small>}
+            </button>;
+          })}
         </div>
       </nav>}
       <div className={`candidate-layout${hasMap ? '' : ' without-map'}`}>

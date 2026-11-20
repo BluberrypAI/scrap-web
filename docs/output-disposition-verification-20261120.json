@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-20",
+  "environment": "local Docker scrap-full-review",
+  "scope": {
+    "browser": "B output and direction selection; C acceptance, B dispatch/QR, C QR receipt/output/completion; A readback and automatic card update",
+    "api_setup": "Real diagnosis and A-to-B admission APIs. B-to-C offer sent through a separate HTTP session while A card stayed open.",
+    "synthetic": "Test accounts, facility bindings, quantities, conditions and completion records. No real company contact or production deployment."
+  },
+  "runs": [
+    {
+      "lot": "18342959-1fdd-4b8a-85b1-a9eeb30f58c8",
+      "status": "completed",
+      "state": "pet-flake",
+      "mass_kg": 90,
+      "qr_receipts": 1,
+      "output_records": 1,
+      "next_action": "complete",
+      "held_then_forwarded": false,
+      "owner_can_manage": false,
+      "road": [
+        {
+          "status": "available",
+          "provider": "kakao",
+          "distance_km": 11.229,
+          "duration_seconds": 1470.0,
+          "phase": "received",
+          "coordinate_count": 332
+        }
+      ]
+    },
+    {
+      "lot": "248cc46c-cb7f-4b41-8f5e-98e647af0201",
+      "status": "completed",
+      "state": "pet-pellet",
+      "mass_kg": 85,
+      "qr_receipts": 2,
+      "output_records": 2,
+      "next_action": "complete",
+      "held_then_forwarded": true,
+      "owner_can_manage": false,
+      "road": [
+        {
+          "status": "available",
+          "provider": "kakao",
+          "distance_km": 11.229,
+          "duration_seconds": 1469.0,
+          "phase": "received",
+          "coordinate_count": 332
+        },
+        {
+          "status": "available",
+          "provider": "kakao",
+          "distance_km": 37.35,
+          "duration_seconds": 3758.0,
+          "phase": "received",
+          "coordinate_count": 617
+        }
+      ]
+    }
+  ]
+}

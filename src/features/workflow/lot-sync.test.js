@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { startLotSync } from './lot-sync.js';
+import { wasteJourneyState } from '../../pages/wastes/waste-journey-state.js';
 
 function harness(overrides = {}) {
   const windowTarget = new EventTarget();
@@ -63,4 +64,37 @@ test('화면을 떠나면 늦게 온 응답을 무시하고 조회 오류 후 �
   h.stop();
   await h.tick();
   assert.equal(h.changes.length, 1);
+});
+
+test('목록 최초 조회와 주기 조회는 겹치지 않고 B→C 경로를 새 카드에 반영한다', async () => {
+  let resolve;
+  let calls = 0;
+  const h = harness({ immediate: true, read: () => { calls++; return new Promise(r => { resolve = r; }); } });
+  await h.tick();
+  assert.equal(calls, 1);
+  resolve({ status: 'processed', data: { completed: [{ facility: 'B' }] }, offers: [] });
+  await new Promise(r => setImmediate(r));
+  const pending = h.tick();
+  resolve({ status: 'offered', data: { completed: [{ facility: 'B' }] },
+    offers: [{ id: 'BC', status: 'pending', data: { facility: { facility_key: 'c', label: 'C' } } }] });
+  await pending;
+  const journey = wasteJourneyState({ lotId: 'shared-lot', code: '51-03-01', status: '처리 진행' }, h.changes.at(-1));
+  assert.deepEqual(journey.facilities.map(x => x.mapLabel), ['배출 사업장', 'B', 'C']);
+  h.stop();
+});
+
+test('목록 일시 오류를 알린 뒤 다음 조회로 복구하며 이탈 후 오류는 무시한다', async () => {
+  let fail = true;
+  const errors = [];
+  const h = harness({ immediate: true, onError: e => errors.push(e.message),
+    read: async () => { if (fail) throw new Error('offline'); return { revision: 2 }; } });
+  await new Promise(r => setImmediate(r));
+  assert.deepEqual(errors, ['offline']);
+  fail = false;
+  await h.tick();
+  assert.equal(h.changes[0].revision, 2);
+  h.stop();
+  fail = true;
+  await h.tick();
+  assert.equal(errors.length, 1);
 });

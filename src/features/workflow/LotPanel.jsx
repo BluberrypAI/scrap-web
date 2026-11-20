@@ -119,7 +119,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   const manage = lot.can_manage;
   const material = lotMaterial(lot);
   const diagnosisId = lot.diagnosis_id || lot.data.handoff?.case_id;
-  const canFinish = manage && lot.status === 'processed' && (lot.terminal_states || FINISH_STATES[material] || []).includes(current.state_key);
+  const terminalStates = lot.terminal_states || FINISH_STATES[material] || [];
 
   const progress = lotProgress(lot, me);
   const summary = (
@@ -152,12 +152,18 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
         <p className="wf-alert">기록한 산출물이 예상한 형태와 달라 다음 단계를 보류했어요. 담당자 확인이 필요해요.</p>
       )}
 
-      {/* 지금 물량을 가진 기업: 사진 → 업체 검토 → 인수 요청, 또는 완료 */}
-      {manage && ['ready', 'processed'].includes(lot.status) && !canFinish && (
+      {manage && ['processed', 'stored'].includes(lot.status) && <ResultActionForm
+        key={`${stage}:${current.state_key}:${current.next_action || ''}`} current={current}
+        terminalStates={terminalStates} busy={busy}
+        onSubmit={(decision) => run('output-action', () => workflowApi.outputAction(lot, decision))} />}
+
+      {/* 완료 가능한 형태도 보유 기업이 후속 인계를 선택할 수 있다. */}
+      {manage && (lot.status === 'ready' || (lot.status === 'processed' && current.next_action === 'forward')) && (
         <>
           <PhotoSection lot={lot} photos={stagePhotos} busy={busy} onAdd={(file, photoId = null) => run('photo', () => workflowApi.addPhoto(lot.id, file, photoId ? { photoId, revision: lot.revision } : null))} />
           <PhotoConflict key={`conflict-${lot.revision}-${lot.review?.at}`} lot={lot} busy={busy} onResolve={body => run('conflict', () => workflowApi.resolvePhotoConflict(lot, body))} />
           <CandidateSection
+            key={`${stage}:${current.state_key}`}
             lot={lot}
             error={error}
             showRecycling={showRecycling}
@@ -169,7 +175,6 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
           />
         </>
       )}
-      {canFinish && <FinishForm material={material} busy={busy} onFinish={(v) => run('finish', () => workflowApi.finish(lot, v))} />}
 
       {pendingOffer && (
         <OfferCard lot={lot} offer={pendingOffer} name={name}>
@@ -205,7 +210,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
       )}
 
       {manage && lot.status === 'processing' && (
-        <OutputForm material={material} current={current} outputStates={lot.output_states} busy={busy} onSubmit={(v) => run('output', () => workflowApi.recordOutput(lot, v))} />
+        <OutputForm material={material} current={current} outputStates={lot.output_states} terminalStates={terminalStates} busy={busy} onSubmit={(v) => run('output', () => workflowApi.recordOutput(lot, v))} />
       )}
 
     </>
@@ -360,7 +365,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
       {review && (review.analysis_version !== 'isolated-vision-v2' || !review.recycling_checksum) && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
       {review?.selection && <p className="wf-muted" role="status">
-        공정 관련 업체를 도로거리순으로 최대 5곳 보여드려요. 현재 {review.selection.selected_keys.length}곳이에요.
+        취급 소재가 맞는 업체를 도로거리순으로 최대 5곳 보여드려요. 현재 {review.selection.selected_keys.length}곳이에요.
         {' '}사진·물량을 보내면 업체가 대화에서 세부 조건을 확인하고 수락해요.
       </p>}
       {review?.selection?.unavailable_keys?.length > 0 && <p className="wf-muted">
@@ -388,6 +393,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
       </details>}
       {next?.options && (
         <CandidateBrowser
+          key={lot.data.current.state_key}
           options={next.options}
           origin={review.origin}
           originLabel={review.origin_label}
@@ -506,13 +512,54 @@ function QrIssue({ lot, offer, busy, run }) {
   );
 }
 
-function OutputForm({ material, current, outputStates, busy, onSubmit }) {
+function ProcessingDecision({ stateKey, terminalStates, action, setAction, use, setUse, confirmed, setConfirmed }) {
+  const canComplete = terminalStates.includes(stateKey);
+  return <>
+    <label>다음 진행<select required value={action} onChange={(e) => setAction(e.target.value)}>
+      <option value="">선택</option>
+      <option value="complete" disabled={!canComplete}>완료</option>
+      <option value="forward">추가 가공</option>
+      <option value="hold">보관 중</option>
+    </select></label>
+    {!canComplete && stateKey && <p className="wf-muted">이 산출물은 추가 가공 또는 보관 중으로 기록할 수 있어요.</p>}
+    {action === 'complete' && <>
+      <label>산출물 용도<input maxLength={500} value={use} onChange={(e) => setUse(e.target.value)} /></label>
+      <label className="wf-check"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> 처리 결과와 이번 처리 건의 완료를 확인했어요</label>
+    </>}
+  </>;
+}
+
+function ResultActionForm({ current, terminalStates, busy, onSubmit }) {
+  const [action, setAction] = useState(current.next_action || '');
+  const [use, setUse] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
+  const canSave = action && action !== current.next_action && (action !== 'complete' ||
+    (terminalStates.includes(current.state_key) && use.trim().length >= 3 && confirmed));
+  return <form className="wf-card wf-form" onSubmit={(event) => {
+    event.preventDefault();
+    if (!canSave) return;
+    onSubmit({ next_action: action, ...(action === 'complete' ? {
+      completion_reference: current.evidence, intended_use: use.trim(), completion_confirmed: confirmed,
+    } : {}) });
+  }}>
+    <h3>처리 결과·다음 진행</h3>
+    <p className="wf-muted">산출물 기록은 유지하고 다음 진행만 바꿀 수 있어요.</p>
+    <ProcessingDecision stateKey={current.state_key} terminalStates={terminalStates} action={action} setAction={setAction}
+      use={use} setUse={setUse} confirmed={confirmed} setConfirmed={setConfirmed} />
+    <button type="submit" className="button button-quiet" disabled={!!busy || !canSave}>진행 방향 저장</button>
+  </form>;
+}
+
+function OutputForm({ material, current, outputStates, terminalStates, busy, onSubmit }) {
   const [state, setState] = useState('');
   const [mass, setMass] = useState('');
   const [purity, setPurity] = useState('');
   const [purityBadInput, setPurityBadInput] = useState(false);
   const [condition, setCondition] = useState('');
   const [evidence, setEvidence] = useState('');
+  const [action, setAction] = useState('');
+  const [use, setUse] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const errorRef = useRef(null);
   const issues = [
@@ -521,6 +568,9 @@ function OutputForm({ material, current, outputStates, busy, onSubmit }) {
     (purityBadInput || (purity !== '' && !(Number(purity) >= 0 && Number(purity) <= 100))) && '순도는 0~100 사이 숫자로 적거나, 모르면 비워 주세요.',
     condition.trim().length < 3 && '상태 설명을 3자 이상 적어 주세요.',
     evidence.trim().length < 3 && '계량표·작업일지 번호 등 근거를 3자 이상 적어 주세요.',
+    !action && '완료·추가 가공·보관 중에서 다음 진행을 선택해 주세요.',
+    action === 'complete' && !terminalStates.includes(state) && '현재 산출물은 완료 가능한 형태가 아닙니다.',
+    action === 'complete' && (use.trim().length < 3 || !confirmed) && '산출물 용도와 완료 확인이 필요해요.',
   ].filter(Boolean);
   return (
     <form className="wf-card wf-form" noValidate onSubmit={(e) => {
@@ -533,6 +583,8 @@ function OutputForm({ material, current, outputStates, busy, onSubmit }) {
         purity_percent: purity === '' ? null : Number(purity),
         condition: condition.trim(),
         evidence: evidence.trim(),
+        next_action: action,
+        ...(action === 'complete' ? { completion_reference: evidence.trim(), intended_use: use.trim(), completion_confirmed: confirmed } : {}),
       });
     }}>
       <h3>처리 결과(실제 산출물) 기록</h3>
@@ -540,7 +592,10 @@ function OutputForm({ material, current, outputStates, busy, onSubmit }) {
       <p className="wf-muted">상태 설명과 근거는 각각 3자 이상 적어 주세요. 순도를 모르면 비워 두면 됩니다.</p>
       {attempted && issues.length > 0 && <div ref={errorRef} className="wf-form-errors" role="alert" tabIndex={-1}><strong>기록하기 전에 확인해 주세요</strong><ul>{issues.map((issue) => <li key={issue}>{issue}</li>)}</ul></div>}
       <label>산출물 형태
-        <select required value={state} onChange={(e) => setState(e.target.value)}>
+        <select required value={state} onChange={(e) => {
+          setState(e.target.value);
+          if (action === 'complete' && !terminalStates.includes(e.target.value)) setAction('');
+        }}>
           <option value="">선택</option>
           {(outputStates || (OUTPUT_STATES[material] || []).map(key => ({ key, label: STATE_LABEL[key] }))).map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
         </select>
@@ -549,30 +604,10 @@ function OutputForm({ material, current, outputStates, busy, onSubmit }) {
       <label>순도(%, 모르면 비움)<input type="number" min="0" max="100" step="any" value={purity} onChange={(e) => { setPurity(e.target.value); setPurityBadInput(e.target.validity.badInput); }} /></label>
       <label>상태 설명<textarea rows={2} maxLength={1500} value={condition} onChange={(e) => setCondition(e.target.value)} /></label>
       <label>근거(계량표·작업일지 번호 등)<input maxLength={300} value={evidence} onChange={(e) => setEvidence(e.target.value)} /></label>
+      <ProcessingDecision stateKey={state} terminalStates={terminalStates} action={action} setAction={setAction}
+        use={use} setUse={setUse} confirmed={confirmed} setConfirmed={setConfirmed} />
       <button className="button button-primary" type="submit" disabled={!!busy}>
         {busy === 'output' ? '기록하는 중…' : '처리 결과 기록'}
-      </button>
-    </form>
-  );
-}
-
-function FinishForm({ material, busy, onFinish }) {
-  const [reference, setReference] = useState('');
-  const [use, setUse] = useState('');
-  const [confirmed, setConfirmed] = useState(false);
-  const ok = reference.trim().length >= 3 && use.trim().length >= 3 && confirmed;
-  return (
-    <form className="wf-card wf-form" onSubmit={(e) => {
-      e.preventDefault();
-      onFinish({ reference: reference.trim(), intendedUse: use.trim() });
-    }}>
-      <h3>재활용 완료</h3>
-      <p className="wf-muted">이 소재의 최종 산출물과 완료 근거가 확인된 물량만 완료할 수 있어요.</p>
-      <label>완료 근거(출고·판매 기록 번호 등)<input maxLength={300} value={reference} onChange={(e) => setReference(e.target.value)} /></label>
-      <label>용도<input maxLength={500} placeholder="예) 자동차 내장재 원료" value={use} onChange={(e) => setUse(e.target.value)} /></label>
-      <label className="wf-check"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> 실제 산출물과 완료 근거를 확인했어요</label>
-      <button className="button button-primary" type="submit" disabled={!!busy || !ok}>
-        {busy === 'finish' ? '완료 처리 중…' : '완료'}
       </button>
     </form>
   );
@@ -637,7 +672,7 @@ function LotChecks({ lot, name }) {
 function ProgressStatus({ lot, name }) {
   const stages = ['처리 건 등록', '업체 인수 요청', '입고 확인', '처리 진행', '처리 완료'];
   const current = lot.status === 'completed' ? 4
-    : lot.status === 'processing' || lot.status === 'processed' || lot.status === 'review_required' ? 3
+    : ['processing', 'processed', 'stored', 'review_required'].includes(lot.status) ? 3
       : lot.status === 'accepted' ? 2
         : ['offered', 'conditional'].includes(lot.status) ? 1 : 0;
   const company = name(lot.current_company_id);
@@ -647,6 +682,7 @@ function ProgressStatus({ lot, name }) {
   const message = lot.status === 'processing' ? `${site}에서 처리 중이에요`
     : lot.status === 'completed' ? `${site}에서 처리를 완료했어요`
       : lot.status === 'processed' ? `${site}에서 처리 결과를 기록했어요`
+        : lot.status === 'stored' ? `${site}에서 산출물을 보관 중이에요`
         : lot.status === 'accepted' ? (awaitingRecipient?.data?.dispatch
           ? `${name(awaitingRecipient.recipient_id)}으로 운송 중이에요`
           : `${awaitingRecipient ? name(awaitingRecipient.recipient_id) : '수신 기업'}의 입고를 기다리고 있어요`)
