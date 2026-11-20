@@ -9,7 +9,8 @@ import { handoffDesignated } from '../diagnosis/lib/designated.js';
 import { DesignatedBanner, DesignatedNextActions } from '../diagnosis/components/DesignatedNotice.jsx';
 
 // 확정 문진 → 물량 입력. 후보 표시는 사진·상태 검토 이후 LotPanel에서 한 번만 한다.
-// 문진에서 이미 말한 형태는 서버가 이어받고, 화면은 누락되거나 수정할 때만 묻는다.
+// 문진에서 이어받은 현재 형태는 '분류·확인 사항'에서 보여 주고 고친다.
+// 물량·사진 입력에서는 형태가 정해지지 않았을 때만 묻는다.
 export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, lotRecycling, recyclingFollowUp = false, onLotCreated, view = 'route', hasLot = false }) {
   const [form, setForm] = useState(null);
   const [materialDetail, setMaterialDetail] = useState(null);
@@ -55,6 +56,10 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
               <p>{classification}</p>
               <div className="route-info-links"><a href={`/wastes/case-${caseId}/survey`}>문진 대화</a><a href={`/wastes/case-${caseId}/history`}>판정 기록</a></div>
             </section>
+            {context.available_forms?.length > 0 && currentForm && <section className="wf-evidence-panel route-current-form" aria-label="현재 형태">
+              <div className="wf-evidence-panel-head"><div><span>현재 형태</span><h3>문진에서 확인한 물량 형태</h3></div></div>
+              <CurrentForm context={context} value={currentForm} disabled={loading} onChange={setForm} />
+            </section>}
             {(hasLot || context.recycling) && <section className="wf-evidence-panel"><div className="wf-evidence-panel-head"><div><span>법령표 근거</span><h3>재활용 유형과 분석 조건</h3></div></div>
               <RecyclingTypes assessment={hasLot ? lotRecycling || context.recycling : context.recycling} followUp={recyclingFollowUp} compact />
             </section>}
@@ -72,7 +77,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
       {context.requires_solid_confirmation && <label className="wf-card"><input type="checkbox" checked={solidConfirmed} disabled={loading} onChange={(event) => { setSolidConfirmed(event.target.checked); setForm(null); }} />현재 물량은 내용물을 비운 고체이며 액체·슬러지가 섞이지 않았어요.</label>}
       <RouteOutcome status={context.status} next={next} message={context.status !== 'ready' ? context.message : undefined} currentLabel={next?.current_state?.label || caseTitle} code={context.handoff?.waste_code || wasteCode} caseId={caseId} onRetry={retry} busy={loading} />
       {context.available_materials?.length > 0 && <fieldset className="wf-forms" disabled={loading}><legend>확인된 세부 재질</legend><p className="wf-muted">분류번호는 그대로 유지해요. 재질 표시나 성적서로 확인한 값만 선택하세요.</p>{[...context.available_materials, { value: 'unknown', label: '모름 · 혼합물이거나 목록에 없음' }].map((option) => <label key={option.value}><input type="radio" name="material-detail" value={option.value} checked={materialDetail === option.value} onChange={() => { setForm(null); setMaterialDetail(option.value); }} />{option.label}</label>)}</fieldset>}
-      {context.available_forms?.length > 0 && <CurrentForm context={context} value={currentForm} disabled={loading} onChange={setForm} />}
+      {context.available_forms?.length > 0 && !currentForm && <CurrentForm context={context} value={currentForm} disabled={loading} onChange={setForm} />}
       {context.origin_label && <p className="wf-muted">출발 사업장: {context.origin_label}</p>}
       {error && <p className="wf-alert" role="alert">{error}</p>}
       {loading && <p className="wf-muted" role="status">선택한 형태를 확인하고 있어요…</p>}
