@@ -388,3 +388,7 @@
 .qpick-item.is-picked { border-color: var(--color-primary, #2f7d5b); }
 .qpick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .qpick-actions .qopt { width: auto; }
+
+/* 질문 아래 근거 조항(펼침) */
+.qcard-basis { margin-top: 6px; }
+.qcard-basis-list { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; line-height: 1.5; }

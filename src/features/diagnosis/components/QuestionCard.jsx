@@ -31,6 +31,17 @@ export function QuestionBody({ question: q }) {
           <p><strong>이 답변이 왜 필요한가요?</strong> {g.reason}</p>
         </div>
       )}
+      {/* 근거 조항: 이 답을 기다리는 판정 규칙의 조문(엔진 ui.question.basis). 펼쳐 본다 */}
+      {q.basis?.length > 0 && (
+        <details className="qcard-basis">
+          <summary>근거 조항</summary>
+          <ul className="muted qcard-basis-list">
+            {q.basis.map((b) => (
+              <li key={b.id}><strong>{b.ref}</strong>{b.excerpt ? <span> — {b.excerpt}</span> : null}</li>
+            ))}
+          </ul>
+        </details>
+      )}
       {g?.actions?.length > 0 && (
         <details>
           <summary>이렇게 확인하세요</summary>
