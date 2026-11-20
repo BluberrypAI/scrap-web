@@ -8,6 +8,7 @@ export const LOT_STATUS = {
   accepted: '인수 수락 · 입고 대기',
   processing: '처리 중',
   processed: '처리 결과 기록됨',
+  stored: '보관 중',
   review_required: '산출물 확인 필요',
   completed: '완료',
 };
@@ -217,6 +218,7 @@ export function lotProgress(lot, me) {
 export function lotCardText(lot, me) {
   const progress = lotProgress(lot, me);
   if (progress.kind === 'completed') return { displayStatus: '재활용 완료', message: '처리 과정 보기' };
+  if (lot.status === 'stored') return { displayStatus: '보관 중', message: `${lot.companies[lot.current_company_id] || '현재 기업'}에서 산출물을 보관 중이에요` };
   if (progress.kind === 'handed_off') return { displayStatus: '전달 완료', message: '처리 추적 중' };
   const offer = (lot.offers || []).find((o) => ['pending', 'conditional', 'accepted'].includes(o.status));
   const displayStatus = LOT_STATUS[lot.status] || lot.status;
