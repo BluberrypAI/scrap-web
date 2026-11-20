@@ -8,6 +8,7 @@ import { isLimitedKey, limitQuestion } from '../lib/supportedMaterials.js';
  * 누르면 onSend(quick_reply, 라벨)을 부른다.
  *  - 선택지 버튼: {key, kind:'value', value} / {key, kind:'none_all'|'expand'|'unknown'}  (value는 kind=value일 때만)
  *  - 수치 직접 입력: {key, kind:'value', value: 숫자}
+ *  - 묶음 체크 방식(allow_pick, 실험): {key, kind:'some', value: [고른 항목 key]}. 고르지 않은 항목은 해당 없음
  */
 
 export function QuestionBody({ question: q }) {
@@ -20,7 +21,8 @@ export function QuestionBody({ question: q }) {
           {q.answered_items.length > 0 && (
             <p className="muted">{q.answered_items.map((a) => `${a.label}: ${a.value_label}`).join(' · ')} 은(는) 확인했어요.</p>
           )}
-          <ul className="qcard-items">{q.items.map((i) => <li key={i.key}>{i.label}</li>)}</ul>
+          {/* 체크 방식이면 항목은 선택지 쪽에 체크박스로 나온다 */}
+          {!q.allow_pick && <ul className="qcard-items">{q.items.map((i) => <li key={i.key}>{i.label}</li>)}</ul>}
         </>
       )}
       {/* 배경 설명(guide.background)은 띄우지 않는다. 보충 설명 자료로만 쓴다 */}
@@ -28,6 +30,17 @@ export function QuestionBody({ question: q }) {
         <div className="qcard-guide">
           <p><strong>이 답변이 왜 필요한가요?</strong> {g.reason}</p>
         </div>
+      )}
+      {/* 근거 조항: 이 답을 기다리는 판정 규칙의 조문(엔진 ui.question.basis). 펼쳐 본다 */}
+      {q.basis?.length > 0 && (
+        <details className="qcard-basis">
+          <summary>근거 조항</summary>
+          <ul className="muted qcard-basis-list">
+            {q.basis.map((b) => (
+              <li key={b.id}><strong>{b.ref}</strong>{b.excerpt ? <span> — {b.excerpt}</span> : null}</li>
+            ))}
+          </ul>
+        </details>
       )}
       {g?.actions?.length > 0 && (
         <details>
@@ -59,7 +72,53 @@ export function QuestionBody({ question: q }) {
   );
 }
 
+/** 묶음 질문 체크 방식: 해당하는 항목만 고른다. 고르지 않은 항목은 엔진이 '해당 없음'으로 처리한다 */
+function GroupPick({ q, disabled, onSend }) {
+  const qid = `${q.key}:${q.items.map((i) => i.key).join(',')}`;
+  const [state, setState] = useState({ qid, picked: [] });
+  const picked = state.qid === qid ? state.picked : [];
+  const toggle = (k) => setState({ qid, picked: picked.includes(k) ? picked.filter((x) => x !== k) : [...picked, k] });
+  const noneOpt = q.options.find((o) => o.kind === 'none_all');
+  const send = () => {
+    const names = q.items.filter((i) => picked.includes(i.key)).map((i) => i.label);
+    onSend({ key: q.key, kind: 'some', value: picked }, `해당: ${names.join(' / ')}`);
+  };
+  return (
+    <div className="qopts qpick" role="group" aria-label="해당하는 항목 고르기" data-input="group-pick">
+      <p className="muted qpick-hint">해당하는 것을 모두 골라 주세요. 고르지 않은 항목은 해당 없음으로 처리돼요.</p>
+      <div className="qopts-list">
+        {q.items.map((i) => (
+          <label key={i.key} className={`qopt qpick-item${picked.includes(i.key) ? ' is-picked' : ''}`}>
+            <input type="checkbox" checked={picked.includes(i.key)} disabled={disabled} onChange={() => toggle(i.key)} />
+            <span>{i.label}</span>
+          </label>
+        ))}
+      </div>
+      <div className="qpick-actions">
+        <button type="button" className="button button-primary" disabled={disabled || picked.length === 0} onClick={send}>
+          고른 항목이 해당돼요{picked.length > 0 ? ` (${picked.length})` : ''}
+        </button>
+        {noneOpt && (
+          <button type="button" className="qopt" disabled={disabled || picked.length > 0} onClick={() => onSend({ key: q.key, kind: 'none_all' }, noneOpt.label)}>
+            {noneOpt.label}
+          </button>
+        )}
+        <button type="button" className="qopt is-unknown" disabled={disabled} onClick={() => onSend({ key: q.key, kind: 'expand' }, '잘 모르겠어요, 하나씩 볼게요')}>
+          잘 모르겠어요, 하나씩 볼게요
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function QuestionOptions({ question, disabled, onSend }) {
+  if (question.input === 'group' && question.allow_pick) {
+    return <GroupPick q={question} disabled={disabled} onSend={onSend} />;
+  }
+  return <ValueOptions question={question} disabled={disabled} onSend={onSend} />;
+}
+
+function ValueOptions({ question, disabled, onSend }) {
   // 소재 선택지는 처리업체 연결까지 검증된 재질만 보여 준다(엔진 응답은 그대로)
   const q = limitQuestion(question);
   const limited = isLimitedKey(q.key);
@@ -94,7 +153,7 @@ export function QuestionOptions({ question, disabled, onSend }) {
           <button type="button" className="qopt is-unknown" disabled={disabled} onClick={() => reply(unknown)}>{unknown.label}</button>
         )}
         {q.input === 'material' && opts.length === 0 && filter.trim() && <p className="muted">맞는 소재가 없어요.</p>}
-        {limited && q.options.length === 0 && <p className="muted">이 분류의 소재는 아직 처리업체 연결을 지원하지 않아요. 지금은 PP·PE·PET·철·알루미늄만 진행할 수 있어요.</p>}
+        {limited && q.options.length === 0 && <p className="muted">이 분류의 소재는 아직 처리업체 연결을 지원하지 않아요. 지금은 PP·PE·PET·알루미늄(캔)만 진행할 수 있어요.</p>}
       </div>
       {q.input === 'number' && q.allow_free_number && (
         <div className="qcard-number">

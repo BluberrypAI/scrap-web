@@ -1,4 +1,5 @@
 import { canRequestIntake, invalidReviewPhotos } from './review-policy.js';
+import { ReviewOrb, reviewIsRunning } from './ReviewOrb.jsx';
 import { PhotoConflict, PhotoConflictReceipt } from './PhotoConflict.jsx';
 import { InquiryPacket } from './InquiryPacket.jsx';
 import { SupplierPolicySummary, InquiryConversation } from './SupplierPolicy.jsx';
@@ -10,7 +11,7 @@ import { CandidateBrowser } from './CandidateBrowser.jsx';
 import { QrPreview } from './QrPreview.jsx';
 import { RecyclingTypes } from './RecyclingTypes.jsx';
 import { RouteOutcome } from './RouteOutcome.jsx';
-import { IntakeQuestions, ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
+import { ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
 import { validLocation } from './route-result.js';
 import { startLotSync } from './lot-sync.js';
 import {
@@ -34,7 +35,9 @@ const ResourceMapbox = lazy(() => import('../../pages/map/ResourceMapbox.jsx').t
 export function LotPanel({ lotId, initialLot = null, showRecycling = true, view = 'progress', onLotChange }) {
   const [lot, setLot] = useState(initialLot);
   const [error, setError] = useState('');
-  const [busy, setBusy] = useState('');
+  const [action, setBusy] = useState('');
+  const reviewRunning = reviewIsRunning(lot);
+  const busy = action || (reviewRunning ? 'review' : '');
   const actionVersion = useRef(0);
   const actionBusy = useRef(false);
   const lastSnapshot = useRef(initialLot ? JSON.stringify(initialLot) : '');
@@ -63,6 +66,21 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
     version: () => actionVersion.current,
     apply: applyLot,
   }), [lotId, applyLot]);
+
+  useEffect(() => {
+    if (!reviewRunning) return;
+    let live = true;
+    let timer;
+    async function poll() {
+      try {
+        const next = await workflowApi.getLot(lotId);
+        if (live) applyLot(next);
+      } catch { /* A temporary fetch error does not discard the saved server job. */ }
+      if (live) timer = setTimeout(poll, 1200);
+    }
+    timer = setTimeout(poll, 500);
+    return () => { live = false; clearTimeout(timer); };
+  }, [lotId, reviewRunning, applyLot]);
 
   // 서버 호출 공통: 잠금, 오류 문구, 충돌이면 새로 불러오기
   async function run(label, call) {
@@ -101,7 +119,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   const manage = lot.can_manage;
   const material = lotMaterial(lot);
   const diagnosisId = lot.diagnosis_id || lot.data.handoff?.case_id;
-  const canFinish = manage && lot.status === 'processed' && (lot.terminal_states || FINISH_STATES[material] || []).includes(current.state_key);
+  const terminalStates = lot.terminal_states || FINISH_STATES[material] || [];
 
   const progress = lotProgress(lot, me);
   const summary = (
@@ -134,24 +152,29 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
         <p className="wf-alert">기록한 산출물이 예상한 형태와 달라 다음 단계를 보류했어요. 담당자 확인이 필요해요.</p>
       )}
 
-      {/* 지금 물량을 가진 기업: 사진 → 업체 검토 → 인수 요청, 또는 완료 */}
-      {manage && ['ready', 'processed'].includes(lot.status) && !canFinish && (
+      {manage && ['processed', 'stored'].includes(lot.status) && <ResultActionForm
+        key={`${stage}:${current.state_key}:${current.next_action || ''}`} current={current}
+        terminalStates={terminalStates} busy={busy}
+        onSubmit={(decision) => run('output-action', () => workflowApi.outputAction(lot, decision))} />}
+
+      {/* 완료 가능한 형태도 보유 기업이 후속 인계를 선택할 수 있다. */}
+      {manage && (lot.status === 'ready' || (lot.status === 'processed' && current.next_action === 'forward')) && (
         <>
           <PhotoSection lot={lot} photos={stagePhotos} busy={busy} onAdd={(file, photoId = null) => run('photo', () => workflowApi.addPhoto(lot.id, file, photoId ? { photoId, revision: lot.revision } : null))} />
           <PhotoConflict key={`conflict-${lot.revision}-${lot.review?.at}`} lot={lot} busy={busy} onResolve={body => run('conflict', () => workflowApi.resolvePhotoConflict(lot, body))} />
           <CandidateSection
+            key={`${stage}:${current.state_key}`}
             lot={lot}
             error={error}
             showRecycling={showRecycling}
             busy={busy}
-            onReview={() => run('review', () => workflowApi.reviewCandidates(lot))}
+            onReview={() => run('review', () => workflowApi.startCandidateReview(lot))}
             onOffer={(key) => run('offer', () => workflowApi.sendOffer(lot, key))}
             onAnswers={(key, answers) => run('answers', () => workflowApi.saveIntakeAnswers(lot, key, answers))}
             onDirectorySave={(transition, listing, cursor, answers) => run('directory', () => workflowApi.saveDirectoryInquiry(lot, transition, listing, cursor, answers))}
           />
         </>
       )}
-      {canFinish && <FinishForm material={material} busy={busy} onFinish={(v) => run('finish', () => workflowApi.finish(lot, v))} />}
 
       {pendingOffer && (
         <OfferCard lot={lot} offer={pendingOffer} name={name}>
@@ -159,7 +182,6 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
           <InquiryConversation lot={lot} offer={pendingOffer} busy={!!busy}
             readOnly={![pendingOffer.sender_id, pendingOffer.recipient_id].includes(me)}
             onSend={(text) => run('message', () => workflowApi.replyInquiry(lot, pendingOffer.id, text))} />
-          <IntakeQuestions form={pendingOffer.data.intake_conditions} readOnly />
           {pendingOffer.status === 'conditional' && <ConditionalResponse lot={lot} offer={pendingOffer} busy={!!busy}
             onRespond={(values) => run('conditions', () => workflowApi.respondConditions(lot, pendingOffer.id, values))} />}
           {pendingOffer.can_decide ? (
@@ -188,7 +210,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
       )}
 
       {manage && lot.status === 'processing' && (
-        <OutputForm material={material} current={current} outputStates={lot.output_states} busy={busy} onSubmit={(v) => run('output', () => workflowApi.recordOutput(lot, v))} />
+        <OutputForm material={material} current={current} outputStates={lot.output_states} terminalStates={terminalStates} busy={busy} onSubmit={(v) => run('output', () => workflowApi.recordOutput(lot, v))} />
       )}
 
     </>
@@ -335,21 +357,43 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
       <button className="button button-primary" type="button" onClick={onReview} disabled={!!busy}>
         {busy === 'review' ? '업체를 검토하는 중…' : review ? '다시 검토' : 'AI 검토하고 후보 보기'}
       </button>
-      {busy === 'review' && <div className="wf-review-loading" role="status" aria-live="polite">
-        <span className="wf-review-orbit" aria-hidden="true"><i /><i /><i /></span>
-        <strong>업체의 공개 근거를 확인하고 있어요</strong>
-        <p>현재 물량과 사진을 후보 업체의 반입 조건에 대조합니다. 결과가 나오면 이 화면에 표시돼요.</p>
-      </div>}
+      {busy === 'review' && <ReviewOrb key={reviewIsRunning(lot) ? lot.review_progress.id : 'starting'}
+        progress={reviewIsRunning(lot) ? lot.review_progress : null} />}
+      {['failed', 'interrupted'].includes(lot.review_progress?.status) && busy !== 'review'
+        && <p className="wf-alert" role="alert">{lot.review_progress.message || '검토가 중단됐어요. 완료된 결과를 유지하고 다시 시도할 수 있어요.'}</p>}
       {error && busy !== 'review' && <p className="wf-alert" role="alert">검토 결과를 받지 못했어요. {error}</p>}
       {review && (review.analysis_version !== 'isolated-vision-v2' || !review.recycling_checksum) && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
+      {review?.selection && <p className="wf-muted" role="status">
+        취급 소재가 맞는 업체를 도로거리순으로 최대 5곳 보여드려요. 현재 {review.selection.selected_keys.length}곳이에요.
+        {' '}사진·물량을 보내면 업체가 대화에서 세부 조건을 확인하고 수락해요.
+      </p>}
+      {review?.selection?.unavailable_keys?.length > 0 && <p className="wf-muted">
+        일부 업체의 공정 검토가 미완료예요. 미완료 업체를 부적합으로 판단하지 않아요.
+      </p>}
       {review && candidateKeys.length > 0 && <p className={reviewedCount < candidateKeys.length ? 'wf-alert' : 'wf-muted'} role="status">
         공정·업체 조합 {candidateKeys.length}건 중 {reviewedCount}건 검토 완료.
         {reviewedCount < candidateKeys.length ? ` ${candidateKeys.length - reviewedCount}건은 미완료예요. 다시 검토하면 같은 조건에서 완료된 결과를 유지하고 미완료 후보만 재시도해요.` : ' 실제 반입은 수신 기업이 확인해요.'}
       </p>}
       {review && <RouteOutcome next={next} currentLabel={stateLabel(lot, lot.data?.current?.state_key)} code={lot.data?.handoff?.waste_code} />}
+      {review?.selection?.other_options?.length > 0 && <details className="wf-more">
+        <summary>추가 확인·미검토 업체 보기</summary>
+        <p className="wf-muted">뒤 후보는 보존돼요. 미검토·거리 미확인은 부적합 판정이 아니에요.</p>
+        <ul>{review.selection.other_options.flatMap(option => option.facilities.map(facility => {
+          const key = facility.capability_key;
+          const s = review.selection;
+          const label = s.distance_unknown_keys.includes(key) ? '도로거리 미확인'
+            : s.restricted_keys.includes(key) ? '공개 자료에서 반입 제한 확인'
+            : s.mismatch_keys?.includes(key) ? '재질·공정 불일치'
+            : s.needs_evidence_keys.includes(key) ? '공정 연결 자료 추가 조사 대상'
+            : s.unavailable_keys.includes(key) ? 'AI 검토 미완료' : '이번 조회에서 미검토';
+          return <li key={key}><strong>{facility.label}</strong> · {label}
+            {facility.road_distance_status === 'available' && ` · 도로 ${facility.road_distance_km.toFixed(1)}km`}</li>;
+        }))}</ul>
+      </details>}
       {next?.options && (
         <CandidateBrowser
+          key={lot.data.current.state_key}
           options={next.options}
           origin={review.origin}
           originLabel={review.origin_label}
@@ -359,8 +403,6 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
           renderAction={(facility, result) => <>
             <SupplierPolicySummary value={facility.supplier_policy} />
             <InquiryPacket lot={lot} facility={facility} busy={!!busy} />
-            <IntakeQuestions key={facility.capability_key + lot.revision} form={facility.intake_conditions} busy={!!busy}
-              onSave={(answers) => onAnswers(facility.capability_key, answers)} />
             {sendable(facility, result) ? (
               <button className="button button-quiet button-small" type="button" disabled={!!busy}
                 onClick={() => onOffer(facility.capability_key)}>
@@ -370,7 +412,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
               <p className="wf-alert">사진·설명 불일치 확인 전이라 인수 요청을 보류했어요. 위 확인 영역에서 수정하거나 확인 사유를 남겨 주세요.</p>
             ) : result?.status === 'model_unavailable' || result?.lot_review?.status === 'model_unavailable' ? (
               <p className="wf-muted">AI 검토가 끝나지 않아 요청을 보낼 수 없어요. 다시 검토해 주세요.</p>
-            ) : <p className="wf-muted">{!facility.recipient ? '업체의 수신 계정 연결 후 인수 요청을 보낼 수 있어요.' : result?.finding === 'restriction_mentioned' ? '반입 제한이 확인되어 요청을 보낼 수 없어요.' : '필요한 답변을 입력하고 업체 검토를 완료해 주세요.'}</p>}</>}
+            ) : <p className="wf-muted">{!facility.recipient ? '업체의 수신 계정 연결 후 인수 요청을 보낼 수 있어요.' : result?.finding === 'restriction_mentioned' ? '반입 제한이 확인되어 요청을 보낼 수 없어요.' : '공정·물량 검토를 완료해 주세요.'}</p>}</>}
           renderExtra={(option) => <DirectoryCandidates lot={lot} transitionKey={option.transition_key} onSave={(listing, cursor, answers) => onDirectorySave(option.transition_key, listing, cursor, answers)} />}
         />
       )}
@@ -407,8 +449,7 @@ function OfferCard({ lot, offer, name, children }) {
 
 function DecisionForm({ busy, onDecide, onConditions, offer }) {
   const [note, setNote] = useState('');
-  const [scope, setScope] = useState(false);
-  const [intake, setIntake] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const requiredChecks = offer?.data.facility?.supplier_policy?.policy?.required_checks || [];
   const [conditionsText, setConditionsText] = useState(requiredChecks.join('\n'));
   const [resolved, setResolved] = useState([]);
@@ -421,21 +462,20 @@ function DecisionForm({ busy, onDecide, onConditions, offer }) {
         메모 (수락·거절 이유)
         <textarea rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
       </label>
-      <label className="wf-check"><input type="checkbox" checked={scope} onChange={(e) => setScope(e.target.checked)} /> 우리 허가 범위에 이 물량이 들어가는지 확인했어요</label>
-      <label className="wf-check"><input type="checkbox" checked={intake} onChange={(e) => setIntake(e.target.checked)} /> 반입 규격(형태·상태·중량)을 확인했어요</label>
-      <p className="wf-muted">수락은 이번 물량을 받는다는 업무상 응답이에요. 허가 검증을 대신하지 않아요.</p>
+      <p className="wf-muted">사진·물량과 대화를 확인하고, 필요한 조건은 메시지로 협의해 주세요.</p>
+      <label className="wf-check"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> 우리 사업장의 처리 범위와 이번 물량의 반입조건을 확인했어요</label>
       {conditions.map(c => <label className="wf-check" key={c.id}><input type="checkbox" checked={resolved.includes(c.id)} disabled={!offer.data.condition_responses?.[c.id]?.text}
         onChange={e => setResolved(e.target.checked ? [...resolved, c.id] : resolved.filter(id => id !== c.id))} />제출 자료로 확인했어요: {c.text}</label>)}
       {offer?.status === 'pending' && <label>추가 반입조건 (한 줄에 하나씩, 최대 12개)
         <textarea rows={3} maxLength={4000} placeholder="예: 오염물 제거 후 사진과 샘플 검사번호를 제출해 주세요." value={conditionsText} onChange={e => setConditionsText(e.target.value)} />
       </label>}
       <div className="wf-actions">
-        <button className="button button-primary" type="button" disabled={!!busy || !ok || !scope || !intake || !conditionsReady}
-          onClick={() => onDecide({ accept: true, note: note.trim(), scopeChecked: scope, intakeChecked: intake, resolvedConditionIds: resolved })}>{conditions.length ? '조건 확인 후 최종 수락' : '수락'}</button>
+        <button className="button button-primary" type="button" disabled={!!busy || !ok || !confirmed || !conditionsReady}
+          onClick={() => onDecide({ accept: true, note: note.trim(), scopeChecked: confirmed, intakeChecked: confirmed, resolvedConditionIds: resolved })}>{conditions.length ? '조건 확인 후 최종 수락' : '수락'}</button>
         {offer?.status === 'pending' && <button className="button button-quiet" disabled={!!busy || !ok || conditionsText.trim().length < 3}
           onClick={() => onConditions(conditionsText.split('\n').map(s => s.trim()).filter(Boolean), note.trim())}>조건부 수락</button>}
         <button className="button button-quiet" type="button" disabled={!!busy || !ok}
-          onClick={() => onDecide({ accept: false, note: note.trim(), scopeChecked: scope, intakeChecked: intake })}>거절</button>
+          onClick={() => onDecide({ accept: false, note: note.trim(), scopeChecked: confirmed, intakeChecked: confirmed })}>거절</button>
       </div>
     </div>
   );
@@ -472,13 +512,54 @@ function QrIssue({ lot, offer, busy, run }) {
   );
 }
 
-function OutputForm({ material, current, outputStates, busy, onSubmit }) {
+function ProcessingDecision({ stateKey, terminalStates, action, setAction, use, setUse, confirmed, setConfirmed }) {
+  const canComplete = terminalStates.includes(stateKey);
+  return <>
+    <label>다음 진행<select required value={action} onChange={(e) => setAction(e.target.value)}>
+      <option value="">선택</option>
+      <option value="complete" disabled={!canComplete}>완료</option>
+      <option value="forward">추가 가공</option>
+      <option value="hold">보관 중</option>
+    </select></label>
+    {!canComplete && stateKey && <p className="wf-muted">이 산출물은 추가 가공 또는 보관 중으로 기록할 수 있어요.</p>}
+    {action === 'complete' && <>
+      <label>산출물 용도<input maxLength={500} value={use} onChange={(e) => setUse(e.target.value)} /></label>
+      <label className="wf-check"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> 처리 결과와 이번 처리 건의 완료를 확인했어요</label>
+    </>}
+  </>;
+}
+
+function ResultActionForm({ current, terminalStates, busy, onSubmit }) {
+  const [action, setAction] = useState(current.next_action || '');
+  const [use, setUse] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
+  const canSave = action && action !== current.next_action && (action !== 'complete' ||
+    (terminalStates.includes(current.state_key) && use.trim().length >= 3 && confirmed));
+  return <form className="wf-card wf-form" onSubmit={(event) => {
+    event.preventDefault();
+    if (!canSave) return;
+    onSubmit({ next_action: action, ...(action === 'complete' ? {
+      completion_reference: current.evidence, intended_use: use.trim(), completion_confirmed: confirmed,
+    } : {}) });
+  }}>
+    <h3>처리 결과·다음 진행</h3>
+    <p className="wf-muted">산출물 기록은 유지하고 다음 진행만 바꿀 수 있어요.</p>
+    <ProcessingDecision stateKey={current.state_key} terminalStates={terminalStates} action={action} setAction={setAction}
+      use={use} setUse={setUse} confirmed={confirmed} setConfirmed={setConfirmed} />
+    <button type="submit" className="button button-quiet" disabled={!!busy || !canSave}>진행 방향 저장</button>
+  </form>;
+}
+
+function OutputForm({ material, current, outputStates, terminalStates, busy, onSubmit }) {
   const [state, setState] = useState('');
   const [mass, setMass] = useState('');
   const [purity, setPurity] = useState('');
   const [purityBadInput, setPurityBadInput] = useState(false);
   const [condition, setCondition] = useState('');
   const [evidence, setEvidence] = useState('');
+  const [action, setAction] = useState('');
+  const [use, setUse] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const errorRef = useRef(null);
   const issues = [
@@ -487,6 +568,9 @@ function OutputForm({ material, current, outputStates, busy, onSubmit }) {
     (purityBadInput || (purity !== '' && !(Number(purity) >= 0 && Number(purity) <= 100))) && '순도는 0~100 사이 숫자로 적거나, 모르면 비워 주세요.',
     condition.trim().length < 3 && '상태 설명을 3자 이상 적어 주세요.',
     evidence.trim().length < 3 && '계량표·작업일지 번호 등 근거를 3자 이상 적어 주세요.',
+    !action && '완료·추가 가공·보관 중에서 다음 진행을 선택해 주세요.',
+    action === 'complete' && !terminalStates.includes(state) && '현재 산출물은 완료 가능한 형태가 아닙니다.',
+    action === 'complete' && (use.trim().length < 3 || !confirmed) && '산출물 용도와 완료 확인이 필요해요.',
   ].filter(Boolean);
   return (
     <form className="wf-card wf-form" noValidate onSubmit={(e) => {
@@ -499,6 +583,8 @@ function OutputForm({ material, current, outputStates, busy, onSubmit }) {
         purity_percent: purity === '' ? null : Number(purity),
         condition: condition.trim(),
         evidence: evidence.trim(),
+        next_action: action,
+        ...(action === 'complete' ? { completion_reference: evidence.trim(), intended_use: use.trim(), completion_confirmed: confirmed } : {}),
       });
     }}>
       <h3>처리 결과(실제 산출물) 기록</h3>
@@ -506,7 +592,10 @@ function OutputForm({ material, current, outputStates, busy, onSubmit }) {
       <p className="wf-muted">상태 설명과 근거는 각각 3자 이상 적어 주세요. 순도를 모르면 비워 두면 됩니다.</p>
       {attempted && issues.length > 0 && <div ref={errorRef} className="wf-form-errors" role="alert" tabIndex={-1}><strong>기록하기 전에 확인해 주세요</strong><ul>{issues.map((issue) => <li key={issue}>{issue}</li>)}</ul></div>}
       <label>산출물 형태
-        <select required value={state} onChange={(e) => setState(e.target.value)}>
+        <select required value={state} onChange={(e) => {
+          setState(e.target.value);
+          if (action === 'complete' && !terminalStates.includes(e.target.value)) setAction('');
+        }}>
           <option value="">선택</option>
           {(outputStates || (OUTPUT_STATES[material] || []).map(key => ({ key, label: STATE_LABEL[key] }))).map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
         </select>
@@ -515,30 +604,10 @@ function OutputForm({ material, current, outputStates, busy, onSubmit }) {
       <label>순도(%, 모르면 비움)<input type="number" min="0" max="100" step="any" value={purity} onChange={(e) => { setPurity(e.target.value); setPurityBadInput(e.target.validity.badInput); }} /></label>
       <label>상태 설명<textarea rows={2} maxLength={1500} value={condition} onChange={(e) => setCondition(e.target.value)} /></label>
       <label>근거(계량표·작업일지 번호 등)<input maxLength={300} value={evidence} onChange={(e) => setEvidence(e.target.value)} /></label>
+      <ProcessingDecision stateKey={state} terminalStates={terminalStates} action={action} setAction={setAction}
+        use={use} setUse={setUse} confirmed={confirmed} setConfirmed={setConfirmed} />
       <button className="button button-primary" type="submit" disabled={!!busy}>
         {busy === 'output' ? '기록하는 중…' : '처리 결과 기록'}
-      </button>
-    </form>
-  );
-}
-
-function FinishForm({ material, busy, onFinish }) {
-  const [reference, setReference] = useState('');
-  const [use, setUse] = useState('');
-  const [confirmed, setConfirmed] = useState(false);
-  const ok = reference.trim().length >= 3 && use.trim().length >= 3 && confirmed;
-  return (
-    <form className="wf-card wf-form" onSubmit={(e) => {
-      e.preventDefault();
-      onFinish({ reference: reference.trim(), intendedUse: use.trim() });
-    }}>
-      <h3>재활용 완료</h3>
-      <p className="wf-muted">이 소재의 최종 산출물과 완료 근거가 확인된 물량만 완료할 수 있어요.</p>
-      <label>완료 근거(출고·판매 기록 번호 등)<input maxLength={300} value={reference} onChange={(e) => setReference(e.target.value)} /></label>
-      <label>용도<input maxLength={500} placeholder="예) 자동차 내장재 원료" value={use} onChange={(e) => setUse(e.target.value)} /></label>
-      <label className="wf-check"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> 실제 산출물과 완료 근거를 확인했어요</label>
-      <button className="button button-primary" type="submit" disabled={!!busy || !ok}>
-        {busy === 'finish' ? '완료 처리 중…' : '완료'}
       </button>
     </form>
   );
@@ -603,7 +672,7 @@ function LotChecks({ lot, name }) {
 function ProgressStatus({ lot, name }) {
   const stages = ['처리 건 등록', '업체 인수 요청', '입고 확인', '처리 진행', '처리 완료'];
   const current = lot.status === 'completed' ? 4
-    : lot.status === 'processing' || lot.status === 'processed' || lot.status === 'review_required' ? 3
+    : ['processing', 'processed', 'stored', 'review_required'].includes(lot.status) ? 3
       : lot.status === 'accepted' ? 2
         : ['offered', 'conditional'].includes(lot.status) ? 1 : 0;
   const company = name(lot.current_company_id);
@@ -613,6 +682,7 @@ function ProgressStatus({ lot, name }) {
   const message = lot.status === 'processing' ? `${site}에서 처리 중이에요`
     : lot.status === 'completed' ? `${site}에서 처리를 완료했어요`
       : lot.status === 'processed' ? `${site}에서 처리 결과를 기록했어요`
+        : lot.status === 'stored' ? `${site}에서 산출물을 보관 중이에요`
         : lot.status === 'accepted' ? (awaitingRecipient?.data?.dispatch
           ? `${name(awaitingRecipient.recipient_id)}으로 운송 중이에요`
           : `${awaitingRecipient ? name(awaitingRecipient.recipient_id) : '수신 기업'}의 입고를 기다리고 있어요`)
@@ -629,10 +699,9 @@ function ProgressStatus({ lot, name }) {
 
 function HandoffMap({ lot }) {
   const origin = lot.data.initial?.origin;
-  const handoffs = lot.offers.filter((offer) => ['received', 'processed'].includes(offer.status)
-    || (offer.status === 'accepted' && offer.data.dispatch));
+  const handoffs = lot.offers.filter((offer) => ['pending', 'conditional', 'accepted', 'received', 'processed'].includes(offer.status));
   const [road, setRoad] = useState(null);
-  const routeKey = JSON.stringify(handoffs.map(offer => [offer.id, offer.data.origin, offer.data.facility?.location]));
+  const routeKey = JSON.stringify(handoffs.map(offer => [offer.id, offer.status, !!offer.data.dispatch, offer.data.origin, offer.data.facility?.location]));
   useEffect(() => {
     let live = true;
     setRoad(null);
@@ -652,17 +721,18 @@ function HandoffMap({ lot }) {
     latitude: site.point.latitude, longitude: site.point.longitude,
   }));
   const segments = (road?.segments || []).filter(segment => segment.status === 'available');
-  const routeLines = segments.map(segment => segment.coordinates);
+  const routeLines = segments.filter(segment => segment.phase !== 'planned').map(segment => segment.coordinates);
+  const plannedRouteLines = segments.filter(segment => segment.phase === 'planned').map(segment => segment.coordinates);
   const roadDistance = segments.reduce((sum, segment) => sum + segment.distance_km, 0);
   const providers = [...new Set(segments.map(segment => segment.provider === 'kakao' ? '카카오모빌리티' : 'OSRM'))].join(' · ');
   return <section className="wf-handoff-map" aria-label="인계 사업장 지도">
-    <header><strong>인계 경로</strong><span>운송·입고 사업장</span></header>
+    <header><strong>인계 경로</strong><span>{plannedRouteLines.length ? '점선: 예정 경로 · 실선: 운송·입고 구간' : '운송·입고 사업장'}</span></header>
     <div className="wf-handoff-map-canvas"><Suspense fallback={<p>지도를 불러오는 중이에요.</p>}>
       <ResourceMapbox factories={factories} origin={validLocation(origin) ? { ...origin, label: '배출 사업장' } : null}
-        routeLines={routeLines} label="인계 사업장과 조회된 자동차 도로 경로 지도" />
+        routeLines={routeLines} plannedRouteLines={plannedRouteLines} label="인계 사업장과 조회된 자동차 도로 경로 지도" />
     </Suspense></div>
-    <p>{!handoffs.length ? '운송을 시작하면 도로 경로를 표시해요.' : !road ? '도로 경로를 조회하고 있어요.'
-      : segments.length ? `자동차 도로 경로 ${roadDistance.toFixed(1)}km · ${providers}. 실제 차량 GPS 기록은 아니에요.`
+    <p>{!handoffs.length ? '인수 요청을 보내면 두 사업장과 예정 도로 경로를 표시해요.' : !road ? '도로 경로를 조회하고 있어요.'
+      : segments.length ? `${plannedRouteLines.length ? '예정 구간 포함 · ' : ''}자동차 도로 경로 ${roadDistance.toFixed(1)}km · ${providers}. 실제 차량 GPS 기록은 아니에요.`
         : '도로 경로를 불러오지 못해 사업장 위치만 표시해요.'}</p>
     {road && segments.length > 0 && segments.length < handoffs.length && <p>일부 구간의 도로 경로는 확인되지 않았어요.</p>}
     {handoffs.length > factories.length && <p>일부 사업장 좌표가 없어 지도에 표시하지 못했어요.</p>}

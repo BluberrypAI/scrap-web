@@ -6,7 +6,8 @@
 }
 .wf-page .detail-header { margin-bottom: 16px; }
 .wf-code { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.wf-panel { display: grid; gap: 16px; }
+.wf-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.wf-panel > * { min-width: 0; }
 .wf-card {
   display: grid;
   gap: 10px;
@@ -126,13 +127,14 @@
 .wf-progress-status li.is-current span { background: #7959a4; color: white; }
 @media (max-width: 640px) { .wf-progress-status { padding: 22px 18px; } .wf-progress-status ol { overflow-x: auto; grid-template-columns: repeat(5, minmax(100px,1fr)); } }
 .wf-history { padding: 26px 30px; border: 1px solid #e8e1ef; border-radius: 24px; background: #fff; box-shadow: 0 14px 38px #3828520a; }
-.wf-tracking-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .9fr); gap: 18px; align-items: start; }
+.wf-tracking-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .9fr); gap: 18px; align-items: start; min-width: 0; }
+.wf-tracking-layout > * { min-width: 0; }
 .wf-handoff-map { display: grid; gap: 12px; padding: 22px; border: 1px solid #e8e1ef; border-radius: 24px; background: #fff; }
-.wf-handoff-map header { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.wf-handoff-map header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: baseline; }
 .wf-handoff-map header strong { font-size: 18px; color: #30283b; }
 .wf-handoff-map header span, .wf-handoff-map > p { margin: 0; color: #81798b; font-size: 12px; line-height: 1.5; }
 .wf-handoff-map-canvas, .wf-handoff-map-canvas .resource-mapbox { position: relative; height: 380px; border-radius: 14px; overflow: hidden; }
-@media (max-width: 900px) { .wf-tracking-layout { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .wf-tracking-layout { grid-template-columns: minmax(0, 1fr); } }
 .wf-candidate-section { position: relative; }
 .wf-review-loading { display: grid; justify-items: center; gap: 10px; padding: 35px 20px; border-radius: 18px; background: radial-gradient(circle at 50% 38%, #f4edfd, #faf8fc 64%); text-align: center; }
 .wf-review-loading strong { color: #3c2b50; font-size: 18px; }

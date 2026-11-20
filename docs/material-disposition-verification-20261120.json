@@ -1,0 +1,386 @@
+{
+  "date": "2026-11-20",
+  "environment": "local Docker scrap-full-review",
+  "runs": [
+    {
+      "material": "pp",
+      "purpose": "end",
+      "lot": "5662db6e-1fd1-4c97-af62-74216b1ea43f",
+      "diagnosis": "383577b165254347911bea9a6bc83ed5",
+      "code": "51-03-01",
+      "status": "completed",
+      "state": "pp-pellet",
+      "mass_kg": 95.0,
+      "qr_receipts": 1,
+      "output_records": 1,
+      "completion_snapshots": 1,
+      "owner_can_manage": false,
+      "held_then_forwarded": false,
+      "steps": [
+        {
+          "site": "독산 화성",
+          "transition": "pp-shredded-to-pellet",
+          "expected": "pp-pellet",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.1714414515834,
+            "longitude": 126.844790859651
+          }
+        }
+      ],
+      "road": [
+        {
+          "provider": "kakao",
+          "distance_km": 6.495,
+          "coordinate_count": 158
+        }
+      ]
+    },
+    {
+      "material": "pp",
+      "purpose": "chain",
+      "lot": "88bf60d4-50d4-40a7-b2c7-65663646e568",
+      "diagnosis": "732d172abc2642a0aea0577800b5f4b5",
+      "code": "51-03-01",
+      "status": "completed",
+      "state": "pp-compound",
+      "mass_kg": 90.0,
+      "qr_receipts": 2,
+      "output_records": 2,
+      "completion_snapshots": 1,
+      "owner_can_manage": false,
+      "held_then_forwarded": true,
+      "steps": [
+        {
+          "site": "독산 화성",
+          "transition": "pp-shredded-to-pellet",
+          "expected": "pp-pellet",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.1714414515834,
+            "longitude": 126.844790859651
+          }
+        },
+        {
+          "site": "DSPL 화성",
+          "transition": "pp-compound",
+          "expected": "pp-compound",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.1454231027899,
+            "longitude": 126.814593925769
+          }
+        }
+      ],
+      "road": [
+        {
+          "provider": "kakao",
+          "distance_km": 6.495,
+          "coordinate_count": 158
+        },
+        {
+          "provider": "kakao",
+          "distance_km": 0.49,
+          "coordinate_count": 14
+        }
+      ]
+    },
+    {
+      "material": "pe",
+      "purpose": "end",
+      "lot": "56916a03-0e76-4922-968a-fbe20cf73dd5",
+      "diagnosis": "101a4d57ac014731871b525af19cf54d",
+      "code": "51-03-01",
+      "status": "completed",
+      "state": "pe-pellet",
+      "mass_kg": 95.0,
+      "qr_receipts": 1,
+      "output_records": 1,
+      "completion_snapshots": 1,
+      "owner_can_manage": false,
+      "held_then_forwarded": false,
+      "steps": [
+        {
+          "site": "진영프라스틱 화성",
+          "transition": "pe-flake-repelletise",
+          "expected": "pe-pellet",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.1714414515834,
+            "longitude": 126.844790859651
+          }
+        }
+      ],
+      "road": [
+        {
+          "provider": "kakao",
+          "distance_km": 16.145,
+          "coordinate_count": 409
+        }
+      ]
+    },
+    {
+      "material": "pe",
+      "purpose": "chain",
+      "lot": "97b0ef7d-fc11-4301-a338-5cddd5e4a24d",
+      "diagnosis": "902a50315f064a13b0538160917a2dfe",
+      "code": "51-03-01",
+      "status": "completed",
+      "state": "pe-pellet",
+      "mass_kg": 95.0,
+      "qr_receipts": 1,
+      "output_records": 1,
+      "completion_snapshots": 1,
+      "owner_can_manage": false,
+      "held_then_forwarded": true,
+      "steps": [
+        {
+          "site": "진영프라스틱 화성",
+          "transition": "pe-flake-repelletise",
+          "expected": "pe-pellet",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.1714414515834,
+            "longitude": 126.844790859651
+          }
+        }
+      ],
+      "road": [
+        {
+          "provider": "kakao",
+          "distance_km": 16.145,
+          "coordinate_count": 409
+        }
+      ]
+    },
+    {
+      "material": "pet",
+      "purpose": "end",
+      "lot": "1ca82451-59f2-4e03-b4df-4c9e1b1763cd",
+      "diagnosis": "e3f67b3079204ec9b65b163daafbf867",
+      "code": "51-03-01",
+      "status": "completed",
+      "state": "pet-flake",
+      "mass_kg": 95.0,
+      "qr_receipts": 1,
+      "output_records": 1,
+      "completion_snapshots": 1,
+      "owner_can_manage": false,
+      "held_then_forwarded": false,
+      "steps": [
+        {
+          "site": "새롬이엔지 화성 제1공장",
+          "transition": "pet-bottle-wash-grind",
+          "expected": "pet-flake",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.1714414515834,
+            "longitude": 126.844790859651
+          }
+        }
+      ],
+      "road": [
+        {
+          "provider": "kakao",
+          "distance_km": 11.229,
+          "coordinate_count": 332
+        }
+      ]
+    },
+    {
+      "material": "pet",
+      "purpose": "chain",
+      "lot": "7766110e-4955-4833-9176-0c0999616aa9",
+      "diagnosis": "a40aab7e5bb6427fa121f07e48706a41",
+      "code": "51-03-01",
+      "status": "completed",
+      "state": "pet-pellet",
+      "mass_kg": 90.0,
+      "qr_receipts": 2,
+      "output_records": 2,
+      "completion_snapshots": 1,
+      "owner_can_manage": false,
+      "held_then_forwarded": true,
+      "steps": [
+        {
+          "site": "새롬이엔지 화성 제1공장",
+          "transition": "pet-bottle-wash-grind",
+          "expected": "pet-flake",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.1714414515834,
+            "longitude": 126.844790859651
+          }
+        },
+        {
+          "site": "주식회사 디와이폴리머 평택",
+          "transition": "pet-flake-to-chip",
+          "expected": "pet-pellet",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.0991811,
+            "longitude": 126.8438834
+          }
+        }
+      ],
+      "road": [
+        {
+          "provider": "kakao",
+          "distance_km": 11.229,
+          "coordinate_count": 332
+        },
+        {
+          "provider": "kakao",
+          "distance_km": 37.35,
+          "coordinate_count": 617
+        }
+      ]
+    },
+    {
+      "material": "aluminium",
+      "purpose": "end",
+      "lot": "ae437266-4564-419f-961e-57ee56cd34b5",
+      "diagnosis": "c67e8ff50a654b54864003dac08bcbde",
+      "code": "51-29-03",
+      "status": "completed",
+      "state": "al-sheet",
+      "mass_kg": 95.0,
+      "qr_receipts": 1,
+      "output_records": 1,
+      "completion_snapshots": 1,
+      "owner_can_manage": false,
+      "held_then_forwarded": false,
+      "steps": [
+        {
+          "site": "노벨리스 영주공장",
+          "transition": "al-can-sheet",
+          "expected": "al-sheet",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.1714414515834,
+            "longitude": 126.844790859651
+          }
+        }
+      ],
+      "road": [
+        {
+          "provider": "kakao",
+          "distance_km": 200.028,
+          "coordinate_count": 2033
+        }
+      ]
+    },
+    {
+      "material": "aluminium",
+      "purpose": "chain",
+      "lot": "f2e52098-17d0-4b10-97c1-ebc36b4c6890",
+      "diagnosis": "09ea1dffb9514ee683a006ad47d3e900",
+      "code": "51-29-03",
+      "status": "completed",
+      "state": "al-granule",
+      "mass_kg": 90.0,
+      "qr_receipts": 2,
+      "output_records": 2,
+      "completion_snapshots": 1,
+      "owner_can_manage": false,
+      "held_then_forwarded": true,
+      "steps": [
+        {
+          "site": "현대자원산업 화성",
+          "transition": "al-can-prepare",
+          "expected": "al-scrap",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.1714414515834,
+            "longitude": 126.844790859651
+          }
+        },
+        {
+          "site": "제이엠테크 김포",
+          "transition": "al-scrap-to-granule",
+          "expected": "al-granule",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.1837648,
+            "longitude": 126.7980815
+          }
+        }
+      ],
+      "road": [
+        {
+          "provider": "kakao",
+          "distance_km": 9.283,
+          "coordinate_count": 236
+        },
+        {
+          "provider": "kakao",
+          "distance_km": 76.262,
+          "coordinate_count": 958
+        }
+      ]
+    },
+    {
+      "material": "pe",
+      "purpose": "chain-via-shred",
+      "lot": "394a601d-75a6-41d6-bc26-79c642774569",
+      "diagnosis": "ac467064724f4ac68d12a89b4114f68b",
+      "code": "51-03-01",
+      "status": "completed",
+      "state": "pe-pellet",
+      "mass_kg": 90.0,
+      "qr_receipts": 2,
+      "output_records": 2,
+      "completion_snapshots": 1,
+      "owner_can_manage": false,
+      "held_then_forwarded": true,
+      "steps": [
+        {
+          "site": "유원포리머 인천",
+          "transition": "pe-prepare",
+          "expected": "pe-shredded",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.1714414515834,
+            "longitude": 126.844790859651
+          }
+        },
+        {
+          "site": "진영프라스틱 화성",
+          "transition": "pe-flake-repelletise",
+          "expected": "pe-pellet",
+          "ai_process_match": "matched",
+          "ai_lot_review": "reviewed",
+          "origin": {
+            "latitude": 37.39251708,
+            "longitude": 126.6821762
+          }
+        }
+      ],
+      "road": [
+        {
+          "provider": "kakao",
+          "distance_km": 35.831,
+          "coordinate_count": 465
+        },
+        {
+          "provider": "kakao",
+          "distance_km": 38.735,
+          "coordinate_count": 407
+        }
+      ]
+    }
+  ],
+  "additional_case": "PE pellet-to-compound candidate was unverified; user selected completion. A separate film-to-shredded-to-pellet case verified PE A-B-C without weakening evidence checks."
+}
