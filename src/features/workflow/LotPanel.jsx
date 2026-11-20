@@ -8,6 +8,7 @@ import { useSession } from '../../hooks/useSession.js';
 import QRCode from 'qrcode';
 import { receiveUrl, workflowApi } from './api.js';
 import { CandidateBrowser } from './CandidateBrowser.jsx';
+import { FacilityNextStep } from './FacilityCard.jsx';
 import { QrPreview } from './QrPreview.jsx';
 import { RecyclingTypes } from './RecyclingTypes.jsx';
 import { RouteOutcome } from './RouteOutcome.jsx';
@@ -338,7 +339,6 @@ function PhotoSection({ lot, photos, busy, onAdd }) {
 }
 
 function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDirectorySave, showRecycling }) {
-  const [selectedKey, setSelectedKey] = useState(null);
   const review = lot.review;
   if (invalidReviewPhotos(review).length || lot.photo_conflict_gate?.invalid_photos?.length) return null;
   const next = review?.next_step;
@@ -349,6 +349,24 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
       && ['isolated_vision', 'no_photo'].includes(r?.lot_review?.observation_method);
   }).length;
   const sendable = (facility, result) => canRequestIntake(review, facility, result, lot.photo_conflict_gate);
+  // 카드 배지와 상세 '지금 할 일'이 같은 판단을 쓴다. 요청 가능 조건은 review-policy.js와 서버가 정한다.
+  function requestState(facility, result) {
+    const recipient = facility.recipient?.name || '받는 업체';
+    if (sendable(facility, result)) return { badge: { tone: 'ready', label: '인수 요청 가능' }, title: '인수 요청을 보낼 수 있어요',
+      text: `현재 물량·사진·검토 결과가 ${recipient}에 전달돼요. 실제 반입 여부는 받는 업체가 확인하고 답해요.` };
+    if (lot.photo_conflict_gate?.blocked) return { badge: { tone: 'hold', label: '사진·설명 확인 필요' }, title: '사진과 설명이 맞는지 먼저 확인해 주세요',
+      text: '위의 불일치 확인 영역에서 설명을 고치거나 확인 사유를 남기면 요청할 수 있어요.' };
+    if (result?.status === 'model_unavailable' || result?.lot_review?.status === 'model_unavailable') return { badge: { tone: 'hold', label: 'AI 검토 미완료' }, title: 'AI 검토가 끝나지 않았어요',
+      text: '위의 [다시 검토]를 누르면 미완료 업체만 다시 확인해요. 미완료는 부적합 판정이 아니에요.' };
+    if (!facility.recipient) return { badge: { tone: 'off', label: '수신 계정 미연결' }, title: '이 업체는 아직 서비스 계정이 없어요',
+      text: '인수 요청은 보낼 수 없지만, 문의서를 만들어 전화·메일로 반입 조건을 물어볼 수 있어요.' };
+    if (facility.supplier_policy?.policy?.accepting_inquiries === false) return { badge: { tone: 'off', label: '새 문의 중단' }, title: '이 업체는 새 반입 문의를 잠시 받지 않아요',
+      text: '다른 후보 업체를 확인해 주세요.' };
+    if (result?.finding === 'restriction_mentioned') return { badge: { tone: 'off', label: '요청 불가' }, title: '공개 자료에서 반입 제한이 확인됐어요',
+      text: '아래 검토 근거를 확인하고 다른 후보 업체를 살펴봐 주세요.' };
+    return { badge: { tone: 'hold', label: '검토 필요' }, title: '공정·물량 검토를 마쳐야 요청할 수 있어요',
+      text: '위의 [다시 검토]로 현재 물량 기준 검토를 완료해 주세요.' };
+  }
   return (
     <section className="wf-card wf-candidate-section">
       <h3>{review ? '공정·업체 검토 결과' : '사진·상태로 공정·업체 검토'}</h3>
@@ -398,21 +416,22 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
           origin={review.origin}
           originLabel={review.origin_label}
           reviews={review.results}
-          selectedKey={selectedKey}
-          onSelect={setSelectedKey}
-          renderAction={(facility, result) => <>
-            <SupplierPolicySummary value={facility.supplier_policy} />
-            <InquiryPacket lot={lot} facility={facility} busy={!!busy} />
-            {sendable(facility, result) ? (
-              <button className="button button-quiet button-small" type="button" disabled={!!busy}
-                onClick={() => onOffer(facility.capability_key)}>
-                {facility.recipient.name}에 인수 요청 보내기
-              </button>
-            ) : lot.photo_conflict_gate?.blocked ? (
-              <p className="wf-alert">사진·설명 불일치 확인 전이라 인수 요청을 보류했어요. 위 확인 영역에서 수정하거나 확인 사유를 남겨 주세요.</p>
-            ) : result?.status === 'model_unavailable' || result?.lot_review?.status === 'model_unavailable' ? (
-              <p className="wf-muted">AI 검토가 끝나지 않아 요청을 보낼 수 없어요. 다시 검토해 주세요.</p>
-            ) : <p className="wf-muted">{!facility.recipient ? '업체의 수신 계정 연결 후 인수 요청을 보낼 수 있어요.' : result?.finding === 'restriction_mentioned' ? '반입 제한이 확인되어 요청을 보낼 수 없어요.' : '공정·물량 검토를 완료해 주세요.'}</p>}</>}
+          requestState={(facility, result) => requestState(facility, result).badge}
+          renderAction={(facility, result) => {
+            const state = requestState(facility, result);
+            const packet = <InquiryPacket lot={lot} facility={facility} busy={!!busy} />;
+            return <FacilityNextStep tone={state.badge.tone} title={state.title}
+              actions={state.badge.tone === 'ready' ? <>
+                <button className="button button-primary" type="button" disabled={!!busy}
+                  onClick={() => onOffer(facility.capability_key)}>
+                  {busy === 'offer' ? '요청 보내는 중…' : `${facility.recipient.name}에 인수 요청 보내기`}
+                </button>
+                {packet}
+              </> : packet}>
+              {state.text}
+            </FacilityNextStep>;
+          }}
+          renderDetailExtra={(facility) => <SupplierPolicySummary value={facility.supplier_policy} />}
           renderExtra={(option) => <DirectoryCandidates lot={lot} transitionKey={option.transition_key} onSave={(listing, cursor, answers) => onDirectorySave(option.transition_key, listing, cursor, answers)} />}
         />
       )}
