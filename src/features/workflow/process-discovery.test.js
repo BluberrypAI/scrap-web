@@ -18,7 +18,8 @@ test('공정 관련 후보는 구체 반입 증빙 문진 없이 문의하고 �
       { transition_key: 'near', label: '가까운 공정', facilities: [f('NearFactory', 5)] },
     ], reviews: { FarFactory: related, NearFactory: related } }));
     assert.ok(html.indexOf('NearFactory') < html.indexOf('FarFactory'));
-    assert.match(html, /공정 관련 업체/);
+    assert.match(html, /취급 소재가 맞는 업체/);
+    assert.match(html, /세부 공정·반입조건/);
     assert.doesNotMatch(html, /시험성적서를 제출|이 형태의 반입 근거/);
     const review = { version: 'lot-vision-v1', analysis_version: 'isolated-vision-v2',
       conditions_version: 'intake-questions-v1', recycling_checksum: 'x', reference_checksum: 'x', conditions_checksum: 'x' };

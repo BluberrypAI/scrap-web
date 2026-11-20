@@ -365,7 +365,7 @@ function CandidateSection({ lot, busy, error, onReview, onOffer, onAnswers, onDi
       {review && (review.analysis_version !== 'isolated-vision-v2' || !review.recycling_checksum) && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
       {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
       {review?.selection && <p className="wf-muted" role="status">
-        공정 관련 업체를 도로거리순으로 최대 5곳 보여드려요. 현재 {review.selection.selected_keys.length}곳이에요.
+        취급 소재가 맞는 업체를 도로거리순으로 최대 5곳 보여드려요. 현재 {review.selection.selected_keys.length}곳이에요.
         {' '}사진·물량을 보내면 업체가 대화에서 세부 조건을 확인하고 수락해요.
       </p>}
       {review?.selection?.unavailable_keys?.length > 0 && <p className="wf-muted">

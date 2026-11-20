@@ -9,7 +9,7 @@ export function FacilityCard({ facility, review, action = null, selected = false
   const hasDistance = hasRoadDistance(facility) || Number.isFinite(facility.straight_line_distance_km);
   const processMatch = review?.process_match;
   const checks = processMatch ? [] : facility.checks || [];
-  const reviewTitle = processMatch === 'matched' ? '공정 관련 업체'
+  const reviewTitle = processMatch === 'matched' ? '취급 소재가 맞는 업체'
     : processMatch === 'mismatch' ? '재질·공정 불일치'
       : review ? REVIEW_STATUS[review.status] || review.status : '';
   const reviewHasDetails = Boolean(review && (processMatch
@@ -31,7 +31,7 @@ export function FacilityCard({ facility, review, action = null, selected = false
         <div className="facility-summary-row" data-status={review?.status || 'unreviewed'}><dt>AI 검토</dt><dd>
           {review ? <>
             <strong className="facility-review-status">{reviewTitle}</strong>
-            {processMatch === 'matched' && <span className="facility-review-finding">세부 반입조건은 사진·물량을 보내고 업체와 대화로 확인해요.</span>}
+            {processMatch === 'matched' && <span className="facility-review-finding">세부 공정·반입조건은 사진·물량을 보내고 업체와 대화로 확인해요.</span>}
             {!processMatch && review.finding && <span className="facility-review-finding">{REVIEW_FINDING[review.finding] || review.finding}</span>}
             {reviewHasDetails && <details className="facility-row-details"><summary>검토 내용 보기</summary>
               {processMatch ? <>
