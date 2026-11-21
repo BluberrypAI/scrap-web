@@ -55,12 +55,34 @@ export function SupplierPolicyPanel() {
   </section>;
 }
 
-export function InquiryConversation({ lot, offer, busy, onSend, readOnly = false }) {
+export function InquiryConversation({ lot, offer, me, busy, onSend, readOnly = false }) {
   const [text, setText] = useState('');
-  return <section className="wf-card wf-form" aria-label="반입 문의 대화"><h3>반입 문의 대화</h3>
-    <p className="wf-muted">이번 인계의 발송·수신 기업끼리 확인하는 대화입니다. 답변만으로 수락되거나 QR이 발급되지 않아요.</p>
-    <ol>{(offer.data.messages || []).map((m, i) => <li key={i}><strong>{lot.companies[m.company_id] || '참여 기업'}</strong><p style={{ whiteSpace: 'pre-wrap' }}>{m.text}</p><small>{new Date(m.at).toLocaleString('ko-KR')}</small></li>)}</ol>
-    {!readOnly && <><label>문의·답변<textarea rows={3} maxLength={1000} value={text} onChange={e => setText(e.target.value)} /></label>
-      <button type="button" className="button button-quiet" disabled={busy || text.trim().length < 3} onClick={async () => { if (await onSend(text.trim())) setText(''); }}>답변 보내기</button></>}
+  const messages = offer.data.messages || [];
+  const recipient = lot.companies[offer.recipient_id] || '수신 업체';
+  const sender = lot.companies[offer.sender_id] || '발송 업체';
+  const sendMessage = async () => {
+    if (busy || text.trim().length < 3 || !onSend) return;
+    if (await onSend(text.trim())) setText('');
+  };
+  return <section className="wf-inquiry" aria-label="업체와 메시지">
+    <header className="wf-inquiry-header">
+      <span className="wf-inquiry-avatar" aria-hidden="true">{(me === offer.recipient_id ? sender : recipient).slice(0, 1)}</span>
+      <div><h4>반입 협의 메시지</h4><p>{sender} ↔ {recipient}</p></div>
+      <span className="wf-inquiry-count">메시지 {messages.length}개</span>
+    </header>
+    <div className="wf-inquiry-body">
+    {messages.length ? <ol className="wf-inquiry-messages" aria-label="주고받은 메시지">
+      {messages.map((m, i) => <li key={i} className={m.company_id === me ? 'is-mine' : ''}>
+        <span className="wf-inquiry-message-avatar" aria-hidden="true">{(lot.companies[m.company_id] || '업').slice(0, 1)}</span>
+        <div className="wf-inquiry-message-content"><div className="wf-inquiry-message-meta"><strong>{m.company_id === me ? '우리 기업' : lot.companies[m.company_id] || '참여 기업'}</strong><time dateTime={m.at}>{new Date(m.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</time></div>
+          <p>{m.text}</p></div>
+      </li>)}
+    </ol> : <p className="wf-inquiry-empty">{readOnly ? '주고받은 메시지가 없어요.' : '아직 메시지가 없어요. 반입 일정이나 필요한 자료를 물어보세요.'}</p>}
+    </div>
+    {!readOnly && <div className="wf-inquiry-composer">
+      <label className="wf-inquiry-sr-only" htmlFor={`wf-inquiry-input-${offer.id}`}>반입 협의 메시지</label>
+      <div className="wf-inquiry-composer-field"><textarea id={`wf-inquiry-input-${offer.id}`} rows={1} maxLength={1000} placeholder="반입 조건이나 일정을 문의하세요" value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendMessage(); } }} />
+        <button type="button" disabled={busy || text.trim().length < 3} onClick={sendMessage} aria-label="메시지 보내기">보내기 <span aria-hidden="true">↗</span></button></div>
+    </div>}
   </section>;
 }

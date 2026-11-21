@@ -65,6 +65,9 @@ export const api = {
   loginUrl: (provider) => `${BASE}/auth/${encodeURIComponent(provider)}/login`,
   // 로컬 서버에만 있는 개발용 로그인
   devLogin: (email) => apiFetch('/auth/dev-login', { method: 'POST', body: email ? { email } : {} }),
+  // 운영자가 발급한 처리업체 계정 로그인. 성공하면 서버가 쿠키를 설정하고 204를 준다
+  passwordLogin: (loginId, password) =>
+    apiFetch('/auth/password-login', { method: 'POST', body: { login_id: loginId, password } }),
   logout: () => apiFetch('/auth/logout', { method: 'POST' }),
 
   me: () => apiFetch('/users/me'),

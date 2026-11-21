@@ -40,6 +40,12 @@ export function validLocation(location) {
     Math.abs(location.latitude) <= 90 && Math.abs(location.longitude) <= 180);
 }
 
+export function currentLotWarnings(warnings, reviewOrigin) {
+  const current = warnings ?? [];
+  if (!validLocation(reviewOrigin)) return current;
+  return current.filter(warning => warning !== '사업장 좌표가 없어 거리 순위는 표시하지 않습니다.');
+}
+
 export function hasRoadDistance(site) {
   return site.road_distance_status === 'available' && Number.isFinite(site.road_distance_km) && site.road_distance_km > 0;
 }

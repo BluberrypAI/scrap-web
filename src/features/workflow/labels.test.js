@@ -22,9 +22,16 @@ test('받은 인계 카드는 처리 건 화면으로 이동한다', () => {
   assert.equal(card.href, `/lots/${lot.id}`);
   assert.equal(card.status, '처리 진행');
   assert.equal(card.code, '51-03-01');
-  assert.match(card.name, /테스트정밀/);
+  assert.equal(card.name, 'PP 사출 잔재·스크랩');
+  assert.equal(card.emitter, '테스트정밀');
   assert.equal(card.message, '상대 기업 응답 대기');
   assert.equal(lotToWaste({ ...lot, current_company_id: 'B' }, 'B').message, '우리 기업이 처리할 차례예요');
+});
+
+test('PE 스크랩 인계 카드에는 실제 입력 형태와 배출 기업을 표시한다', () => {
+  const pe = { ...lot, data: { ...lot.data, initial: { material: 'pe', input_form: 'scrap' } } };
+  assert.equal(lotToWaste(pe, 'B').name, 'PE 스크랩');
+  assert.equal(lotToWaste(pe, 'B').emitter, '테스트정밀');
 });
 
 test('형태 이름과 중량 표시', () => {
@@ -49,8 +56,16 @@ test('우리 몫이 끝났는지: 받는 쪽 입고 확인 뒤에만 전달 완�
   const received = { ...base, status: 'processing', current_company_id: 'B', offers: [{ sender_id: 'A', recipient_id: 'B', status: 'received' }] };
   assert.equal(lotProgress(received, 'A').kind, 'handed_off');
   assert.equal(lotProgress(received, 'B').kind, 'active');
-  assert.deepEqual(lotCardText(received, 'A'), { displayStatus: '전달 완료', message: '처리 추적 중' });
-  assert.equal(lotCardText(received, 'B').message, '우리 기업이 처리할 차례예요');
+  assert.deepEqual(lotCardText(received, 'A'), { displayStatus: '처리 중', message: '선별에서 처리 중이에요' });
+  assert.equal(lotCardText(received, 'B').message, '선별에서 처리 중이에요');
+  const awaitingReview = { ...received, status: 'review_required' };
+  assert.equal(lotCardText(awaitingReview, 'A').message, '선별에서 처리 결과를 확인 중이에요');
+  assert.equal(lotCardText(awaitingReview, 'B').message, '선별에서 처리 결과를 확인해 주세요');
+  const inTransit = { ...received, status: 'accepted', offers: [
+    { sender_id: 'A', recipient_id: 'B', status: 'received' },
+    { sender_id: 'B', recipient_id: 'C', status: 'accepted', data: { dispatch: { at: '2026-11-21T00:00:00Z' } } },
+  ], companies: { ...received.companies, C: '재생' } };
+  assert.deepEqual(lotCardText(inTransit, 'A'), { displayStatus: '운송 중', message: '선별 → 재생 이동 중이에요' });
   assert.equal(lotProgress({ ...received, status: 'completed' }, 'A').kind, 'completed');
 });
 

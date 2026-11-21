@@ -310,7 +310,6 @@ const MARK = { true: '✔', false: '✗' };
 
 /** FINAL_REVIEW(확정 전) / 인계 요약(확정 후) */
 export function FinalCard({ turn, confirmed, handoff, caseId, busy, onConfirm, onRecheck }) {
-  const [json, setJson] = useState(false);
   const [asking, setAsking] = useState(false); // 확정 전 화면 안 확인(네이티브 confirm은 테마·자동화 불가)
   const r = turn.ui.result;
   const v = turn.verdict;
@@ -379,10 +378,8 @@ export function FinalCard({ turn, confirmed, handoff, caseId, busy, onConfirm, o
           ) : <p className="muted">인계 정보를 불러오지 못했어요.</p>}
           {handoff?.confirmed_at && <p className="muted">확정 {formatDateTime(handoff.confirmed_at)}</p>}
           <div className="row">
-            <button type="button" className="button button-quiet" onClick={() => setJson((x) => !x)}>{json ? '인계 JSON 닫기' : '경로 추천으로 (인계 JSON)'}</button>
             <a className="button button-quiet" href="/wastes">목록으로</a>
           </div>
-          {json && <pre className="json">{JSON.stringify(handoff, null, 2)}</pre>}
         </div>
       )}
     </section>

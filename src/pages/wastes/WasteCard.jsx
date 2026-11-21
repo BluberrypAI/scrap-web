@@ -41,6 +41,7 @@ export function WasteCard({ waste, step, isNew = false }) {
               {'분류번호 '}
               {(waste.caseId ? waste.code : hasConfirmedCode(waste) && waste.code) || '미정'}
             </p>
+            {waste.received && waste.emitter && <p className="waste-card-emitter">배출: {waste.emitter}</p>}
           </div>
           <div className="waste-card-state">
             <div>

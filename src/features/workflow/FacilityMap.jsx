@@ -19,10 +19,8 @@ export function FacilityMap({ options, origin = null, originLabel = '', selected
     () => (validLocation(origin) ? { ...origin, label: originLabel ? '우리 사업장' : '출발 사업장' } : null),
     [origin, originLabel],
   );
-  function select(key) {
-    onSelect(key);
-    document.getElementById(`facility-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
+  // 목록 이동·상세 열기는 지도를 쓰는 쪽(CandidateBrowser)이 맡는다.
+  const select = (key) => onSelect(key);
 
   return (
     <div className="wf-map-block" aria-label={originLabel ? `출발 사업장: ${originLabel}` : undefined}>

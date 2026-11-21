@@ -52,6 +52,31 @@ export function LoginPage() {
       setStatus('error');
     }
   };
+  // 처리업체(B·C) 계정: 운영자가 발급한 아이디·비밀번호로 로그인한다. 회원가입은 없다.
+  const [loginId, setLoginId] = useState('');
+  const [password, setPassword] = useState('');
+  const passwordLogin = async (event) => {
+    event.preventDefault();
+    if (!loginId.trim() || !password) return;
+    setStatus('connecting');
+    try {
+      await api.passwordLogin(loginId.trim(), password);
+      setPassword('');
+      resetSession();
+      const session = await loadSession();
+      rememberSession(session);
+      navigate(redirectFor(session, '/login') || '/wastes');
+    } catch (err) {
+      setErrorMessage(
+        err?.status === 401
+          ? '아이디 또는 비밀번호가 맞지 않아요.'
+          : err?.code === 'ACCOUNT_WITHDRAWN'
+            ? errorMessages.account_withdrawn
+            : '로그인하지 못했어요. 잠시 뒤 다시 시도해 주세요.',
+      );
+      setStatus('error');
+    }
+  };
   return (
     <main className="l0-page login-page" data-layer-name="L0-Login" data-variant={status}>
       <AuthLogo />
@@ -140,6 +165,44 @@ export function LoginPage() {
               </div>
             )}
           </div>
+          {isLogin && (
+            <form className="login-form" onSubmit={passwordLogin}>
+              <p className="login-email-heading">처리업체 계정</p>
+              <div className="login-fields">
+                <label>
+                  아이디
+                  <input
+                    type="text"
+                    name="username"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder="발급받은 아이디"
+                    value={loginId}
+                    onChange={(e) => setLoginId(e.target.value)}
+                  />
+                </label>
+                <label>
+                  비밀번호
+                  <input
+                    type="password"
+                    name="password"
+                    autoComplete="current-password"
+                    placeholder="비밀번호"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </label>
+              </div>
+              <button
+                type="submit"
+                className="button-primary login-submit"
+                disabled={status === 'connecting' || !loginId.trim() || !password}
+              >
+                {status === 'connecting' ? <span className="login-spinner" /> : '로그인'}
+              </button>
+            </form>
+          )}
           <p
             className={`social-signup-terms${isLogin ? ' is-placeholder' : ''}`}
             aria-hidden={isLogin ? 'true' : undefined}

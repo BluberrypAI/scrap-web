@@ -20,7 +20,6 @@ export function LegalFormScreen({ caseId }) {
     };
   }, [caseId]);
 
-  const back = `/wastes/case-${caseId}/survey`;
   let body;
   if (state.loading) body = <p className="muted">불러오는 중…</p>;
   else if (state.error) body = <p role="alert">{state.error}</p>;
@@ -35,9 +34,11 @@ export function LegalFormScreen({ caseId }) {
 
   return (
     <main className="lf-page">
-      <nav className="lf-page-nav">
-        <a className="button button-quiet button-small" href={back}>← 문진 결과로 돌아가기</a>
-      </nav>
+      <header className="lf-page-hero">
+        <span className="lf-page-hero-icon" aria-hidden="true"><span /><span /><span /></span>
+        <div className="lf-page-hero-copy"><span>RESOURCE ROUTE · DOCUMENTS</span><h1>법정 서식 작성</h1><p>문진 판정과 회사 정보를 확인하고 필요한 서식의 초안을 만드세요.</p></div>
+        <a className="lf-page-exit" href="/wastes">나가기 <span aria-hidden="true">↗</span></a>
+      </header>
       {body}
     </main>
   );

@@ -45,7 +45,7 @@ test('상태별 응답의 공정만 탭과 카드에 표시하고 업체 없는 
     assert.doesNotMatch(bottle, /플레이크 재생 칩/);
     assert.match(flake, /플레이크 재생 칩/);
     assert.doesNotMatch(flake, /병 선별·세척|미확보 공정|BottleSite/);
-    assert.match(flake, /다음 공정 1개/);
+    assert.match(flake, /다음 공정 1가지/);
     const dirty = renderToStaticMarkup(React.createElement(CandidateBrowser, {
       options: [{ transition_key: 'pet-flake-to-chip', label: '플레이크 재생 칩', facilities: [factory('ChipSite')] }],
       reviews: { ChipSite: { lot_review: { status: 'reviewed', concerns: [

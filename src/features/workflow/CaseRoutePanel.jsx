@@ -6,6 +6,7 @@ import { RecyclingTypes } from './RecyclingTypes.jsx';
 import { RouteOutcome } from './RouteOutcome.jsx';
 import { handoffDesignated } from '../diagnosis/lib/designated.js';
 import { DesignatedBanner, DesignatedNextActions } from '../diagnosis/components/DesignatedNotice.jsx';
+import { BerryRouteStatus } from './BerryRouteStatus.jsx';
 
 // 확정 문진 → 물량 입력. 후보 표시는 사진·상태 검토 이후 LotPanel에서 한 번만 한다.
 // 형태는 문진 인계 값으로만 받는다. 확정 후 형태를 고르거나 수정하는 화면은 없다.
@@ -33,7 +34,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
     };
   }, [caseId, solidConfirmed, materialDetail, reload]);
 
-  if (loading && !context) return <p className="wf-muted" role="status">처리 공정을 불러오는 중…</p>;
+  if (loading && !context) return <BerryRouteStatus text="문진 결과에 맞는 공정과 업체를 찾고 있어요" />;
   if (error && !context) return <div hidden={view !== 'route'}><RouteOutcome error={error} caseId={caseId} currentLabel={caseTitle} code={wasteCode} onRetry={retry} /></div>;
   if (!context) return null;
 
@@ -75,7 +76,7 @@ export function CaseRoutePanel({ caseId, caseTitle, wasteCode, classification, l
       <DiagnosisFormStatus context={context} caseId={caseId} missing={missingForm} />
       {context.origin_label && <p className="wf-muted">출발 사업장: {context.origin_label}</p>}
       {error && <p className="wf-alert" role="alert">{error}</p>}
-      {loading && <p className="wf-muted" role="status">문진 결과를 확인하고 있어요…</p>}
+      {loading && <BerryRouteStatus compact text="바뀐 조건으로 공정과 업체를 다시 확인하고 있어요" />}
       {!loading && context.status === 'ready' && next && (
         <>
           {canRegister ? (
