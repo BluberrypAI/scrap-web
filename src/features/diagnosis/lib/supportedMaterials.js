@@ -23,7 +23,7 @@ export function isLimitedKey(key) {
 export function limitOptions(key, options = []) {
   const allowed = ALLOWED[key];
   if (!allowed) return options;
-  // 값 선택지만 남긴다(보드 고치기 선택지는 kind가 없다). 모름·목록에 없음 등은 뺀다
+  // 값 선택지만 남긴다(예전 보드 고치기 선택지는 kind가 없다). 모름·목록에 없음 등은 뺀다
   return options.filter((o) => (o.kind === undefined || o.kind === 'value') && allowed.has(String(o.value)));
 }
 

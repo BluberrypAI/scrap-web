@@ -8,6 +8,13 @@ import { AnimatedContent } from '../landing/LandingMotion.jsx';
 import { DataTable } from './DataTable.jsx';
 import './CompanyDataPage.css';
 import { SupplierPolicyPanel } from '../../features/workflow/SupplierPolicy.jsx';
+import { SiteConditionsFields } from '../../components/SiteConditionsFields.jsx';
+import {
+  SITE_CONDITIONS,
+  siteConditionLabel,
+  siteConditionsDraft,
+  siteConditionsPayload,
+} from '../../lib/siteConditions.js';
 
 const dataTabs = [
   { id: 'intake', label: '반입조건', description: '우리 사업장 반입 안내', icon: 'building' },
@@ -97,6 +104,7 @@ export function CompanyDataPage() {
   const [draft, setDraft] = useState(() => toDraft(null));
   const [isEditing, setIsEditing] = useState(false);
   const [sitePoint, setSitePoint] = useState(null);
+  const [siteDraft, setSiteDraft] = useState(() => siteConditionsDraft(null));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const displayName = session.user?.name || session.user?.email || '';
@@ -128,6 +136,14 @@ export function CompanyDataPage() {
       if (!sameValue(value, readField(company, key, isList))) {
         changes[key] = toServerValue(company, key, value);
       }
+    }
+    const site = siteConditionsPayload(siteDraft);
+    if (site.error) {
+      setSaveError(site.error);
+      return;
+    }
+    for (const { key } of SITE_CONDITIONS) {
+      if (site.values[key] !== (company[key] ?? null)) changes[key] = site.values[key];
     }
     if ((sitePoint?.latitude ?? null) !== (company.site_latitude ?? null) ||
         (sitePoint?.longitude ?? null) !== (company.site_longitude ?? null) || changes.site_address) {
@@ -212,6 +228,7 @@ export function CompanyDataPage() {
                         setSaveError('');
                       } else {
                         setDraft(toDraft(company));
+                        setSiteDraft(siteConditionsDraft(company));
                         setSitePoint(company.site_latitude != null && company.site_longitude != null
                           ? { latitude: company.site_latitude, longitude: company.site_longitude } : null);
                         setSaveError('');
@@ -242,6 +259,7 @@ export function CompanyDataPage() {
                         />
                       </label>
                     ))}
+                    <SiteConditionsFields draft={siteDraft} onChange={setSiteDraft} disabled={saving} />
                   </div>
                   <SiteLocationPicker address={draft.site_address} value={sitePoint} onChange={setSitePoint} disabled={saving} />
                   <div className="workplace-edit-footer">
@@ -262,6 +280,12 @@ export function CompanyDataPage() {
                           ? readField(company, key, true).join(', ') || '없음'
                           : company?.[key]}
                       </strong>
+                    </article>
+                  ))}
+                  {SITE_CONDITIONS.map((c) => (
+                    <article key={c.key}>
+                      <span>{c.label}</span>
+                      <strong>{siteConditionLabel(c, company?.[c.key])}</strong>
                     </article>
                   ))}
                 </div>
