@@ -15,6 +15,7 @@ import { RouteOutcome } from './RouteOutcome.jsx';
 import { ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx';
 import { currentLotWarnings, validLocation } from './route-result.js';
 import { startLotSync } from './lot-sync.js';
+import { handoffHistoryEvents } from './history.js';
 import {
   LOT_STATUS,
   lotStatusLabel,
@@ -694,7 +695,7 @@ function OutputForm({ material, current, outputStates, terminalStates, busy, onS
 }
 
 function History({ lot, name }) {
-  const events = [...(lot.data.events || [])].reverse();
+  const events = handoffHistoryEvents(lot.data.events).reverse();
   const isFinished = lot.status === 'completed';
   return (
     <section className="wf-history" aria-labelledby="wf-history-title">
