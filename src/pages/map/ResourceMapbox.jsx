@@ -34,10 +34,11 @@ function createOriginMarker(origin) {
   const marker = document.createElement('div');
   marker.className = 'resource-origin-marker';
   marker.setAttribute('aria-label', origin.label || '출발 사업장');
-  const dot = document.createElement('span');
+  const symbol = origin.logo ? document.createElement('img') : document.createElement('span');
+  if (origin.logo) { symbol.src = '/images/scrap-compass-2d-purple.png'; symbol.alt = ''; symbol.setAttribute('aria-hidden', 'true'); }
   const name = document.createElement('strong');
   name.textContent = origin.label || '우리 사업장';
-  marker.append(dot, name);
+  marker.append(symbol, name);
   return marker;
 }
 
@@ -56,7 +57,7 @@ function OpenResourceMap({ factories, selectedId, focusId, onSelect, origin = nu
   const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim();
   const signature = useMemo(() => factories.map((factory) => [
     factory.id, factory.longitude, factory.latitude,
-  ]).join(':') + (origin ? `|${origin.longitude},${origin.latitude}` : '') + `|${JSON.stringify([routePoints, routeLines, plannedRouteLines])}`, [factories, origin, routePoints, routeLines, plannedRouteLines]);
+  ]).join(':') + (origin ? `|${origin.longitude},${origin.latitude},${origin.label},${origin.logo}` : '') + `|${JSON.stringify([routePoints, routeLines, plannedRouteLines])}`, [factories, origin, routePoints, routeLines, plannedRouteLines]);
 
   onSelectRef.current = onSelect;
   useEffect(() => { onStateChange?.(loadState); }, [loadState, onStateChange]);

@@ -4,6 +4,22 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
+test('문진 확정 뒤 처리 경로 준비 상태는 베리 말풍선으로 안내한다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { BerryRouteStatus } = await vite.ssrLoadModule('/src/features/workflow/BerryRouteStatus.jsx');
+    const html = renderToStaticMarkup(React.createElement(BerryRouteStatus, {
+      text: '문진 결과에 맞는 공정과 업체를 찾고 있어요',
+    }));
+    assert.match(html, /berry-route-status/);
+    assert.match(html, /berry-speech/);
+    assert.match(html, /문진 결과에 맞는 공정과 업체를 찾고 있어요/);
+    assert.match(html, /berry-dots/);
+  } finally {
+    await vite.close();
+  }
+});
+
 test('기존 아고라 orb는 서버 단계와 실제 완료 수를 보여주며 낡은 작업은 실행 중으로 보지 않는다', async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
   try {
@@ -155,7 +171,11 @@ test('최신 인계 UI가 조건부·QR·실제 산출물·완료 단계의 행�
     assert.match(evidence, /TEST-FINISH/);
     assert.match(evidence, /시험용 원료/);
     assert.match(evidence, /TEST-OUTPUT/);
-    assert.match(evidence, /최초 분류의 R유형을 자동 적용하지 않으며/);
+    assert.match(evidence, /분류코드와 근거|분류번호와 근거/);
+    assert.match(evidence, /각 업체 선택 근거/);
+    assert.match(evidence, /인수인계·처리 기록/);
+    assert.match(evidence, /PDF로 내보내기/);
+    assert.doesNotMatch(evidence, /현재 물량 확인 사항|처리 건 현황/);
   } finally {
     await vite.close();
   }
@@ -179,6 +199,55 @@ test('AI 검토 전에는 사진 입력과 한 번의 검토 진입만 있고 �
     assert.ok(html.indexOf('현재 물량 사진') < html.indexOf('>AI 검토하고 후보 보기<'));
     assert.doesNotMatch(html, /이 업체 선택하기|선택한 검토 후보|에 인수 요청 보내기/);
     assert.doesNotMatch(html, /처리 업체 후보|공개 근거 AI 검토/);
+  } finally { await vite.close(); }
+});
+
+test('중간 처리 업체의 인계 현황과 다음 업체 검토 결과는 서로 다른 화면에 표시한다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { LotPanel } = await vite.ssrLoadModule('/src/features/workflow/LotPanel.jsx');
+    const current = { state_key: 'pe-shredded', mass_kg: 200, condition: '파쇄 완료', next_action: 'forward' };
+    const lot = { id: 'follow-up', revision: 4, status: 'processed', can_manage: true,
+      current_company_id: 'b', owner_company_id: 'a', companies: { a: '배출 업체', b: '중간 처리 업체' },
+      photos: [], offers: [], data: { current, initial: { material: 'pe' }, handoff: { waste_code: '51-03-01' },
+        completed: [{ facility: '중간 처리 업체' }], events: [] } };
+    const render = (value, view = 'progress') => renderToStaticMarkup(React.createElement(LotPanel,
+      { lotId: value.id, initialLot: value, view, onShowRecommendations: () => {} }));
+    const before = render(lot);
+    assert.match(before, /AI 검토하고 후보 보기/);
+    assert.ok(before.indexOf('AI 검토하고 후보 보기') < before.indexOf('인계 기록'));
+    const reviewed = { ...lot, review: { at: '2026-11-21T09:00:00Z', results: {}, next_step: { options: [] } } };
+    const progress = render(reviewed);
+    assert.match(progress, /인계 기록/);
+    assert.match(progress, /추천 업체 보기/);
+    assert.doesNotMatch(progress, /추천 업체 검토 결과/);
+    const recommendations = render(reviewed, 'recommendations');
+    assert.match(recommendations, /추천 업체 검토 결과/);
+    assert.match(recommendations, /추천 업체.*0곳/);
+    assert.match(recommendations, /추천 목록 검토.*0\/0건 완료/);
+    assert.match(recommendations, /반입 결정.*업체 확인 필요/);
+    assert.doesNotMatch(recommendations, /인계 기록|인계 경로/);
+  } finally { await vite.close(); }
+});
+
+test('산출물 불일치 상태에서 현재 업체가 기존 결과를 정정할 수 있다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { LotPanel } = await vite.ssrLoadModule('/src/features/workflow/LotPanel.jsx');
+    const current = { state_key: 'pe-shredded', mass_kg: 200, purity_percent: 100,
+      condition: '기록된 상태', evidence: 'TEST-OUTPUT', next_action: 'hold' };
+    const lot = { id: 'correction', revision: 5, status: 'review_required', can_manage: true,
+      current_company_id: 'c', owner_company_id: 'a', companies: { a: '배출 업체', c: '처리 업체' },
+      photos: [], offers: [{ id: 'offer-c', status: 'processed', recipient_id: 'c',
+        data: { current: { state_key: 'pe-shredded', mass_kg: 200 } } }],
+      output_states: [{ key: 'pe-shredded', label: 'PE 파쇄품' }, { key: 'pe-washed', label: 'PE 세척 플레이크' }],
+      data: { current, initial: { material: 'pe' }, handoff: { waste_code: '51-03-01' },
+        completed: [{ offer_id: 'offer-c', expected_state: 'pe-washed', company_id: 'c', output: current }], events: [] } };
+    const html = renderToStaticMarkup(React.createElement(LotPanel, { lotId: lot.id, initialLot: lot }));
+    assert.match(html, /처리 결과 정정/);
+    assert.match(html, /처리 건 현황[\s\S]*?처리 결과 정정[\s\S]*?새로고침/);
+    assert.match(html, /aria-expanded="false"/);
+    assert.doesNotMatch(html, /정정 사유|정정 내용 저장/);
   } finally { await vite.close(); }
 });
 
@@ -230,7 +299,8 @@ test('캐릭터 사진은 교체 안내만 표시하고 확인 체크·후보 �
     const html = renderToStaticMarkup(React.createElement(LotPanel, { lotId: lot.id, initialLot: lot }));
     assert.match(html, /폐기물 사진이 아니에요/);
     assert.doesNotMatch(html, /보라색 캐릭터 그림/);
-    assert.match(html, /사진 1 교체/);
+    assert.match(html, /사진 1 삭제/);
+    assert.doesNotMatch(html, /사진 1 교체/);
     assert.match(html, /현재 물량 사진 \(1\/4\)/);
     assert.doesNotMatch(html, /old.jpg|표시되면 안 되는 후보|기존 설명 확인 내용 기록|AI 검토하고 후보 보기|에 인수 요청 보내기/);
   } finally { await vite.close(); }

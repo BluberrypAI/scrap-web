@@ -344,7 +344,7 @@ export function LegalFormPanel({ caseId, handoff }) {
   return (
     <section className="lf-panel" aria-label="법정 서식 작성">
       <header>
-        <h2>법정 서식 작성</h2>
+        <h2>작성할 서식 선택</h2>
         <p className="lf-lead">
           판정 결과에 맞는 서식을 한글 파일이나 PDF로 만들어 드려요. 파일은 서버에 저장되지 않고 기관에 자동 제출되지 않아요.
           생년월일은 받은 파일에 직접 적어 주세요. (제5호의 날짜·서명은 업체가 적어요.)

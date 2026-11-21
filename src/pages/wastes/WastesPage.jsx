@@ -34,7 +34,7 @@ const stages = [
   },
 ];
 
-function WasteList({ variant, onCreate, creating, createdWasteId, wastes }) {
+function WasteList({ variant, onCreate, creating, createdWasteId, wastes, loading = false }) {
   const createdWaste = wastes.find((waste) => waste.id === createdWasteId);
   const createdStage = stages.find((stage) => stage.statuses.includes(createdWaste?.status));
   const ongoing = wastes.filter((waste) => waste.status !== '완료');
@@ -87,7 +87,7 @@ function WasteList({ variant, onCreate, creating, createdWasteId, wastes }) {
                       <h2 id={`waste-stage-heading-${stage.id}`}>{stage.label}</h2>
                       <p>{stage.description}</p>
                     </div>
-                    <strong>{stageWastes.length}건</strong>
+                    <strong>{loading ? '확인 중' : `${stageWastes.length}건`}</strong>
                   </div>
                   {createdStage?.id === stage.id && (
                     <div className="waste-created-notice" role="status">
@@ -100,7 +100,12 @@ function WasteList({ variant, onCreate, creating, createdWasteId, wastes }) {
                       </div>
                     </div>
                   )}
-                  {stageWastes.length ? (
+                  {loading ? (
+                    <div className="waste-stage-loading" role="status" aria-label={`${stage.label} 목록을 불러오는 중`}>
+                      <span className="waste-card-placeholder" aria-hidden="true" />
+                      <span className="waste-card-placeholder" aria-hidden="true" />
+                    </div>
+                  ) : stageWastes.length ? (
                     <div className="waste-grid" aria-label={`${stage.label} 폐기물 목록`}>
                       {stageWastes.map((waste) => (
                         <WasteCard
@@ -166,7 +171,6 @@ export function WastesPage() {
       },
     });
   }, []);
-  if (wastes === null) return <div className="home-content" role="status" aria-busy="true">폐기물과 처리 현황을 불러오는 중이에요…</div>;
   const createCase = async () => {
     if (creating) return;
     setCreating(true);
@@ -179,7 +183,8 @@ export function WastesPage() {
       setCreating(false);
     }
   };
-  const variant = params.get('variant') === 'empty' || !wastes.length ? 'empty' : 'list';
+  const loading = wastes === null;
+  const variant = !loading && (params.get('variant') === 'empty' || !wastes.length) ? 'empty' : 'list';
   return (
     <>
       {problem && (
@@ -188,7 +193,8 @@ export function WastesPage() {
         </p>
       )}
       <WasteList
-        wastes={wastes}
+        wastes={wastes ?? []}
+        loading={loading}
         variant={variant}
         creating={creating}
         createdWasteId={params.get('created')}

@@ -45,6 +45,9 @@ export const workflowApi = {
     }
     return apiFetch(`/workflow/lots/${enc(lotId)}/photos`, { method: 'POST', body: form });
   },
+  removePhoto: (lot, photoId) => apiFetch(`/workflow/lots/${enc(lot.id)}/photos/${enc(photoId)}`, {
+    method: 'DELETE', body: { revision: lot.revision },
+  }),
   photoUrl: (photo) => photo.url,
   resolvePhotoConflict: (lot, body) => apiFetch(`/workflow/lots/${enc(lot.id)}/photo-conflict-resolution`, {
     method: 'POST', body: { ...body, revision: lot.revision },
@@ -103,6 +106,11 @@ export const workflowApi = {
     }),
   recordOutput: (lot, output) =>
     apiFetch(`/workflow/lots/${enc(lot.id)}/output`, {
+      method: 'POST',
+      body: { revision: lot.revision, ...output },
+    }),
+  correctOutput: (lot, output) =>
+    apiFetch(`/workflow/lots/${enc(lot.id)}/output-correction`, {
       method: 'POST',
       body: { revision: lot.revision, ...output },
     }),

@@ -1,20 +1,14 @@
 /* 법정 서식 작성 패널. 색은 앱 변수가 없을 때를 위해 기본값을 둔다 */
 .lf-panel {
-  --lf-sheet: #ffffff; --lf-ink: #1d2321; --lf-muted: #5d6763; --lf-rule: #cfd5d1;
-  --lf-accent: #1f6b52; --lf-accent-ink: #ffffff; --lf-bad: #a2361f; --lf-bad-soft: #fbe9e4; --lf-ok-soft: #e1efe8; --lf-paper: #f4f5f3;
+  --lf-sheet: var(--color-card, #fff); --lf-ink: var(--color-text-primary, #292431); --lf-muted: var(--color-text-secondary, #696276); --lf-rule: var(--color-border-light, #e6e0ec);
+  --lf-accent: var(--color-primary, #7053b7); --lf-accent-ink: #ffffff; --lf-bad: #a2361f; --lf-bad-soft: #fbe9e4; --lf-ok-soft: #f1ebfa; --lf-paper: #faf8fd;
   display: grid; gap: 16px; color: var(--lf-ink);
-}
-@media (prefers-color-scheme: dark) {
-  .lf-panel {
-    --lf-sheet: #202624; --lf-ink: #e6ebe8; --lf-muted: #9aa5a0; --lf-rule: #34403c;
-    --lf-accent: #6cc3a0; --lf-accent-ink: #10201a; --lf-bad: #ff9c85; --lf-bad-soft: #3b1f19; --lf-ok-soft: #1d3a30; --lf-paper: #161a19;
-  }
 }
 .lf-panel h2 { margin: 0 0 6px; font-size: 18px; }
 .lf-lead { margin: 0; color: var(--lf-muted); max-width: 65ch; }
 .lf-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
-.lf-tabs button { border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); padding: 8px 14px; font: inherit; cursor: pointer; }
-.lf-tabs button[aria-pressed="true"] { background: var(--lf-ink); color: var(--lf-sheet); border-color: var(--lf-ink); }
+.lf-tabs button { border: 1px solid var(--lf-rule); border-radius: 10px; background: var(--lf-sheet); color: var(--lf-ink); padding: 9px 15px; font: inherit; cursor: pointer; }
+.lf-tabs button[aria-pressed="true"] { background: var(--lf-accent); color: var(--lf-accent-ink); border-color: var(--lf-accent); }
 
 .lf-filing-guide { padding: 12px 14px; border: 1px solid var(--lf-rule); background: var(--lf-paper); }
 .lf-filing-guide summary { font-size: 14px; font-weight: 700; cursor: pointer; }
@@ -56,7 +50,7 @@
 .lf-bar p.is-ok { background: var(--lf-ok-soft); }
 .lf-bar p.is-bad { background: var(--lf-bad-soft); color: var(--lf-bad); }
 .lf-actions { display: flex; gap: 8px; }
-.lf-actions button { padding: 10px 16px; font: inherit; border: 1px solid var(--lf-accent); background: var(--lf-accent); color: var(--lf-accent-ink); cursor: pointer; }
+.lf-actions button { padding: 10px 16px; border-radius: 9px; font: inherit; border: 1px solid var(--lf-accent); background: var(--lf-accent); color: var(--lf-accent-ink); cursor: pointer; }
 .lf-actions button.is-ghost { background: transparent; color: var(--lf-ink); border-color: var(--lf-rule); }
 .lf-actions button:disabled { opacity: .45; cursor: not-allowed; }
 
@@ -101,7 +95,7 @@
 .lf-preview-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--lf-muted); }
 .lf-preview-head button { padding: 6px 12px; font: inherit; font-size: 13px; border: 1px solid var(--lf-rule); background: var(--lf-sheet); color: var(--lf-ink); cursor: pointer; }
 .lf-sheet-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; text-align: inherit; }
-.lf-sheet-open:focus-visible { outline: 2px solid var(--lf-accent, #1f6b52); outline-offset: 2px; }
+.lf-sheet-open:focus-visible { outline: 2px solid var(--lf-accent, #7053b7); outline-offset: 2px; }
 .lf-big { width: min(1100px, 96vw); max-width: 96vw; height: 94vh; max-height: 94vh; padding: 0; border: 1px solid var(--lf-rule); background: var(--lf-paper, #f4f5f3); color: var(--lf-ink); }
 .lf-big::backdrop { background: rgba(0, 0, 0, .55); }
 .lf-big[open] { display: grid; grid-template-rows: auto 1fr; }
@@ -111,5 +105,17 @@
 .lf-big-page { margin: 0 auto; }
 
 /* 서식 작성 페이지 */
-.lf-page { max-width: 1480px; margin: 0 auto; padding: 20px 16px 80px; display: grid; gap: 16px; }
-.lf-page-nav { display: flex; }
+.lf-page { max-width: 1480px; margin: 0 auto; padding: 20px 24px 80px; display: grid; gap: 22px; }
+.lf-page-hero { display: flex; align-items: center; gap: 20px; padding: 26px 30px; border: 1px solid #e4dbee; border-radius: 20px; background: linear-gradient(115deg, #f2ecfa 0%, #fbf9fd 68%, #fff 100%); }
+.lf-page-hero-icon { display: grid; align-content: center; gap: 6px; flex: none; width: 58px; height: 66px; padding: 13px 12px; border: 2px solid #7c5ab8; border-radius: 12px; background: #fff; box-shadow: 5px 5px 0 #dbc9f0; }
+.lf-page-hero-icon span { height: 4px; border-radius: 5px; background: #bba4dc; }
+.lf-page-hero-icon span:first-child { width: 65%; height: 6px; background: #7652b2; }
+.lf-page-hero-icon span:last-child { width: 76%; }
+.lf-page-hero-copy { min-width: 0; flex: 1; }
+.lf-page-hero-copy > span { color: #7353a9; font-size: 11px; font-weight: 800; letter-spacing: .12em; }
+.lf-page-hero h1 { margin: 4px 0 6px; color: #2c233b; font-size: clamp(24px, 2.4vw, 34px); letter-spacing: -.04em; }
+.lf-page-hero p { margin: 0; color: #675e70; font-size: 13px; line-height: 1.5; }
+.lf-page-exit { align-self: flex-start; display: inline-flex; align-items: center; gap: 7px; flex: none; padding: 9px 13px; border: 1px solid #d9cde7; border-radius: 9px; background: #fff; color: #4d386d; font-size: 13px; font-weight: 700; text-decoration: none; }
+.lf-page-exit:hover { background: #eee6f8; }
+.lf-page-exit:focus-visible { outline: 3px solid #b59bdd; outline-offset: 2px; }
+@media (max-width: 640px) { .lf-page { padding: 16px 14px 64px; } .lf-page-hero { flex-wrap: wrap; gap: 14px; padding: 20px; } .lf-page-hero-icon { width: 46px; height: 54px; padding: 10px; } .lf-page-exit { margin-left: auto; } }
