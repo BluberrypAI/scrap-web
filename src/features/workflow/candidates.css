@@ -387,6 +387,7 @@ dialog.candidate-panel[open] .candidate-sheet-error { display: block; margin: 0;
 .facility-detail-facts > div { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; padding: 9px 2px; border-bottom: 1px solid var(--cand-line); font-size: 13px; line-height: 1.55; }
 .facility-detail-facts dt { color: var(--cand-sub); font-weight: 600; }
 .facility-detail-facts dd { margin: 0; color: var(--cand-ink); overflow-wrap: anywhere; }
+.facility-detail-facts .facility-tag { display: inline-block; max-width: 100%; word-break: keep-all; }
 
 .facility-next-step { display: grid; gap: 4px; padding: 16px 18px; border: 1px solid var(--tone-hold-line); border-radius: 14px; background: var(--tone-hold-bg); color: var(--tone-hold-ink); }
 .facility-next-step[data-tone='ready'] { border-color: var(--tone-good-line); background: var(--tone-good-bg); color: var(--tone-good-ink); }
@@ -395,6 +396,7 @@ dialog.candidate-panel[open] .candidate-sheet-error { display: block; margin: 0;
 .facility-next-step > strong { color: var(--cand-ink); font-size: 15px; letter-spacing: -.02em; }
 .facility-next-step > p { margin: 0; color: var(--cand-sub); font-size: 13px; line-height: 1.6; }
 .facility-next-step-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.facility-next-step-actions .button { max-width: 100%; white-space: normal; word-break: keep-all; overflow-wrap: anywhere; }
 .facility-next-step-actions > p { flex-basis: 100%; margin: 0; font-size: 12px; }
 
 .facility-detail-section { display: grid; gap: 8px; padding-top: 16px; border-top: 1px solid var(--cand-line); font-size: 13px; line-height: 1.65; color: var(--cand-ink); }

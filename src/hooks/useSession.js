@@ -8,8 +8,9 @@ import { loadSession, redirectFor } from '../lib/session.js';
 // 로그인·기업 등록·로그아웃처럼 상태가 바뀐 뒤에는 resetSession()으로 다시 불러오게 한다.
 let cached = null;
 
-export function resetSession() {
+export function resetSession({ discardReturnPath = false } = {}) {
   cached = null;
+  if (discardReturnPath) clearReturnPath();
 }
 
 export function useSession() {

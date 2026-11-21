@@ -3,7 +3,7 @@ import { NotificationInbox } from './NotificationInbox.jsx';
 import { ArrowUpRightIcon } from './LandingIcons.jsx';
 import { StageProgress } from '../pages/wastes/StageProgress.jsx';
 
-export function AppTopNav({ currentStage = null, showStages = true }) {
+export function AppTopNav({ currentStage = null, showStages = true, guest = false }) {
   return (
     <header className="app-topnav" data-layer-name="TopNav-App">
       <div className="app-topnav-inner">
@@ -12,7 +12,7 @@ export function AppTopNav({ currentStage = null, showStages = true }) {
         </a>
         {showStages && <StageProgress current={currentStage} />}
         <div className="app-account">
-          {showStages ? <><NotificationInbox /><AuthenticatedAccount /></> : (
+          {showStages ? <><NotificationInbox /><AuthenticatedAccount guest={guest} /></> : (
             <a className="landing-button landing-button-primary landing-button-small" href="/wastes">자원 경로 <ArrowUpRightIcon /></a>
           )}
         </div>

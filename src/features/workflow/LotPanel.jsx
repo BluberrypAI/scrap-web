@@ -448,7 +448,8 @@ function CandidateSection({ lot, busy, error, offerFailed, onReview, onOffer, on
               {state.text}
             </FacilityNextStep>
               {offerFailed && <p className="wf-alert candidate-sheet-error" role="alert">인수 요청을 보내지 못했어요. {error}</p>}
-              <InquiryReplies key={lot.id} lotId={lot.id} capabilityKey={facility.capability_key} busy={!!busy} />
+              <InquiryReplies key={lot.id} lotId={lot.id} capabilityKey={facility.capability_key} busy={!!busy}
+                guest={facility.recipient?.guest === true} canOffer={state.badge.tone === 'ready'} />
             </>;
           }}
           renderDetailExtra={(facility) => <SupplierPolicySummary value={facility.supplier_policy} />}

@@ -1,9 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  inquiryGmailUrl, inquiryMailBody, inquiryMailto, inquirySummaryRows,
+  inquiryGmailUrl, inquiryJoinError, inquiryMailBody, inquiryMailto, inquirySummaryRows,
   optionalReplyFields, replyFileError, replyLabels,
 } from './inquiry-replies.js';
+
+test('참여 실패 이유에 맞춰 만료, 연결 계정, 요청 한도, 다시 시도 안내를 보여준다', () => {
+  assert.equal(inquiryJoinError(404), '링크가 만료됐거나 중지됐어요');
+  assert.equal(inquiryJoinError(409), '이 업체는 이미 서비스 계정이 연결돼 있어요. 그 계정으로 로그인해 주세요.');
+  assert.equal(inquiryJoinError(429), '지금은 참여 요청이 많아요. 잠시 후 다시 시도해 주세요.');
+  assert.equal(inquiryJoinError(500), '링크로 참여하지 못했어요. 잠시 후 다시 시도해 주세요.');
+  assert.equal(inquiryJoinError(undefined), inquiryJoinError(500));
+});
 
 test('빈 받는 주소에 제목과 본문을 URL 인코딩하고 개행을 CRLF로 전달한다', () => {
   const { href, bodyOmitted } = inquiryMailto('반입 문의 & 견적 #1', '안녕하세요\n조건: 100%+\n주소: /#/reply/abc');

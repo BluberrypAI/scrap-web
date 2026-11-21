@@ -20,6 +20,22 @@ test('문진 확정 뒤 처리 경로 준비 상태는 베리 말풍선으로 �
   }
 });
 
+test('기업 정보의 guest가 true일 때만 앱 상단에 임시 계정 안내를 표시한다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { AppShell } = await vite.ssrLoadModule('/src/layouts/AppShell.jsx');
+    const path = '/lots/0819348d-95ec-4946-9dd8-7a5cc0893ff3';
+    const render = (company) => renderToStaticMarkup(React.createElement(AppShell, { path, company }));
+    const guest = render({ id: 'guest', guest: true });
+    assert.match(guest, /guest-account-notice/);
+    assert.match(guest, /링크 참여\(임시\) 계정/);
+    assert.match(guest, /보낸 회사가 인수 요청을 보내면 처리 추적에 표시돼요/);
+    for (const company of [{ guest: false }, {}, null]) {
+      assert.doesNotMatch(render(company), /guest-account-notice/);
+    }
+  } finally { await vite.close(); }
+});
+
 test('기존 아고라 orb는 서버 단계와 실제 완료 수를 보여주며 낡은 작업은 실행 중으로 보지 않는다', async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
   try {

@@ -154,6 +154,12 @@
   align-items: center;
   gap: 10px;
 }
+.workplace-guest-note {
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
 
 .workplace-edit-button {
   min-height: 34px;

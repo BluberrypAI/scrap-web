@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import { resetSession } from '../../hooks/useSession.js';
+import { navigate } from '../../lib/router.js';
 import { publicInquiryApi } from './api.js';
-import { AVAILABILITY_LABELS, inquirySummaryRows, optionalReplyFields, REPLY_FILE_ACCEPT, REPLY_FILE_HELP, replyFileError } from './inquiry-replies.js';
+import {
+  AVAILABILITY_LABELS, inquiryJoinError, inquirySummaryRows, optionalReplyFields,
+  REPLY_FILE_ACCEPT, REPLY_FILE_HELP, replyFileError,
+} from './inquiry-replies.js';
 import { formatDateTime } from './labels.js';
 import './workflow.css';
 
-const CLOSED_LINK = '링크가 만료됐거나 중지됐어요';
 const RATE_LIMIT = '지금은 답장 요청이 많아요. 잠시 후 다시 시도해 주세요.';
 
 export function PublicInquiryReply({ token }) {
@@ -15,7 +19,10 @@ export function PublicInquiryReply({ token }) {
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState(null);
   const sendingNow = useRef(false);
+  const joiningNow = useRef(false);
   const thanks = useRef(null);
 
   useEffect(() => {
@@ -39,9 +46,26 @@ export function PublicInquiryReply({ token }) {
     setAttempt((value) => value + 1);
   }
 
+  async function join() {
+    if (joiningNow.current || sendingNow.current) return;
+    joiningNow.current = true;
+    setJoining(true);
+    setJoinError(null);
+    try {
+      await publicInquiryApi.join(token);
+      resetSession({ discardReturnPath: true });
+      navigate('/wastes');
+    } catch (failure) {
+      if (failure.status === 404) setClosed(true);
+      else setJoinError({ status: failure.status, message: inquiryJoinError(failure.status) });
+      joiningNow.current = false;
+      setJoining(false);
+    }
+  }
+
   async function submit(event) {
     event.preventDefault();
-    if (sendingNow.current) return;
+    if (sendingNow.current || joiningNow.current) return;
     const body = optionalReplyFields(new FormData(event.currentTarget), ['text', 'contact_name', 'contact_info']);
     const fileError = replyFileError(body.get('file'));
     if (fileError) {
@@ -73,7 +97,7 @@ export function PublicInquiryReply({ token }) {
   return <main className="wf-public-reply">
     <meta name="robots" content="noindex" />
     {closed ? <section className="wf-card">
-      <h1>{CLOSED_LINK}</h1>
+      <h1>{inquiryJoinError(404)}</h1>
       <p>문의 메일을 보낸 기업에 새 링크를 요청해 주세요.</p>
     </section> : !inquiry ? <section className="wf-card">
       <h1>업체 문의에 답하기</h1>
@@ -107,6 +131,17 @@ export function PublicInquiryReply({ token }) {
           <div className="wf-public-inquiry-text">{inquiry.inquiry_text}</div>
         </>}
       </section>
+      {inquiry.joinable && <section className="wf-card wf-public-join">
+        <h2>가입 없이 이 서비스에서 이어서 진행하기</h2>
+        <p>이 링크로 보낸 회사와 대화하고, 인수 요청을 수락하거나 거절할 수 있어요. QR로 입고를 확인하고 처리 결과도 기록할 수 있어요.</p>
+        <p className="wf-muted">링크 참여(미확인) 업체로 표시돼요.</p>
+        {joinError?.status === 409 ? <a className="button button-quiet" href="/login">로그인 화면으로</a> : (
+          <button className="button button-primary" type="button" onClick={join} disabled={joining || sending}>
+            {joining ? '참여하는 중…' : inquiry.joined ? '이어서 진행하기(다시 들어가기)' : '가입 없이 참여하기'}
+          </button>
+        )}
+        {joinError && <p className="wf-alert" role="alert">{joinError.message}</p>}
+      </section>}
       <section className="wf-card">
         {submitted ? <>
           <h2 ref={thanks} tabIndex={-1}>답장해 주셔서 고마워요</h2>
@@ -116,7 +151,7 @@ export function PublicInquiryReply({ token }) {
         {full ? <p role="status">이 링크에서 보낼 수 있는 답장 {inquiry.max_replies}건을 모두 보냈어요.</p>
           : submitted ? <button type="button" className="button button-quiet" onClick={() => setSubmitted(false)}>다시 답하기</button>
           : <form className="wf-form wf-reply-form" onSubmit={submit}>
-            <fieldset disabled={sending}>
+            <fieldset disabled={sending || joining}>
               <fieldset className="wf-forms">
                 <legend>이 물량을 받을 수 있나요? (필수)</legend>
                 {Object.entries(AVAILABILITY_LABELS).map(([value, label]) =>

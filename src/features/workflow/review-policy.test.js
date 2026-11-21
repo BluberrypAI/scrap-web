@@ -16,6 +16,12 @@ test('current review permits recipient consideration without claiming approval',
   assert.equal(canRequestIntake(review, facility, result), true);
   assert.equal(canRequestIntake(review, facility, { ...result, lot_review: { status: 'reviewed', observation_method: 'isolated_vision' } }), true);
 });
+
+test('링크 참여 업체도 연결된 수신 계정으로 기존 인수 요청 조건을 적용한다', () => {
+  const guestFacility = { recipient: { id: 'guest', synthetic: false, guest: true } };
+  assert.equal(canRequestIntake(review, guestFacility, result), true);
+  assert.equal(canRequestIntake(review, guestFacility, result, { blocked: true }), false);
+});
 test('legacy review, missing observation, unavailable AI, restriction and unbound facility cannot be sent', () => {
   assert.equal(canRequestIntake({version:'lot-vision-v1'}, facility, result), false);
   assert.equal(canRequestIntake({...review, conditions_checksum: undefined}, facility, result), false);

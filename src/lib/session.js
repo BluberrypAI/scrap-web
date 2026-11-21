@@ -3,6 +3,12 @@
 import { ApiError, api } from './api.js';
 import { inquiryReplyToken } from './router.js';
 
+export const GUEST_ACCOUNT_SETTINGS_NOTICE = '링크로 참여한 임시 계정에서는 기업 정보를 수정하거나 탈퇴할 수 없어요.';
+
+export function isGuestCompany(company) {
+  return company?.guest === true;
+}
+
 // status: 'signed-out'(로그인 전), 'onboarding'(기업 등록 전), 'ready'(사용 가능)
 export async function loadSession(client = api) {
   let user;

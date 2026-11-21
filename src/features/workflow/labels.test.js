@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canRegisterLot, stateLabel, formatKg, lotCardStatus, lotCardText, lotProgress, lotTitle, lotToWaste } from './labels.js';
+import { canRegisterLot, stateLabel, formatKg, lotCardStatus, lotCardText, lotProgress, lotTitle, lotToWaste, recipientAccountLabel } from './labels.js';
+
+test('링크 참여 업체와 시연용 계정의 라벨을 구분한다', () => {
+  assert.equal(recipientAccountLabel({ guest: true, synthetic: false }), '링크 참여 업체(미확인)');
+  assert.equal(recipientAccountLabel({ guest: false, synthetic: true }), '시연용 계정');
+  assert.equal(recipientAccountLabel({ guest: false, synthetic: false }), null);
+  assert.equal(recipientAccountLabel({ synthetic: true }), '시연용 계정');
+  assert.equal(recipientAccountLabel(null), null);
+});
 
 const lot = {
   id: '0819348d-95ec-4946-9dd8-7a5cc0893ff3',

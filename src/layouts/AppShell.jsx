@@ -16,11 +16,12 @@ import { WasteTrackingPage } from '../pages/waste-detail/WasteTrackingPage.jsx';
 import { WastesPage } from '../pages/wastes/WastesPage.jsx';
 import { useCallback, useState } from 'react';
 import { TaskPlaceholder } from '../pages/workspace/TaskPlaceholder.jsx';
+import { isGuestCompany } from '../lib/session.js';
 
 // 기업소개와 같은 하단 푸터는 1단계 메뉴 화면(자원 경로, 순환자원지도, 기업데이터)에만 붙임
 const FOOTER_PATHS = ['/wastes', '/map', '/data'];
 
-export function AppShell({ path }) {
+export function AppShell({ path, company }) {
   const [reportedStage, setReportedStage] = useState(null);
   const reportStage = useCallback((routePath, stage) => {
     setReportedStage((previous) => previous?.path === routePath && previous.stage === stage ? previous : { path: routePath, stage });
@@ -50,17 +51,23 @@ export function AppShell({ path }) {
       : t && !i || (i || a)?.status === '확정' ? 'route'
         : i || a ? 'classification' : null;
   const currentStage = reportedStage?.path === path ? reportedStage.stage : inferredStage;
+  const guest = isGuestCompany(company);
+  const guestNotice = guest && <aside className="guest-account-notice">
+    <strong>링크 참여(임시) 계정</strong> · 보낸 회사가 인수 요청을 보내면 처리 추적에 표시돼요
+  </aside>;
   if (lot)
     return (
       <div className="app-route-shell" data-theme="light">
-        <AppTopNav currentStage={currentStage} />
+        <AppTopNav currentStage={currentStage} guest={guest} />
+        {guestNotice}
         {lot[2] ? <ReceivePage lotId={lot[1]} offerId={lot[2]} /> : <LotPage lotId={lot[1]} onStageChange={(stage) => reportStage(path, stage)} />}
       </div>
     );
   if (dx)
     return (
       <div className="app-route-shell" data-theme="light">
-        <AppTopNav currentStage={currentStage} />
+        <AppTopNav currentStage={currentStage} guest={guest} />
+        {guestNotice}
         {dx[2] === 'survey' ? (
           <DiagnosisCaseScreen caseId={dx[1]} />
         ) : dx[2] === 'documents' ? (
@@ -72,6 +79,7 @@ export function AppShell({ path }) {
     );
   return a && r && r[2] !== 'match' ? (
     <div className="l3-shell" data-theme="light">
+      {guestNotice}
       {r[2] === 'survey' ? (
         <SurveyPage waste={a} />
       ) : r[2] === 'match' ? (
@@ -84,7 +92,8 @@ export function AppShell({ path }) {
     </div>
   ) : (
     <div className="app-route-shell" data-theme="light">
-      <AppTopNav currentStage={currentStage} showStages={path === '/app' || path.startsWith('/wastes') || path.startsWith('/lots')} />
+      <AppTopNav currentStage={currentStage} guest={guest} showStages={path === '/app' || path.startsWith('/wastes') || path.startsWith('/lots')} />
+      {guestNotice}
       {trackingWaste ? (
         <WasteTrackingPage waste={trackingWaste} />
       ) : i || (r?.[2] === 'match' && a) ? (
@@ -96,7 +105,7 @@ export function AppShell({ path }) {
       ) : path === '/map' ? (
         <ResourceMapPage />
       ) : path === '/data' ? (
-        <CompanyDataPage />
+        <CompanyDataPage guest={guest} />
       ) : (
         <WastesPage />
       )}

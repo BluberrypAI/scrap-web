@@ -3,9 +3,10 @@ import { resetSession, useSession } from '../hooks/useSession.js';
 import { api } from '../lib/api.js';
 import { clearAuthenticatedSession } from '../lib/auth.js';
 import { navigate } from '../lib/router.js';
+import { GUEST_ACCOUNT_SETTINGS_NOTICE } from '../lib/session.js';
 import { Icon } from './Icon.jsx';
 
-export function AuthenticatedAccount() {
+export function AuthenticatedAccount({ guest = false }) {
   const [open, setOpen] = useState(false);
   const session = useSession();
 
@@ -44,12 +45,13 @@ export function AuthenticatedAccount() {
         <div className="profile-menu">
           <div>
             <strong>{displayName}</strong>
-            <span>사업장 관리자</span>
+            <span>{guest ? '링크 참여(임시) 계정' : '사업장 관리자'}</span>
+            {guest && <span className="profile-menu-guest-note">{GUEST_ACCOUNT_SETTINGS_NOTICE}</span>}
           </div>
-          <a href="/data?tab=workplace">
+          {!guest && <a href="/data?tab=workplace">
             <Icon name="building" size={17} />
             기업 데이터 관리
-          </a>
+          </a>}
           <button type="button" onClick={logout}>
             <Icon name="logout" size={17} />
             로그아웃

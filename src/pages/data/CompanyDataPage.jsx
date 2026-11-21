@@ -4,6 +4,7 @@ import { resetSession, useSession } from '../../hooks/useSession.js';
 import { SiteLocationPicker } from '../../components/SiteLocationPicker.jsx';
 import { ApiError, api } from '../../lib/api.js';
 import { currentRoute } from '../../lib/router.js';
+import { GUEST_ACCOUNT_SETTINGS_NOTICE } from '../../lib/session.js';
 import { AnimatedContent } from '../landing/LandingMotion.jsx';
 import { DataTable } from './DataTable.jsx';
 import './CompanyDataPage.css';
@@ -94,9 +95,10 @@ function saveErrorMessage(error) {
   return '서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.';
 }
 
-export function CompanyDataPage() {
+export function CompanyDataPage({ guest = false }) {
   const requestedTab = new URLSearchParams(currentRoute().search).get('tab');
-  const activeTab = dataTabs.some((tab) => tab.id === requestedTab) ? requestedTab : 'workplace';
+  const visibleTabs = guest ? dataTabs.filter((tab) => tab.id !== 'intake') : dataTabs;
+  const activeTab = visibleTabs.some((tab) => tab.id === requestedTab) ? requestedTab : 'workplace';
   // 이 화면은 AppShell 안에서만 열리므로 이미 기업 등록까지 마친 세션이다.
   const session = useSession();
   const [company, setCompany] = useState(null);
@@ -126,6 +128,7 @@ export function CompanyDataPage() {
 
   const saveWorkplaceInfo = async (event) => {
     event.preventDefault();
+    if (guest) return;
     const changes = {};
     for (const [key, label, isList, required] of workplaceFields) {
       const value = fromDraft(isList, draft[key]);
@@ -184,12 +187,12 @@ export function CompanyDataPage() {
             <span className="data-profile-avatar" aria-hidden="true">{displayName.charAt(0)}</span>
             <div>
               <strong>{displayName}</strong>
-              <span>{company?.company_name} · 사업장 관리자</span>
+              <span>{company?.company_name} · {guest ? '링크 참여(임시) 계정' : '사업장 관리자'}</span>
             </div>
           </div>
           <p className="data-sidebar-label">기업 데이터</p>
           <nav className="data-tabs" aria-label="기업 데이터 메뉴">
-            {dataTabs.map((tab) => (
+            {visibleTabs.map((tab) => (
               <a
                 href={`/data?tab=${tab.id}`}
                 className={activeTab === tab.id ? 'is-active' : ''}
@@ -216,31 +219,34 @@ export function CompanyDataPage() {
                   <p>{company?.site_name}</p>
                 </div>
                 <div className="workplace-header-actions">
-                  <span className="verified-badge">
-                    <Icon name="check" size={14} /> 정보 등록됨
-                  </span>
-                  <button
-                    className="workplace-edit-button"
-                    type="button"
-                    onClick={() => {
-                      if (isEditing) {
-                        setIsEditing(false);
-                        setSaveError('');
-                      } else {
-                        setDraft(toDraft(company));
-                        setSiteDraft(siteConditionsDraft(company));
-                        setSitePoint(company.site_latitude != null && company.site_longitude != null
-                          ? { latitude: company.site_latitude, longitude: company.site_longitude } : null);
-                        setSaveError('');
-                        setIsEditing(true);
-                      }
-                    }}
-                  >
-                    {isEditing ? '취소' : '정보 수정'}
-                  </button>
+                  {guest ? <span>링크 참여 업체(미확인)</span> : <>
+                    <span className="verified-badge">
+                      <Icon name="check" size={14} /> 정보 등록됨
+                    </span>
+                    <button
+                      className="workplace-edit-button"
+                      type="button"
+                      onClick={() => {
+                        if (isEditing) {
+                          setIsEditing(false);
+                          setSaveError('');
+                        } else {
+                          setDraft(toDraft(company));
+                          setSiteDraft(siteConditionsDraft(company));
+                          setSitePoint(company.site_latitude != null && company.site_longitude != null
+                            ? { latitude: company.site_latitude, longitude: company.site_longitude } : null);
+                          setSaveError('');
+                          setIsEditing(true);
+                        }
+                      }}
+                    >
+                      {isEditing ? '취소' : '정보 수정'}
+                    </button>
+                  </>}
                 </div>
               </header>
-              {isEditing ? (
+              {guest && <p className="workplace-guest-note">{GUEST_ACCOUNT_SETTINGS_NOTICE}</p>}
+              {!guest && isEditing ? (
                 <form className="workplace-edit-form" onSubmit={saveWorkplaceInfo}>
                   <div className="workplace-edit-grid">
                     {workplaceFields.map(([key, label, isList, required]) => (
@@ -291,7 +297,8 @@ export function CompanyDataPage() {
                 </div>
               )}
               <div className="workplace-update-row">
-                <span>{company?.site_latitude != null ? '거리 비교용 사업장 위치 등록됨' : '거리 비교를 위해 정보 수정에서 사업장 위치를 지정해 주세요.'}</span>
+                <span>{company?.site_latitude != null ? '거리 비교용 사업장 위치 등록됨' : guest
+                  ? '거리 비교용 사업장 위치 정보가 없어요.' : '거리 비교를 위해 정보 수정에서 사업장 위치를 지정해 주세요.'}</span>
                 <span>{savedAt ? `마지막 수정 ${savedAt}` : '등록 후 수정 이력 없음'}</span>
                 <span>사업장 정보는 폐기물 분류와 업체 추천에 활용됩니다.</span>
               </div>

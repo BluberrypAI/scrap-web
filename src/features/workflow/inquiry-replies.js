@@ -6,6 +6,12 @@ const DISTANCE_NUMBER = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 
 export const REPLY_LINK_PROMPT = '아래 링크에서 물량 정보를 확인하고 바로 답하실 수 있어요(로그인 불필요).';
 export const REPLY_FILE_ACCEPT = '.pdf,.jpg,.jpeg,.png,.webp,.xlsx,.docx,.hwp,.hwpx';
 export const REPLY_FILE_HELP = 'PDF, JPG, PNG, WebP, XLSX, DOCX, HWP, HWPX 중 파일 1개를 올릴 수 있어요. 최대 10MB예요.';
+export function inquiryJoinError(status) {
+  if (status === 404) return '링크가 만료됐거나 중지됐어요';
+  if (status === 409) return '이 업체는 이미 서비스 계정이 연결돼 있어요. 그 계정으로 로그인해 주세요.';
+  if (status === 429) return '지금은 참여 요청이 많아요. 잠시 후 다시 시도해 주세요.';
+  return '링크로 참여하지 못했어요. 잠시 후 다시 시도해 주세요.';
+}
 
 export const AVAILABILITY_LABELS = {
   available: '가능',

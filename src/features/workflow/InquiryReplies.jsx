@@ -5,7 +5,7 @@ import {
 } from './inquiry-replies.js';
 import { formatDateTime } from './labels.js';
 
-export function InquiryReplies({ lotId, capabilityKey, busy }) {
+export function InquiryReplies({ lotId, capabilityKey, busy, guest = false, canOffer = false }) {
   const [replies, setReplies] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -103,6 +103,9 @@ export function InquiryReplies({ lotId, capabilityKey, busy }) {
       <h4>받은 답장{replies && ` ${replies.length}건`}</h4>
       <button className="button button-quiet button-small" type="button" onClick={refresh} disabled={disabled || loading}>다시 불러오기</button>
     </div>
+    {guest && <p className="wf-muted" role="status">
+      업체가 링크로 참여했어요.{canOffer && ' 이제 인수 요청을 보낼 수 있어요.'}
+    </p>}
     {loading && !replies && <p className="wf-muted" role="status">받은 답장을 불러오는 중이에요…</p>}
     {loadError && <p className="wf-alert" role="alert">{loadError}</p>}
     {!loading && !loadError && replies?.length === 0 && <p className="wf-muted">아직 받은 답장이 없어요.</p>}

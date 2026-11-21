@@ -11,6 +11,8 @@ export const publicInquiryApi = {
   read: (token) => apiFetch(`/public/inquiry-replies/${enc(token)}`, { publicRequest: true }),
   submit: (token, body) =>
     apiFetch(`/public/inquiry-replies/${enc(token)}`, { publicRequest: true, method: 'POST', body }),
+  join: (token) =>
+    apiFetch(`/public/inquiry-replies/${enc(token)}/join`, { publicRequest: true, method: 'POST', credentials: 'same-origin' }),
 };
 
 // 서버의 HTTPException은 {detail: "문구"}, 공통 오류는 {code, message} 형식이다. ApiError가 둘 다 message로 읽는다.

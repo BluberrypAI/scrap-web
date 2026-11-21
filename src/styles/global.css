@@ -1470,6 +1470,21 @@
   background: var(--color-background);
   min-height: 100vh;
 }
+.guest-account-notice {
+  padding: 10px clamp(16px, 4vw, 36px);
+  background: var(--color-surface-lavender);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 1.55;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.profile-menu .profile-menu-guest-note {
+  margin-top: 4px;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
 /* 높이·폭·메뉴 글씨·로고는 홈/기업소개의 .landing-header와 맞춤 */
 .app-topnav {
   z-index: 50;

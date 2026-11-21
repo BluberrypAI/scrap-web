@@ -1,4 +1,4 @@
-import { EVIDENCE_GAP, CONCERN_CATEGORY, REVIEW_FINDING, REVIEW_STATUS } from './labels.js';
+import { EVIDENCE_GAP, CONCERN_CATEGORY, REVIEW_FINDING, REVIEW_STATUS, recipientAccountLabel } from './labels.js';
 import { Icon } from '../../components/Icon.jsx';
 import { distanceLabel, hasRoadDistance } from './route-result.js';
 
@@ -35,6 +35,8 @@ export function FacilityListItem({ facility, review, status, active = false, pan
           <span className="facility-item-tags">
             {summary && <span className="facility-tag" data-tone={summary.tone}>{summary.title}</span>}
             {status && <span className="facility-tag" data-tone={status.tone}>{status.label}</span>}
+            {facility.recipient?.guest === true &&
+              <span className="facility-tag" data-tone="hold">{recipientAccountLabel(facility.recipient)}</span>}
           </span>
         </span>
         <span className="facility-item-side">
@@ -48,6 +50,8 @@ export function FacilityListItem({ facility, review, status, active = false, pan
 
 // 오른쪽 상세 패널: 지금 할 일 → AI 검토 → 업체 확인 사항 → 업체 안내 조건 → 공개 자료
 export function FacilityDetail({ option, index = 0, facility, review, action = null, extra = null, headingRef }) {
+  const recipient = facility.recipient;
+  const accountLabel = recipientAccountLabel(recipient);
   const summary = reviewSummary(review);
   const lotReview = review?.lot_review;
   const processMatch = review?.process_match;
@@ -66,7 +70,12 @@ export function FacilityDetail({ option, index = 0, facility, review, action = n
         <dl className="facility-detail-facts">
           <div><dt>처리 형태</dt><dd>{option.input_state?.label || '현재 물량'} → {option.output_state?.label || '다음 형태'}</dd></div>
           <div><dt>거리</dt><dd>{distanceLabel(facility)}</dd></div>
-          <div><dt>수신 계정</dt><dd>{facility.recipient ? facility.recipient.name : '연결된 계정 없음'}</dd></div>
+          <div><dt>수신 계정</dt><dd>{recipient ? <>
+            {recipient.name}
+            {accountLabel && (recipient.guest === true
+              ? <> <span className="facility-tag" data-tone="hold">{accountLabel}</span></>
+              : ` (${accountLabel})`)}
+          </> : '연결된 계정 없음'}</dd></div>
         </dl>
       </header>
 

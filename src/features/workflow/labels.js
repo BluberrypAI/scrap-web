@@ -18,6 +18,12 @@ export function lotStatusLabel(lot) {
   return LOT_STATUS[lot?.status] || lot?.status || '처리 진행';
 }
 
+export function recipientAccountLabel(recipient) {
+  if (recipient?.guest === true) return '링크 참여 업체(미확인)';
+  if (recipient?.synthetic) return '시연용 계정';
+  return null;
+}
+
 /** 인수 요청 status → 화면 문구 */
 export const OFFER_STATUS = {
   pending: '응답 대기',
