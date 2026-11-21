@@ -29,6 +29,6 @@ test('보고서에 저장된 분류·업체 선택·인계 근거만 표시한�
     const html = renderToStaticMarkup(React.createElement(WorkflowEvidenceReport, { lot }));
     for (const phrase of ['51-03-01', '폐기물관리법 시행규칙 별표 4', '처리 업체 사업장',
       '취급 소재 일치', '공개 명부', 'QR 입고 확인', 'PDF로 내보내기']) assert.match(html, new RegExp(phrase));
-    assert.doesNotMatch(html, /사진 교체|처리 건 현황|현재 물량 확인 사항/);
+    assert.doesNotMatch(html, /사진 교체|처리 건 현황|현재 물량 확인 사항|lot-1/);
   } finally { await vite.close(); }
 });

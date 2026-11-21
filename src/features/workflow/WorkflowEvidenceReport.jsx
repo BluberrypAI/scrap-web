@@ -34,7 +34,7 @@ export function WorkflowEvidenceReport({ lot }) {
   return <article className="wf-report" aria-label="분류·업체 선택·인수인계 근거 보고서">
     <header className="wf-report-head">
       <div><span>SCRAP · 처리 경로 기록</span><h2>분류·업체 선택·인수인계 보고서</h2>
-        <p>처리 건 {lot.id} · 현재 상태 {LOT_STATUS[lot.status] || lot.status}</p></div>
+        <p>현재 상태 {LOT_STATUS[lot.status] || lot.status}</p></div>
       <button className="button button-primary wf-report-print" type="button" onClick={() => window.print()}>PDF로 내보내기</button>
     </header>
     <p className="wf-report-caution">이 보고서는 서비스에 저장된 문진·업체 검토·인계 기록을 정리한 자료입니다. 업체 허가나 법정 인계서의 확인을 대신하지 않습니다.</p>
