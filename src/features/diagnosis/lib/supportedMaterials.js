@@ -3,12 +3,13 @@
  *
  * 문진 엔진(scrap-diagnosis v2)은 재질 선택지를 모두 내려준다
  * (pp·pe·pet·pvc·other_resin·synthetic_rubber·aluminium·steel·other). 엔진은 바꾸지 않고 화면에서만 숨긴다.
- * 문진 → 업체 후보 → 수락·QR → 산출물 → 완료까지 이어지는 재질: PP·PE·PET·알루미늄(캔).
- *  - 알루미늄은 형태 질문에서 캔을 고르면 51-29-03으로 판정되고, 서버가 알루미늄 음료캔 공정으로 잇는다.
- *  - 철은 엔진이 캔을 판정하지만 업체 추천이 아직 없어 숨긴다.
+ * 문진 → 업체 후보 → 수락·QR → 산출물 → 완료까지 이어지는 재질: PP·PE·PET·알루미늄(캔·스크랩)·철(스크랩).
+ *  - 알루미늄은 캔이면 51-29-03, 스크랩이면 51-29-02로 판정되고 서버가 각 공정으로 잇는다.
+ *  - 철은 스크랩이면 51-29-01(엔진 D18, 2026-11-21)로 서버 철스크랩 공정에 잇는다.
+ *    철캔은 엔진이 51-29-03 + route_unsupported로 내고, 경로 화면이 "아직 공정 자료 없음"으로 안내한다.
  * 지원 재질을 늘리면 이 목록만 고친다. 값은 엔진 knowledge/flow/facts.yaml의 material 값이다.
  */
-export const SUPPORTED_MATERIALS = ['pp', 'pe', 'pet', 'aluminium'];
+export const SUPPORTED_MATERIALS = ['pp', 'pe', 'pet', 'aluminium', 'steel'];
 
 const ALLOWED = {
   material: new Set(SUPPORTED_MATERIALS),
