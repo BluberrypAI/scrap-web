@@ -105,7 +105,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
       <div className="route-detail-tabs" role="group" aria-label="자원 경로 상세 보기" ref={tabsRef}>
         <button type="button" aria-pressed={activeTab === 'route'} onClick={() => setActiveTab('route')}>{tracking ? '인계 현황' : !lot || !lot.review ? '물량·사진 입력' : '공정·업체 검토'}</button>
         {tracking && hasNextCompanyReview(lot) && <button type="button" className="route-recommendation-tab" aria-pressed={activeTab === 'recommendations'} onClick={() => setActiveTab('recommendations')}>다음 업체 추천</button>}
-        <button type="button" aria-pressed={activeTab === 'info'} onClick={() => setActiveTab('info')}>{tracking ? '물량·확인 사항' : '분류·확인 사항'}</button>
+        <button type="button" aria-pressed={activeTab === 'info'} onClick={() => setActiveTab('info')}>{tracking ? '근거 보고서' : '분류·확인 사항'}</button>
       </div>
       {!confirmed && activeTab === 'info' && <section className="route-info-surface" aria-label="분류·확인 사항">
         <div className="route-info-row"><span className="route-info-icon"><Icon name="check" size={18} /></span><div className="route-info-content">
@@ -153,7 +153,7 @@ export function LotPage({ lotId, onStageChange }) {
       <div className="route-detail-tabs" role="group" aria-label="처리 건 상세 보기" ref={tabsRef}>
         <button type="button" aria-pressed={activeTab === 'progress'} onClick={() => setActiveTab('progress')}>인계 현황</button>
         {hasNextCompanyReview(lot) && <button type="button" className="route-recommendation-tab" aria-pressed={activeTab === 'recommendations'} onClick={() => setActiveTab('recommendations')}>다음 업체 추천</button>}
-        <button type="button" aria-pressed={activeTab === 'info'} onClick={() => setActiveTab('info')}>물량·확인 사항</button>
+        <button type="button" aria-pressed={activeTab === 'info'} onClick={() => setActiveTab('info')}>근거 보고서</button>
       </div>
       <LotPanel lotId={lotId} view={activeTab} onLotChange={setLot} onShowRecommendations={() => setActiveTab('recommendations')} />
     </main>

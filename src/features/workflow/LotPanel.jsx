@@ -16,6 +16,7 @@ import { ConditionalResponse, DirectoryCandidates } from './IntakeConditions.jsx
 import { currentLotWarnings, validLocation } from './route-result.js';
 import { startLotSync } from './lot-sync.js';
 import { handoffHistoryEvents } from './history.js';
+import { WorkflowEvidenceReport } from './WorkflowEvidenceReport.jsx';
 import {
   LOT_STATUS,
   lotStatusLabel,
@@ -122,7 +123,6 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   const name = (id) => lot.companies[id] || '알 수 없는 기업';
   const manage = lot.can_manage;
   const material = lotMaterial(lot);
-  const diagnosisId = lot.diagnosis_id || lot.data.handoff?.case_id;
   const terminalStates = lot.terminal_states || FINISH_STATES[material] || [];
   const warnings = currentLotWarnings(lot.data.warnings, lot.review?.origin);
   const canReviewNext = manage && (lot.status === 'ready' || (lot.status === 'processed' && current.next_action === 'forward'));
@@ -242,21 +242,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
     <button className="button button-primary button-small" type="button" onClick={onShowRecommendations}>추천 업체 보기</button>
   </section>;
 
-  if (view === 'info') return (
-    <div className="wf-panel">
-      {error && <p className="wf-alert" role="alert">{error}</p>}
-      {lot.status === 'completed' && <CompletedCard lot={lot} name={name} />}
-      {summary}
-      <section className="wf-evidence-panel" aria-label="최초 폐기물의 법령표 근거">
-        <div className="wf-evidence-panel-head"><div><span>최초 분류 기준</span><h3>재활용 유형과 법령 근거</h3></div><strong>{lot.data.handoff?.waste_code || '분류번호 미정'}</strong></div>
-        <RecyclingTypes assessment={lot.data.recycling} compact />
-        {!lot.data.recycling && <p className="wf-evidence-alert">이 처리 건에 연결된 재활용 유형표 정보가 없어요. 최초 문진의 판정 기록을 확인해 주세요.</p>}
-        {lot.data.completed.length > 0 && <RecyclingTypes followUp />}
-        {diagnosisId && <div className="route-info-links"><a href={`/wastes/case-${diagnosisId}/survey`}>문진 대화</a><a href={`/wastes/case-${diagnosisId}/history`}>판정 기록</a></div>}
-      </section>
-      <LotChecks lot={lot} name={name} warnings={warnings} />
-    </div>
-  );
+  if (view === 'info') return <div className="wf-panel"><WorkflowEvidenceReport lot={lot} /></div>;
 
   if (view === 'recommendations') return <div className="wf-panel wf-recommendations-panel">
     {canReviewNext ? candidateContent : <p className="wf-muted">현재 선택할 다음 업체가 없어요. 인계 현황을 확인해 주세요.</p>}
@@ -727,35 +713,6 @@ function History({ lot, name }) {
       ) : <p className="wf-history-empty">아직 기록이 없어요.</p>}
     </section>
   );
-}
-
-function LotChecks({ lot, name, warnings }) {
-  const offersWithConditions = lot.offers.filter((offer) => offer.data.conditions?.length);
-  return <section className="wf-evidence-panel wf-lot-checks" aria-label="현재 처리 건 확인 사항">
-    <div className="wf-evidence-panel-head"><div><span>물량 · 인계 확인</span><h3>현재 물량 확인 사항</h3></div><strong>{warnings.length}건 확인 필요</strong></div>
-    <div className="wf-current-condition"><span>현재 상태 설명</span><p>{lot.data.current.condition || '설명 없음'}</p></div>
-    {lot.offers.filter(offer => offer.data.messages?.length || offer.data.facility?.supplier_policy).map(offer =>
-      <details className="wf-evidence-accordion" key={`inquiry-${offer.id}`}>
-        <summary>{name(offer.recipient_id)} · 문의 당시 반입조건과 대화</summary>
-        <SupplierPolicySummary value={offer.data.facility?.supplier_policy} />
-        {!!offer.data.messages?.length && <InquiryConversation lot={lot} offer={offer} readOnly />}
-      </details>
-    )}
-    {lot.offers.filter(offer => offer.data.photo_conflict_resolution).map(offer => <PhotoConflictReceipt key={offer.id} value={offer.data.photo_conflict_resolution} />)}
-    {warnings.length > 0 && <div className="wf-evidence-alert"><strong>먼저 확인할 사항</strong><ul>{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
-    {offersWithConditions.map((offer) => <details className="wf-evidence-accordion" key={offer.id}>
-      <summary><span><strong>{name(offer.recipient_id)} 반입 조건</strong><small>{OFFER_STATUS[offer.status] || offer.status} · {offer.data.conditions.length}건</small></span><span className="wf-disclosure-arrow" aria-hidden="true">⌄</span></summary>
-      <div className="wf-evidence-accordion-body"><p className="wf-muted">{OFFER_STATUS[offer.status] || offer.status} · {offer.data.decision?.note}</p>
-        <dl className="wf-check-table">{offer.data.conditions.map((condition) => <div key={condition.id}>
-          <dt>{condition.text}</dt><dd>{offer.data.condition_responses?.[condition.id]?.text || '미제출'}</dd>
-          <dd className="wf-check-state">{offer.data.decision?.resolved_condition_ids?.includes(condition.id) ? '수신기업 확인 완료' : '수신기업 확인 전'}</dd>
-        </div>)}</dl>
-      </div>
-    </details>)}
-    {lot.data.completed.length > 0 && <details className="wf-evidence-accordion"><summary><span><strong>완료된 공정</strong><small>{lot.data.completed.length}건 · 산출물과 근거</small></span><span className="wf-disclosure-arrow" aria-hidden="true">⌄</span></summary><div className="wf-evidence-accordion-body"><ol className="wf-steps">
-      {lot.data.completed.map((step, index) => <li key={index}><strong>{step.facility}</strong> · {stateLabel(lot, step.output.state_key)} {formatKg(step.output.mass_kg)} <span className="wf-muted">(근거: {step.output.evidence})</span></li>)}
-    </ol></div></details>}
-  </section>;
 }
 
 function ProgressStatus({ lot, name }) {

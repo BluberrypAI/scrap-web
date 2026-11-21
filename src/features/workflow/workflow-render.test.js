@@ -171,7 +171,11 @@ test('최신 인계 UI가 조건부·QR·실제 산출물·완료 단계의 행�
     assert.match(evidence, /TEST-FINISH/);
     assert.match(evidence, /시험용 원료/);
     assert.match(evidence, /TEST-OUTPUT/);
-    assert.match(evidence, /최초 분류의 R유형을 자동 적용하지 않으며/);
+    assert.match(evidence, /분류코드와 근거|분류번호와 근거/);
+    assert.match(evidence, /각 업체 선택 근거/);
+    assert.match(evidence, /인수인계·처리 기록/);
+    assert.match(evidence, /PDF로 내보내기/);
+    assert.doesNotMatch(evidence, /현재 물량 확인 사항|처리 건 현황/);
   } finally {
     await vite.close();
   }
