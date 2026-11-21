@@ -1,155 +1,141 @@
-# SCRAP 웹
+<div align="center">
 
-**11/18 로컬 지도 전환:** 회원가입·기업정보 수정의 주소 검색/위치 지정, 업체 후보·인계·순환자원 지도를 카카오 지도에 연결했습니다. `VITE_KAKAO_MAP_APP_KEY`는 JavaScript 키이며 서버용 REST 키와 다릅니다. 인계 지도는 카카오 길찾기의 도로선을 표시합니다. 상세 검증 기록은 server 레포의 `docs/kakao-map-validation-20261118.md`에 있습니다.
+<img src="docs/assets/readme-banner.svg" alt="scrap-web: SCRAP 사용자 화면" width="100%">
 
-업체 후보 카드의 **업체에 보낼 문의서**로 현재 물량·AI 확인사항·질문을 미리 보고 복사하거나 텍스트로 저장할 수 있습니다. 수신 계정이 없는 업체에도 문의 준비가 가능하며 자동 발송·인수 승인은 하지 않습니다. server의 `POST /api/v1/workflow/lots/{id}/inquiry-packet`와 함께 적용하세요. 사업장 변경 후에는 다시 검토해야 합니다.
+<br>
 
-Re:Source AI의 **frontend** 레포. 화면, 3D 시각화, server API 호출을 담당함.
+![React](https://img.shields.io/badge/React-19-7053b7?style=flat-square&logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-7-7053b7?style=flat-square&logo=vite&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-3D-7053b7?style=flat-square&logo=threedotjs&logoColor=white)
+![Kakao Map](https://img.shields.io/badge/지도-Kakao%20·%20MapLibre-c8ef87?style=flat-square&labelColor=24212d)
 
-- 하지 않는 일: DB 직접 접근, ai 직접 호출 (항상 server API를 거침)
+[실행](#실행) · [화면](#화면) · [서버-연동](#서버-연동) · [구조](#구조) · [Docker](#docker)
+
+</div>
+
+SCRAP의 **frontend** 레포. 문진부터 업체 검토·기업 간 인계·법정 서식까지의 화면과 지도·3D 시각화를 담당함.
+
+- 하지 않는 일: DB 직접 접근, diagnosis·route 직접 호출 (항상 scrap-server API를 거침)
 - 팀 공통 규칙: 조직 `.github` 레포의 [CONTRIBUTING.md](https://github.com/BluberrypAI/.github/blob/main/CONTRIBUTING.md)
-
-## 브랜치
-
-작업 브랜치 → `develop` (PR, CI 통과 후 작성자가 병합) → `main` (배포, 서버 담당자)
 
 ## 실행
 
 ```bash
 npm ci
-npm run dev -- --port 5178
+npm run dev        # http://localhost:5173
 ```
 
-## 현재 사용 흐름
+scrap-server가 8000 포트에서 떠 있어야 로그인·문진·인계가 동작함 (server `backend/README.md`의 "프론트엔드와 함께 실행"). 다섯 서비스를 한꺼번에 띄우려면 scrap-infra의 통합 compose를 사용함 (web은 http://localhost:5178).
 
-2026-11-15 세부 재질 연결: 포장재·폐어망·기타 수지·비철 문진에는 서버가 허용한 **확인된 세부 재질**만 보충합니다. 모름·혼합은 보류하고, 재질 변경 시 형태를 초기화합니다. `material_detail`은 첫 후보·AI 검토·물량 등록에 동일하게 전달하며 원래 분류번호는 바꾸지 않습니다. 알루미늄 스크랩 물량 등록·재조회·Azure 검토를 브라우저에서 확인했습니다. 새 세부 재질 20개 형태 클릭, 웹 48개 테스트, production build 통과. server PR #47과 함께 적용하세요. 토큰 없는 지도는 MapLibre worker를 Vite 빌드에 포함해 로딩 오류를 수정했습니다.
+> [!IMPORTANT]
+> 브라우저는 **`http://localhost:5173`** 으로 엶. 소셜 로그인 콜백이 `localhost:8000`으로 오므로 `127.0.0.1`로 열면 로그인 쿠키가 보이지 않음. OAuth 키가 없으면 로그인 화면의 "개발용 로그인"(dev 모드에서만 보임)을 씀.
 
-2026-11-15 경로 보완: 업체가 없는 공정도 **업체 확인이 필요한 공정**에 단계·근거·추가 조건을 표시합니다. 회사 좌표나 Top 5 필터 때문에 공정이 사라지지 않습니다. 공정별 **이 공정의 다른 업체 조사**에서 지역을 정해 공개 검색을 실행할 수 있습니다. 검색 실패와 근거 미발견을 구분하며, 결과를 인계 후보로 자동 승격하지 않습니다. PS 베일 화면의 공정 유지·검색 결과 표시를 실제 브라우저로 확인했습니다. 웹 테스트 47개와 production build 통과.
+```bash
+npm test           # node --test (*.test.js)
+npm run build      # production build → dist/
+```
 
-1. 로그인한 기업으로 **질문으로 바로 시작** 또는 새 문진을 연다. 실제 문진 엔진을 호출하고 서버에 저장한다.
-2. 분류를 확정하면 이미 확인한 재질·위치를 재입력하지 않는다. 필요한 현재 형태·중량·상태 설명·선택 사진을 추가한다.
-3. 처리 건에서 **업체 검토 시작**을 누르면 다음 공정의 후보 전부를 AI가 검토한다. 현재 물량과 업체 공개 자료를 대조하며 최종 인수를 승인하지 않는다.
-4. **이 업체의 반입 확인**에서 출처와 추가 질문을 확인한다. 답변을 저장하면 이전 AI 결과가 지워지고, 재검토 때 함께 전달된다.
-5. B에게 인수를 요청한다. B는 수락·거절·조건부 수락을 선택한다. 조건부이면 A가 조건별 자료를 보내고 B가 모두 확인해야 QR을 발급할 수 있다.
-6. B가 QR로 입고를 확인하고 실제 산출물을 기록한다. 이후에는 B가 그 산출물에 맞는 C 후보를 검토한다. 최종 산출물이라면 완료할 수 있다. 기록은 server DB에 저장되어 참여 기업이 공유한다.
+### 환경변수 (`.env`)
 
-처리 등록은 서버의 확정 문진 결과(`ready`), 허용 형태 목록, 현재 선택의 일치를 따른다. 웹에서 별도 PP·PE 메뉴로 제한하거나 PET 번호를 덮어쓰지 않는다. 서버의 플라스틱 공정 확장을 적용하면 PP·PE·PET·ABS·PS·SAN·PVC·EPS·PA6·PA66·PC/ABS 중 근거가 있는 형태부터 조회할 수 있다. 미확인 소재와 문진 미완료는 계속 보류하며, 모든 수지의 문진 엔진 완주를 검증했다는 뜻은 아니다.
+| 변수 | 설명 |
+| --- | --- |
+| `SCRAP_SERVER_URL` | 개발 서버(Vite)가 `/api/v1`·`/api/treatment`를 넘길 server 주소. 비우면 `http://127.0.0.1:8000` |
+| `VITE_KAKAO_MAP_APP_KEY` | 카카오 지도 SDK **JavaScript 키**. 있으면 지도·주소 위치 지정·인계 도로선을 카카오 지도로 표시. REST 키(서버 전용)를 넣지 않음 |
+| `VITE_MAPBOX_ACCESS_TOKEN` | 카카오 키가 없을 때 MapLibre 지도의 Mapbox 타일용 공개 토큰(`pk.*`). 없으면 OpenStreetMap 타일 |
+| `VITE_ENABLE_DEV_LOGIN` | 빌드에서도 개발용 로그인 버튼 표시 (로컬 통합 실행용, 배포 빌드는 false) |
 
-**전국 명부에서 더 찾기**는 현재 공정의 조사 대상을 페이지별로 보여준다. 소재가 명시된 자료를 먼저 보여주며, 넓은 분류·미확인 코드는 구분한다. 업체별 답변을 확인 목록에 저장할 수 있지만 공정 근거·수신계정이 없는 업체로 인수 요청을 보내지는 않는다. 전국 명부를 적재해야 실제 행이 보인다.
+`VITE_*`는 빌드할 때 코드에 들어가므로 바꾸면 다시 빌드해야 함.
 
-실제 업체 위치 지도는 Mapbox를 사용한다. 토큰이 없으면 OpenStreetMap 기반 지도를 표시하고, 좌표가 없는 기업의 위치·거리 순위를 만들지 않는다. 직선거리를 도로 거리나 운송비로 표시하지 않는다. `VITE_MAPBOX_ACCESS_TOKEN`은 공개용 토큰만 사용한다.
+## 화면
 
-2026-11-15 로컬 통합본은 토큰 없는 지도에 MapLibre를 사용한다. 가입·기업 데이터 관리에서 지도에 사업장 위치를 선택·수정할 수 있다. 주소를 바꾸면 이전 좌표는 해제된다. 거리 순위가 있는 서로 다른 업체 최대 5곳을 우선 표시하고, 나머지와 좌표 미확인 업체는 펼쳐 볼 수 있다. AI 검토는 전체 후보에 적용한다. 문진에 고체 정보가 없는 경우 확인 체크박스를 제공하며, 미지원·빈 후보·오류를 각각 안내한다.
+라우팅은 해시(`#/경로`) 기반이며 [src/lib/router.js](src/lib/router.js)에 있음. `/app`·`/wastes`·`/lots`·`/map`·`/data`는 로그인하고 기업 등록까지 마친 사용자만 봄.
 
-최신 develop에 기존 플라스틱 확장 내용과 이번 수정을 합친 로컬 시험에서 PP·PET·PE 각각 직접/중간 인계, 알루미늄 음료캔 직접 인계 7건이 완료됐다. 인계 시험은 별도 기업 세션의 실제 HTTP/Azure 호출이고, 브라우저에서는 위치 저장·Top 5 지도·완료 이력·누락 상태 확인·빈 결과 안내를 검사했다. 실제 업체 반입·허가 인증이나 모든 소재의 전체 검증을 뜻하지 않는다. web 46개 테스트와 production build 통과. 위 변경은 기존 플라스틱 확장 PR #46에 함께 제공한다.
+| 경로 | 화면 | 데이터 |
+| --- | --- | --- |
+| `/`, `/about` | 랜딩(3D 쇼케이스), 서비스 소개 | 정적 |
+| `/login`, `/onboarding` | 소셜·개발용 로그인, 기업 등록(주소 검색·지도 위치) | server |
+| `/wastes` | 내 폐기물: 문진 건과 처리 중인 물량 카드 | server |
+| `/wastes/case-{id}/survey` | 문진 대화 (말·버튼 답, 판정 보드, 서류 업로드, 질문 답변) | server → diagnosis |
+| `/wastes/case-{id}` | 확정 건의 처리 경로: 형태·중량·사진 → 업체 검토(진행 Orb) → 도로거리순 5곳 → 인수 요청 | server → route |
+| `/wastes/case-{id}/documents` | 법정 서식 제6·12·5호 미리보기·서명·HWPX/PDF 받기 ([설명](src/features/documents/README.md)) | server |
+| `/lots/{id}`, `/lots/{id}/receive/{offer}` | 물량 진행: 문의·조건부 수락·자료 제출·QR 입고·산출물·다음 업체/완료 | server |
+| `/data` | 기업 데이터 관리, 변경 이력, 업체 계정의 반입조건 등록, 탈퇴 | server |
+| `/map`, `/map/{id}` | 순환자원 처리업체 지도·상세 | 정적 시연 데이터(`src/data/handlers.js`) |
+| `/track/{id}` | 이전 시연용 추적 화면 | 정적·브라우저 저장 |
 
-이전 정적 예시·브라우저 저장 추적 화면은 기존 데모다. 위 기업 간 인계는 `features/workflow/`와 `/api/v1/workflow`를 사용한다. 혼동하지 않는다.
+### 사용 흐름
 
-## 이번 변경 검증
+1. 로그인 후 기업을 등록하고 지도에 사업장 위치를 찍음
+2. 새 문진을 열어 질문에 답하고 분류번호를 확정함 (문진 엔진은 server가 중계)
+3. 확정 건에서 현재 형태·중량·상태 설명·사진을 더해 물량을 등록하고 **업체 검토 시작**을 누름. 서버가 도로거리순 가까운 5곳을 AI로 검토하고, 화면은 서버의 실제 진행 단계를 읽어 표시함
+4. 후보 업체(B)에 인수를 요청함. B는 대화에서 반입조건을 확인하고 수락·거절·조건부 수락을 선택함. 조건부면 A가 자료를 내고 B가 모두 확인해야 QR이 발급됨
+5. B가 QR로 입고를 확인하고 실제 산출물을 기록함. 이어서 다음 업체(C) 검토, 보관, 또는 완료를 선택함. 기록은 server DB에 저장되어 참여 기업이 함께 봄
 
-2026-11-14: 서버 확정 형태로 등록 버튼을 표시하고 추가 수지의 입고·산출물 이름을 표시한다. 웹 39개 테스트와 production build 통과. 기존 3D·지도 대형 청크 경고는 남아 있다. 서버의 플라스틱 참조 import와 AI의 추가 소재·HTTP 출처 검토를 먼저 적용한다. 이번에는 소재별 자동/API 검증을 했으며 아래의 브라우저 완주는 이전 PP 검증 기록이다.
+> [!NOTE]
+> AI 검토는 공정 관련성과 공개 근거를 확인할 뿐 반입을 승인하지 않음. 최종 수락은 수신 업체가 함. 지도에는 도로거리가 확인된 업체만 순위로 표시하고, 직선거리를 도로거리처럼 표시하지 않음. 인계 지도의 점선은 카카오 길찾기의 예정 경로이며 실제 차량 GPS가 아님.
 
-- 웹 테스트 38개와 production build 통과. 기존 3D·지도 대형 청크 경고는 남아 있다.
-- 합성 기업 A→B 조건부 수락→자료 제출→최종 확인→QR→B 파쇄품 기록→C 후보 2개 Azure 검토→C QR→펠렛 기록→완료를 브라우저에서 수행했다.
-- 답변 일부만 확인하면 수락할 수 없고, 조건부 상태에서는 QR이 없다. 처리 후에도 조건 확인 기록을 다시 볼 수 있다.
-- 실제 기업의 허가·반입규격·현장 물량을 인증한 시험이 아니다.
-- 적용 순서: `intake_answers`를 지원하는 scrap-ai → 새 조건·명부 API의 scrap-server → 이 웹 버전.
+## 서버 연동
 
-`npm test`와 `npm run build`로 확인한다.
-
-## 서버 API 연동
-
-### 경로 결과가 없을 때
-
-문진 확정 후 `/diagnosis/cases/{id}/treatment/next-step` 응답을 그대로 구분합니다.
-공정 자료 미지원, 공정은 있지만 업체 없음, 조회 실패, 마지막 산출 상태를 별도로 안내하고
-현재 물량과 다음 확인 행동을 남깁니다. 후보가 없다고 재활용 불가·처리 완료로 판단하지 않습니다.
-좌표만 없는 업체는 목록에 남기며, 실제 좌표가 있는 사업장만 지도에 표시합니다.
-
-PET·51-03-01에서 `unsupported`가 나오면 **웹만 갱신하지 말고 연결된 server 버전도 확인**하세요.
-server의 플라스틱 확장 버전은 문진 handoff의 재질이 `pet`, 상태가 `solid`일 때 현재 형태
-`bottle` / `bale` / `flake`를 제공합니다. 문진 번호를 다른 번호로 바꿔 우회하지 않습니다.
-실행 서버의 코드 갱신·재시작과 공정 참조 데이터 적재는 server의 실행 문서를 따릅니다.
-화면 제목만 PET이고 handoff의 재질이 다르면 문진 인계 값부터 확인해야 합니다.
-
-회원·기업 API(`/api/v1`)는 로그인 쿠키(httpOnly) 때문에 **같은 출처**로만 호출합니다. 개발 중에는 Vite가 `/api/v1`을 서버(기본 `http://127.0.0.1:8000`)로 넘기고, 운영에서는 nginx가 넘깁니다. 서버 주소를 바꾸려면 `.env`에 `SCRAP_SERVER_URL`을 둡니다.
-
-1. server 레포를 8000 포트로 실행합니다 (server `backend/README.md`의 "프론트엔드와 함께 실행").
-2. `npm run dev`로 실행하고 **`http://localhost:5173`**을 엽니다. 소셜 로그인 콜백이 `localhost:8000`으로 오므로 `127.0.0.1`로 열면 로그인 쿠키가 보이지 않습니다.
-3. OAuth 키가 없으면 로그인 화면의 "개발용 로그인" 버튼(dev 모드에서만 보임)을 씁니다.
+회원·기업·문진·인계 API(`/api/v1`)와 처리 경로 API(`/api/treatment`)는 로그인 쿠키(httpOnly) 때문에 **같은 출처**로만 호출함. 개발 중에는 Vite가, 운영에서는 nginx가 `/api` 요청을 server로 넘김.
 
 | 파일 | 역할 |
 | --- | --- |
 | [src/lib/api.js](src/lib/api.js) | API 호출. 401이면 토큰을 한 번 재발급하고 다시 보냄. 오류는 서버 형식(`code`, `message`, `details`)의 `ApiError`로 던짐 |
 | [src/lib/session.js](src/lib/session.js) | 로그인 상태 판단 (`signed-out`, `onboarding`, `ready`)과 이동할 화면 결정 |
-| [src/hooks/useSession.js](src/hooks/useSession.js) | 화면에서 로그인 상태를 쓰는 훅. `useRequireSession`은 상태에 맞지 않는 화면이면 로그인·온보딩·앱 화면으로 보냄 |
-| [src/lib/auth.js](src/lib/auth.js) | 헤더 버튼처럼 서버 응답 전에 그려야 하는 곳에서 쓰는 로그인 힌트(localStorage). 기준은 항상 `/users/me` |
+| [src/hooks/useSession.js](src/hooks/useSession.js) | 화면에서 로그인 상태를 쓰는 훅. `useRequireSession`은 상태에 맞지 않으면 로그인·온보딩·앱 화면으로 보냄 |
+| [src/lib/auth.js](src/lib/auth.js) | 서버 응답 전에 그려야 하는 곳에서 쓰는 로그인 힌트(localStorage). 기준은 항상 `/users/me` |
+| [src/features/diagnosis/lib/client.js](src/features/diagnosis/lib/client.js) | 문진 API (`/api/v1/diagnosis/*`) |
+| [src/features/workflow/api.js](src/features/workflow/api.js) | 처리 경로·업체 검토·인계 API (`/api/v1/workflow/*`, `/api/v1/diagnosis/cases/{id}/treatment/*`). 공정별 공개 웹 조사는 [ProcessDiscovery.jsx](src/features/workflow/ProcessDiscovery.jsx)가 `/api/treatment/*`로 호출 |
 
-서버는 로그인 뒤 `/onboarding`, `/login?error=...` 같은 일반 경로로 보냅니다. [src/lib/router.js](src/lib/router.js)가 이를 해시 주소(`/#/onboarding`)로 바꿉니다.
+서버는 로그인 뒤 `/onboarding`, `/login?error=...` 같은 일반 경로로 보내고, [src/lib/router.js](src/lib/router.js)가 이를 해시 주소(`/#/onboarding`)로 바꿈.
 
-## Docker
-
-빌드한 정적 파일을 nginx로 서빙합니다. `/api/` 요청은 `SCRAP_SERVER_URL`(기본값 `http://host.docker.internal:8000`)로 그대로 전달합니다.
-
-여러 업체를 순서대로 AI 검토할 때 기본 60초 제한으로 504가 나던 문제를 수정했습니다. 프록시 응답 대기는 600초이며, 실제 모델 호출은 서버·route의 더 짧은 개별 제한을 따릅니다. 이 설정은 Docker 이미지를 다시 빌드해야 적용됩니다.
-
-기업 등록과 기업 데이터 관리 화면에서 사업장 위치를 지도에 찍어 저장할 수 있습니다. 주소를 바꾸면 좌표를 다시 확인해야 합니다. 서버에서 도로거리를 제공하면 도로거리 기준 최대 5곳을 지도에 표시합니다. 직선거리 응답은 별도 기준으로 표시하며 도로거리와 섞지 않습니다. B 단계는 현재 물량을 보유한 B의 사업장이 출발점입니다. 나머지 업체도 목록과 AI 검토에 포함됩니다. 후보 카드의 근거 부족 사유는 서버의 `evidence_gaps`를 표시합니다.
-
-### 업체 반입조건과 문의
-
-기업 데이터 관리 → **반입조건**에서 자기 계정에 연결된 처리 사업장의 재질·형태, 오염·포장·일정, 물량 범위, 필수 확인 조건을 등록합니다. 후보에서 이 조건을 확인한 뒤 인수 요청을 보내면 A/B가 문의와 답변을 남길 수 있습니다.
-
-필수 조건이 있으면 **조건부 수락 → A 자료 제출 → B 자료 확인·최종 수락 → QR 입고** 순서로 진행합니다. 문의 당시 조건과 대화는 입고 후에도 물량·확인 사항에 남습니다. 업체가 등록한 조건은 자기신고 안내이며 허가 인증이 아닙니다. 물량 범위와 자유서술 조건은 업체가 개별 확인합니다.
-
-server #52의 새 migration `a87485f30805`를 먼저 적용하고 이 웹을 빌드합니다. 새로운 환경변수는 없습니다. 실제 업체 연락 없이 별도 시험 기업 A/B로 위 흐름을 웹에서 확인했으며, 웹 자동 검사 67개와 빌드를 통과했습니다. [서버 검증 결과와 한계](https://github.com/BluberrypAI/scrap-server/blob/fix/e2e-release-20261117/docs/supplier-intake-validation-20261117.md)를 참고하세요.
-
-후속으로 별도 C 계정에서 조건을 등록하고, 같은 처리 건을 **B 산출물 950kg → 9개 후보 AI 검토 → C 문의·답변 → 조건부 수락 → 두 조건의 자료 제출·확인 → QR 입고**까지 웹에서 확인했습니다. A는 B→C를 조회하지만 문의 답변·QR 발급·입고를 대신할 수 없습니다. [B→C 검증 결과](https://github.com/BluberrypAI/scrap-server/blob/fix/e2e-release-20261117/docs/supplier-bc-validation-20261117.md). route #65와 server #52를 함께 적용하면 업체별 단독 검토로 한 곳의 시간초과가 다른 후보에 번지는 것을 줄입니다.
-
-같은 합성 PP 건을 **C 펠렛 900kg·완료 근거 기록 → 처리 완료 → A 재로그인**까지 이어서 확인했습니다. A에서 전체 인계 19건, B/C 공정 2건과 산출물·근거, 완료 업체·시각·용도가 보이고, 완료 건은 진행 목록에서 처리 이력으로 이동합니다. A에게 산출물 기록·완료 수정 버튼은 없습니다. 이번 후속은 실제 웹 검증 기록만 추가하며 실행 코드는 바꾸지 않았습니다. 시험 자료이며 실제 업체 연락·운송·재활용 인증은 수행하지 않았습니다.
-
-```bash
-docker build -t scrap-web .
-docker run --rm -p 8080:80 -e SCRAP_SERVER_URL=http://host.docker.internal:8000 scrap-web
-```
-
-`http://localhost:8080`에서 확인합니다. 서버를 같은 Docker 네트워크에서 실행한다면 `SCRAP_SERVER_URL`을 서버 컨테이너 주소(예: `http://backend:8000`)로 바꿉니다.
+처리 경로 결과가 비면 서버 응답을 그대로 구분해 안내함: 공정 자료 미지원, 공정은 있지만 업체 없음, 조회 실패, 마지막 산출 상태. 후보가 없다고 재활용 불가·처리 완료로 판단하지 않음. 문진 번호를 다른 번호로 바꿔 우회하지 않으며, 지원 범위는 연결된 server 버전과 공정 참조 데이터를 따름.
 
 ## 구조
 
-Vite + React 19 프로젝트입니다. 라우팅은 해시(`#/경로`) 기반이며 [src/lib/router.js](src/lib/router.js)에 있습니다.
-
 ```
 index.html              # <div id="root"> + src/main.jsx
-public/                 # 그대로 서빙되는 정적 파일 (이미지, 파비콘)
+public/                 # 그대로 서빙되는 정적 파일 (이미지, 파비콘, 법정 서식 그림·칸 위치)
 src/
-├─ main.jsx             # 진입점: 라우팅 설치, 전역 CSS, 렌더링
-├─ App.jsx              # 최상위 경로 분기 (/, /about, /login, /onboarding, 앱 화면)
-├─ layouts/AppShell.jsx # 상단 내비게이션이 있는 앱 화면과 작업(L3) 화면 분기
-├─ pages/               # 화면 단위 컴포넌트 (landing, about, auth, wastes, waste-detail, survey, map, data, report …)
-├─ components/          # 여러 화면에서 쓰는 컴포넌트 (Icon, SiteFooter, AppTopNav, WorkBar …)
-├─ hooks/               # 공용 훅 (useSession: 로그인 상태)
-├─ lib/                 # 라우팅(router.js), 서버 API 호출(api.js), 로그인 상태 판단(session.js)
-├─ data/                # 시연용 정적 데이터 (폐기물, 업체, 메뉴)
-├─ features/workflow/   # 기업 계정·후보별 질문·조건부 수락·QR·산출물 (server DB)
-├─ features/treatment/  # 처리경로 추적 기능 (상태·증빙 로직, 3D 모식도, 테스트)
-├─ assets/              # import해서 쓰는 이미지
-└─ styles/global.css    # 전역 스타일
+├─ main.jsx · App.jsx   # 진입점, 최상위 경로 분기 (/, /about, /login, /onboarding, /track, 앱 화면)
+├─ layouts/AppShell.jsx # 상단 내비게이션이 있는 앱 화면과 작업 화면 분기
+├─ features/
+│  ├─ diagnosis/        # 문진 대화·이력, 판정 보드, 서류 업로드
+│  ├─ workflow/         # 처리 경로·업체 검토(Orb)·후보 지도·인수 요청·조건·QR·산출물·반입조건
+│  ├─ documents/        # 법정 서식 작성 (미리보기, 서명·도장)
+│  ├─ treatment/        # 처리 경로 상태·증빙 로직, 3D 모식도
+│  └─ tracking/         # 시연용 추적 화면의 현장 확인 기록 (브라우저 저장)
+├─ pages/               # 화면 단위 (landing, about, auth, wastes, waste-detail, data, map, survey, match, report)
+├─ components/          # 공용 컴포넌트 (상단 내비, 알림함, 사업장 위치 선택, 투어 …)
+├─ hooks/ · lib/        # 로그인 상태 훅, 라우팅·API·세션·지도 스타일
+├─ data/                # 시연용 정적 데이터 (처리업체, 폐기물 예시, 메뉴)
+└─ styles/global.css    # 전역 스타일·색 토큰 (SCRAP 보라 #7053b7, 라임 #c8ef87)
 ```
 
-화면 문구나 레이아웃은 `src/pages/` 아래 해당 화면 파일을 고치면 됩니다. 스타일은 `src/styles/global.css`의 클래스명을 그대로 사용합니다.
+화면 문구나 레이아웃은 해당 화면 파일을 고치면 됨. 색은 `global.css`의 `--color-*` 토큰을 사용함 (라이트·다크 모두 정의).
 
-## 업체 검토 진행 화면과 예정 경로
+## Docker
 
-문진에서 이미 명확히 말한 현재 형태는 서버 응답으로 자동 적용합니다. 원문과 ‘형태 수정’을 보여주고, 누락·불명확한 경우에만 형태 선택을 표시합니다. 소재·분류번호는 기존 문진 값을 유지하며 물량 등록에 실제 적용된 형태를 보냅니다.
+빌드한 정적 파일을 nginx로 서빙하고 `/api/` 요청을 `SCRAP_SERVER_URL`(기본 `http://host.docker.internal:8000`)로 전달함.
 
-새 검토 작업 API로 시작하고 실제 서버 단계를 주기적으로 읽어 예전 아고라의 Thinking Orb 아래 안내를 바꿉니다. 새로고침 후 진행을 복원하고, 경과 시간으로 단계를 가정하지 않습니다. 가까운 5곳을 우선 검토·보충한 결과와 별도의 추가 확인·미검토 목록을 보여줍니다.
+```bash
+docker build -t scrap-web --build-arg VITE_KAKAO_MAP_APP_KEY=<JavaScript 키> .
+docker run --rm -p 8080:80 -e SCRAP_SERVER_URL=http://host.docker.internal:8000 scrap-web
+```
 
-인수 요청 대기부터 두 사업장과 카카오 예정 도로 경로(점선)를 표시하며 운송 시작·입고 구간(실선)과 구분합니다. 실제 차량 GPS가 아닙니다. 새 server·route와 함께 적용해야 합니다.
+http://localhost:8080 에서 확인함. 서버를 같은 Docker 네트워크에서 실행한다면 `SCRAP_SERVER_URL`을 서버 컨테이너 주소(예: `http://server:8000`)로 바꿈.
 
-컨테이너 웹 프록시는 실행 환경의 DNS로 server 주소를 주기적으로 다시 확인합니다. 서버 컨테이너 재생성 후 이전 IP로 연결돼 로그인/API가 404가 되는 문제를 방지합니다. DNS 주소는 Docker 전용 값으로 고정하지 않습니다.
+- 프록시 응답 대기는 600초 (여러 업체 AI 검토가 기본 60초에 잘리지 않게). 실제 모델 호출은 server·route의 개별 제한을 따름
+- 서버 컨테이너가 다시 만들어져 IP가 바뀌어도 실행 환경의 DNS로 다시 찾음 ([nginx/](nginx/))
+- `/assets/`는 1년, `/images/`는 하루 캐시
 
-## SCRAP 보라색 Orb와 공개 근거 재사용
+## 브랜치·배포
 
-현재 후보 화면은 공정 관련 업체를 **공정 전체에서 도로거리순 최대 5곳** 보여줍니다. 증빙 추가 문진과 반복 확인 목록을 빼고, 근거와 사진·상태 검토는 필요할 때 펼칩니다. 사진·상태·중량을 보내면 B가 기존 문의 대화에서 반입조건을 확인하고 수락합니다. B의 수락 확인은 한 체크박스로 모았으며, B가 직접 요구한 조건부 수락과 QR 절차는 유지합니다.
+작업 브랜치 → `develop` (PR, CI 통과 후 작성자가 병합) → `main` (배포, 서버 담당자)
 
-Thinking Orb의 구형 점·궤도 움직임은 유지하고 SCRAP 보라색(#7053b7) 계열을 적용했습니다. 실제 서버의 공개 근거 조회·재사용 단계와 이번 물량 검토 단계를 나눠 안내하고 공개 캐시 재사용 건수를 표시합니다. 업체 공개 근거는 여러 처리 건에서 재사용하되 사진·상태 판단은 이번 물량에 맞게 새로 검토합니다.
+| 워크플로 | 하는 일 |
+| --- | --- |
+| [ci.yml](.github/workflows/ci.yml) | Node 22에서 `npm ci` → build → test |
+| [deploy-azure.yml](.github/workflows/deploy-azure.yml) | main 병합 시 이미지를 ACR `:main`으로 push → ACR 웹훅으로 App Service 재시작 (Front Door 뒤) |
+
+날짜별 검증 기록은 [docs/](docs/)에 있음.
