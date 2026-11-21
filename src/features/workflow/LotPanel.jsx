@@ -732,8 +732,9 @@ function ProgressStatus({ lot, name }) {
 }
 
 function HandoffMap({ lot }) {
-  const origin = lot.data.initial?.origin;
   const handoffs = lot.offers.filter((offer) => ['pending', 'conditional', 'accepted', 'received', 'processed'].includes(offer.status));
+  const origin = [lot.data.initial?.origin, ...handoffs.map((offer) => offer.data.origin)].find(validLocation) || null;
+  const originName = lot.companies[lot.owner_company_id];
   const [road, setRoad] = useState(null);
   const routeKey = JSON.stringify(handoffs.map(offer => [offer.id, offer.status, !!offer.data.dispatch, offer.data.origin, offer.data.facility?.location]));
   useEffect(() => {
@@ -762,7 +763,7 @@ function HandoffMap({ lot }) {
   return <section className="wf-handoff-map" aria-label="인계 사업장 지도">
     <header><strong>인계 경로</strong><span>{plannedRouteLines.length ? '점선: 예정 경로 · 실선: 운송·입고 구간' : '운송·입고 사업장'}</span></header>
     <div className="wf-handoff-map-canvas"><Suspense fallback={<p>지도를 불러오는 중이에요.</p>}>
-      <ResourceMapbox factories={factories} origin={validLocation(origin) ? { ...origin, label: '배출 사업장' } : null}
+      <ResourceMapbox factories={factories} origin={origin ? { ...origin, label: originName ? `${originName} · 최초 배출지` : '처음 배출지', logo: true } : null}
         routeLines={routeLines} plannedRouteLines={plannedRouteLines} label="인계 사업장과 조회된 자동차 도로 경로 지도" />
     </Suspense></div>
     <p>{!handoffs.length ? '인수 요청을 보내면 두 사업장과 예정 도로 경로를 표시해요.' : !road ? '도로 경로를 조회하고 있어요.'

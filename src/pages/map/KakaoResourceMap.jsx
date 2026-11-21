@@ -64,9 +64,10 @@ export function KakaoResourceMap({ factories = [], selectedId, focusId, onSelect
       if (origin) {
         const p = position(origin);
         const element = document.createElement('div'); element.className = 'resource-origin-marker';
-        const dot = document.createElement('span');
+        const symbol = origin.logo ? document.createElement('img') : document.createElement('span');
+        if (origin.logo) { symbol.src = '/images/scrap-compass-2d-purple.png'; symbol.alt = ''; symbol.setAttribute('aria-hidden', 'true'); }
         const name = document.createElement('strong'); name.textContent = origin.label || '우리 사업장';
-        element.append(dot, name);
+        element.append(symbol, name);
         const overlay = new maps.CustomOverlay({ map, position: p, content: element, yAnchor: 1 });
         overlays.push(overlay); extend(p);
         if (callbacks.current.onPick) {
@@ -87,7 +88,7 @@ export function KakaoResourceMap({ factories = [], selectedId, focusId, onSelect
         overlays.push(new maps.Polyline({ map, path, strokeWeight: 5, strokeColor: '#7754a6', strokeOpacity: planned ? .8 : 1, strokeStyle: planned ? 'dash' : 'solid' }));
         path.forEach(extend);
       }
-      if (points > 1) map.setBounds(bounds, 65, 65, 65, 65);
+      if (points > 1) map.setBounds(bounds, origin?.logo ? 95 : 65, origin?.logo ? 85 : 65, origin?.logo ? 85 : 65, origin?.logo ? 85 : 65);
       if (callbacks.current.onPick) {
         const pick = event => callbacks.current.onPick?.({ latitude: event.latLng.getLat(), longitude: event.latLng.getLng() });
         maps.event.addListener(map, 'click', pick); listeners.push([map, 'click', pick]);
