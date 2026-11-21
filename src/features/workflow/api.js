@@ -4,6 +4,14 @@
 import { apiFetch } from '../../lib/api.js';
 
 const enc = encodeURIComponent;
+const inquiryPath = (lotId, key) => `/workflow/lots/${enc(lotId)}/inquiries/${enc(key)}`;
+const replyPath = (id) => `/workflow/inquiry-replies/${enc(id)}`;
+
+export const publicInquiryApi = {
+  read: (token) => apiFetch(`/public/inquiry-replies/${enc(token)}`, { publicRequest: true }),
+  submit: (token, body) =>
+    apiFetch(`/public/inquiry-replies/${enc(token)}`, { publicRequest: true, method: 'POST', body }),
+};
 
 // 서버의 HTTPException은 {detail: "문구"}, 공통 오류는 {code, message} 형식이다. ApiError가 둘 다 message로 읽는다.
 export const workflowApi = {
@@ -66,6 +74,14 @@ export const workflowApi = {
     apiFetch(`/workflow/lots/${enc(lot.id)}/inquiry-packet`, {
       method: 'POST', body: { revision: lot.revision, capability_key: capabilityKey },
     }),
+  inquiryReplies: (lotId, key) => apiFetch(`${inquiryPath(lotId, key)}/replies`),
+  addInquiryReply: (lotId, key, body) =>
+    apiFetch(`${inquiryPath(lotId, key)}/replies`, { method: 'POST', body }),
+  inquiryReplyFile: (id) => apiFetch(`${replyPath(id)}/file`, { responseType: 'blob' }),
+  deleteInquiryReply: (id) => apiFetch(replyPath(id), { method: 'DELETE' }),
+  replyLink: (lotId, key) => apiFetch(`${inquiryPath(lotId, key)}/reply-link`),
+  issueReplyLink: (lotId, key) => apiFetch(`${inquiryPath(lotId, key)}/reply-link`, { method: 'POST' }),
+  revokeReplyLink: (lotId, key) => apiFetch(`${inquiryPath(lotId, key)}/reply-link`, { method: 'DELETE' }),
   getOffer: (offerId) => apiFetch(`/workflow/offers/${enc(offerId)}`),
   saveIntakeAnswers: (lot, capabilityKey, answers) => apiFetch(`/workflow/lots/${enc(lot.id)}/intake-answers`, {
     method: 'POST', body: { revision: lot.revision, capability_key: capabilityKey, answers },

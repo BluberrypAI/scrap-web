@@ -39,21 +39,23 @@ function refreshSession() {
   return refreshing;
 }
 
-export async function apiFetch(path, { method = 'GET', body, query, retry = true } = {}) {
+export async function apiFetch(path, { method = 'GET', body, query, retry = true, publicRequest = false, responseType = 'json' } = {}) {
   const search = query ? `?${new URLSearchParams(query)}` : '';
   // 파일 업로드(FormData)는 브라우저가 경계값을 담은 Content-Type을 직접 붙인다
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
   const res = await fetch(`${BASE}${path}${search}`, {
     method,
-    credentials: 'same-origin',
+    credentials: publicRequest ? 'omit' : 'same-origin',
+    cache: publicRequest ? 'no-store' : undefined,
     headers: body === undefined || isForm ? undefined : { 'Content-Type': 'application/json' },
     body: body === undefined || isForm ? body : JSON.stringify(body),
   });
 
-  if (res.status === 401 && retry && !path.startsWith('/auth/')) {
-    if (await refreshSession()) return apiFetch(path, { method, body, query, retry: false });
+  if (res.status === 401 && retry && !publicRequest && !path.startsWith('/auth/')) {
+    if (await refreshSession()) return apiFetch(path, { method, body, query, retry: false, responseType });
   }
   if (res.status === 204) return null;
+  if (res.ok && responseType === 'blob') return res.blob();
 
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new ApiError(res.status, data);

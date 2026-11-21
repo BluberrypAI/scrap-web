@@ -2,6 +2,7 @@ import { canRequestIntake, invalidReviewPhotos } from './review-policy.js';
 import { ReviewOrb, reviewIsRunning } from './ReviewOrb.jsx';
 import { PhotoConflict, PhotoConflictReceipt } from './PhotoConflict.jsx';
 import { InquiryPacket } from './InquiryPacket.jsx';
+import { InquiryReplies } from './InquiryReplies.jsx';
 import { SupplierPolicySummary, InquiryConversation } from './SupplierPolicy.jsx';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '../../hooks/useSession.js';
@@ -358,6 +359,7 @@ function PhotoSection({ lot, photos, busy, error, onAdd, onDelete }) {
 }
 
 function CandidateSection({ lot, busy, error, offerFailed, onReview, onOffer, onAnswers, onDirectorySave, showRecycling }) {
+  const issuedLinks = useRef(new Map());
   const review = lot.review;
   if (invalidReviewPhotos(review).length || lot.photo_conflict_gate?.invalid_photos?.length) return null;
   const next = review?.next_step;
@@ -433,7 +435,8 @@ function CandidateSection({ lot, busy, error, offerFailed, onReview, onOffer, on
           requestState={(facility, result) => requestState(facility, result).badge}
           renderAction={(facility, result) => {
             const state = requestState(facility, result);
-            const packet = <InquiryPacket lot={lot} facility={facility} busy={!!busy} />;
+            const packet = <InquiryPacket key={`${lot.id}:${lot.revision}:${review.at}`} lot={lot}
+              facility={facility} busy={!!busy} issuedLinks={issuedLinks.current} />;
             return <><FacilityNextStep tone={state.badge.tone} title={state.title}
               actions={state.badge.tone === 'ready' ? <>
                 <button className="button button-primary" type="button" disabled={!!busy}
@@ -445,6 +448,7 @@ function CandidateSection({ lot, busy, error, offerFailed, onReview, onOffer, on
               {state.text}
             </FacilityNextStep>
               {offerFailed && <p className="wf-alert candidate-sheet-error" role="alert">인수 요청을 보내지 못했어요. {error}</p>}
+              <InquiryReplies key={lot.id} lotId={lot.id} capabilityKey={facility.capability_key} busy={!!busy} />
             </>;
           }}
           renderDetailExtra={(facility) => <SupplierPolicySummary value={facility.supplier_policy} />}

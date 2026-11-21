@@ -12,7 +12,7 @@ function json(status, body) {
 function stubFetch(responses) {
   const calls = [];
   globalThis.fetch = async (url, init) => {
-    calls.push({ url, method: init?.method ?? 'GET', body: init?.body });
+    calls.push({ url, method: init?.method ?? 'GET', body: init?.body, credentials: init?.credentials, cache: init?.cache });
     const next = responses.shift();
     if (!next) throw new Error(`unexpected request: ${url}`);
     return next;
@@ -27,6 +27,15 @@ test('같은 출처의 /api/v1로 쿠키를 담아 호출한다', async () => {
 
   assert.equal(me.id, 'u1');
   assert.deepEqual(calls.map((c) => c.url), ['/api/v1/users/me']);
+  assert.equal(calls[0].credentials, 'same-origin');
+});
+
+test('공개 요청은 401 응답에도 쿠키와 토큰 재발급을 쓰지 않는다', async () => {
+  const calls = stubFetch([json(401)]);
+  await assert.rejects(apiFetch('/public/inquiry-replies/demo', { publicRequest: true }), { status: 401 });
+  assert.deepEqual(calls.map(({ url, credentials, cache }) => ({ url, credentials, cache })), [
+    { url: '/api/v1/public/inquiry-replies/demo', credentials: 'omit', cache: 'no-store' },
+  ]);
 });
 
 test('401이면 토큰을 한 번 재발급하고 원래 요청을 다시 보낸다', async () => {

@@ -13,6 +13,10 @@ export function navigate(url) {
   location.hash = '#' + url;
 }
 
+export function inquiryReplyToken(path) {
+  return /^\/reply\/([^/]+)$/.exec(path)?.[1] ?? null;
+}
+
 // 서버는 로그인 뒤 /onboarding, /login?error=... 같은 일반 경로로 보낸다.
 // 이 화면은 해시 라우팅이므로 같은 화면의 해시 주소로 바꾼다. 바꿀 필요가 없으면 null.
 export function hashUrlFor(pathname, search = '') {

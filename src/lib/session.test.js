@@ -52,3 +52,10 @@ test('상태에 따라 이동할 화면을 정한다', () => {
   assert.equal(redirectFor({ status: 'ready' }, '/login'), '/wastes');
   assert.equal(redirectFor({ status: 'ready' }, '/data'), null);
 });
+
+test('공개 답장 경로에서는 로그인 상태와 관계없이 이동하지 않는다', () => {
+  for (const status of ['signed-out', 'onboarding', 'ready']) {
+    assert.equal(redirectFor({ status }, '/reply/demo-token'), null);
+  }
+  assert.equal(redirectFor({ status: 'signed-out' }, '/reply/demo-token/extra'), '/login');
+});

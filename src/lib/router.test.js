@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { hashUrlFor } from './router.js';
+import { hashUrlFor, inquiryReplyToken } from './router.js';
 
 test('서버가 보낸 일반 경로를 해시 주소로 바꾼다', () => {
   assert.equal(hashUrlFor('/onboarding'), '/#/onboarding');
@@ -12,4 +12,10 @@ test('루트와 index.html은 바꾸지 않는다', () => {
   assert.equal(hashUrlFor('/'), null);
   assert.equal(hashUrlFor(''), null);
   assert.equal(hashUrlFor('/index.html'), null);
+});
+
+test('공개 답장 해시는 단일 토큰 경로로 확인한다', () => {
+  assert.equal(inquiryReplyToken('/reply/AbC_01-demo'), 'AbC_01-demo');
+  assert.equal(inquiryReplyToken('/reply/'), null);
+  assert.equal(inquiryReplyToken('/reply/demo/more'), null);
 });

@@ -1,5 +1,6 @@
 import { AppShell } from './layouts/AppShell.jsx';
-import { currentRoute } from './lib/router.js';
+import { currentRoute, inquiryReplyToken } from './lib/router.js';
+import { PublicInquiryReply } from './features/workflow/PublicInquiryReply.jsx';
 import { AboutPage } from './pages/about/AboutPage.jsx';
 import { LoginPage } from './pages/auth/LoginPage.jsx';
 import { OnboardingPage } from './pages/auth/OnboardingPage.jsx';
@@ -42,8 +43,9 @@ export function App() {
     return () => window.removeEventListener('hashchange', updateRoute);
   }, []);
 
+  const replyToken = inquiryReplyToken(route.path);
   React.useEffect(() => {
-    if (route.path === '/') return undefined;
+    if (route.path === '/' || replyToken) return undefined;
     const preload = () => { preloadMeadowShowcase().catch(() => {}); };
     if ('requestIdleCallback' in window) {
       const id = window.requestIdleCallback(preload, { timeout: 1500 });
@@ -51,11 +53,12 @@ export function App() {
     }
     const id = window.setTimeout(preload, 250);
     return () => window.clearTimeout(id);
-  }, [route.path]);
+  }, [route.path, replyToken]);
 
   let e = route.path.replace(/\/+$/, '') || '/';
   // 소셜 로그인 뒤 랜딩으로 돌아왔을 때 입고 QR처럼 저장해 둔 화면으로 이어 간다
   useResumeReturnPath(e === '/');
+  if (replyToken) return <PublicInquiryReply key={replyToken} token={replyToken} />;
   const page =e.startsWith('/track/') ? (
     <TrackingPage wasteId={decodeURIComponent(e.slice('/track/'.length))} />
   ) : e === '/about' ? (
