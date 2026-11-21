@@ -204,12 +204,14 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   );
 
   const candidateContent = canReviewNext && <>
-    <PhotoSection lot={lot} photos={stagePhotos} busy={busy} onAdd={(file, photoId = null) => run('photo', () => workflowApi.addPhoto(lot.id, file, photoId ? { photoId, revision: lot.revision } : null))} />
+    <PhotoSection lot={lot} photos={stagePhotos} busy={busy} error={failure?.action === 'photo' || failure?.action === 'photo-delete' ? error : ''}
+      onAdd={(file) => run('photo', () => workflowApi.addPhoto(lot.id, file))}
+      onDelete={(photoId) => run('photo-delete', () => workflowApi.removePhoto(lot, photoId))} />
     <PhotoConflict key={`conflict-${lot.revision}-${lot.review?.at}`} lot={lot} busy={busy} onResolve={body => run('conflict', () => workflowApi.resolvePhotoConflict(lot, body))} />
     <CandidateSection
       key={`${stage}:${current.state_key}`}
       lot={lot}
-      error={error}
+      error={failure?.action === 'photo' || failure?.action === 'photo-delete' ? '' : error}
       offerFailed={failure?.action === 'offer'}
       showRecycling={showRecycling}
       busy={busy}
@@ -315,7 +317,7 @@ function CompletedCard({ lot, name }) {
   );
 }
 
-function PhotoSection({ lot, photos, busy, onAdd }) {
+function PhotoSection({ lot, photos, busy, error, onAdd, onDelete }) {
   return (
     <section className="wf-card wf-photo-section">
       <div className="wf-photo-head">
@@ -324,12 +326,10 @@ function PhotoSection({ lot, photos, busy, onAdd }) {
       <p className="wf-muted">사진과 상태 설명은 업체 검토를 위해 AI(Azure)로 전달돼요. JPEG·PNG·WebP, 3MB 이하.</p>
       <div className="wf-photos wf-photo-list">
         {photos.map((p, index) => (
-          <div key={p.id}>
+          <div className="wf-photo-item" key={p.id}>
             <img src={workflowApi.photoUrl(p)} alt={`현재 물량 사진 ${index + 1}`} loading="lazy" />
-            <label className="button button-quiet button-small wf-file">사진 {index + 1} 교체
-              <input type="file" aria-label={`사진 ${index + 1} 교체`} accept="image/jpeg,image/png,image/webp" disabled={!!busy}
-                onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) onAdd(file, p.id); }} />
-            </label>
+            <button className="wf-photo-delete" type="button" aria-label={`사진 ${index + 1} 삭제`} title={`사진 ${index + 1} 삭제`}
+              disabled={!!busy} onClick={() => onDelete(p.id)}>×</button>
           </div>
         ))}
         {photos.length < 4 && (
@@ -348,6 +348,7 @@ function PhotoSection({ lot, photos, busy, onAdd }) {
           </label>
         )}
       </div>
+      {error && <p className="wf-alert" role="alert">사진을 변경하지 못했어요. {error}</p>}
       {lot.review && <p className="wf-muted">사진을 바꾸면 업체 검토를 다시 해야 해요.</p>}
     </section>
   );

@@ -274,7 +274,8 @@ test('캐릭터 사진은 교체 안내만 표시하고 확인 체크·후보 �
     const html = renderToStaticMarkup(React.createElement(LotPanel, { lotId: lot.id, initialLot: lot }));
     assert.match(html, /폐기물 사진이 아니에요/);
     assert.doesNotMatch(html, /보라색 캐릭터 그림/);
-    assert.match(html, /사진 1 교체/);
+    assert.match(html, /사진 1 삭제/);
+    assert.doesNotMatch(html, /사진 1 교체/);
     assert.match(html, /현재 물량 사진 \(1\/4\)/);
     assert.doesNotMatch(html, /old.jpg|표시되면 안 되는 후보|기존 설명 확인 내용 기록|AI 검토하고 후보 보기|에 인수 요청 보내기/);
   } finally { await vite.close(); }
