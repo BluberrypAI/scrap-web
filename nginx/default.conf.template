@@ -29,6 +29,12 @@ server {
         add_header Cache-Control "public, immutable";
     }
 
+    # public/images는 파일명에 해시가 없어 하루만 캐시한다 (바꾸면 하루 안에 반영, 급하면 Front Door 퍼지)
+    location /images/ {
+        expires 1d;
+        add_header Cache-Control "public";
+    }
+
     # 해시 라우팅이라 index.html 하나로 모든 화면을 연다
     location / {
         try_files $uri $uri/ /index.html;
