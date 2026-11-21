@@ -6,6 +6,8 @@ import { ApiError, api } from '../../lib/api.js';
 import { rememberSession } from '../../lib/auth.js';
 import { navigate } from '../../lib/router.js';
 import { SiteLocationPicker } from '../../components/SiteLocationPicker.jsx';
+import { SiteConditionsFields } from '../../components/SiteConditionsFields.jsx';
+import { siteConditionsDraft, siteConditionsPayload } from '../../lib/siteConditions.js';
 
 const facilityOptions = ['폐수처리시설', '혼합시설', '세척시설', '반응시설', '건조시설', '저장시설', '선별시설', '파쇄시설', '압출·성형시설'];
 // 서버와 같은 형식 검사 (companies/schemas.py EMAIL_PATTERN)
@@ -21,11 +23,13 @@ function stepProblem(step, values) {
     if (!values.address.trim()) return '사업장 위치를 입력해 주세요.';
   }
   if (step === 1 && values.facilities.length === 0) return '배출시설을 하나 이상 선택해 주세요.';
+  if (step === 1) return siteConditionsPayload(values.siteConditions).error || '';
   return '';
 }
 
 export function OnboardingPage() {
   const [sitePoint, setSitePoint] = useState(null);
+  const [siteConditions, setSiteConditions] = useState(() => siteConditionsDraft(null));
   let [e, t] = useState(0),
     [n, r] = useState(''),
     [i, a] = useState(''),
@@ -75,6 +79,7 @@ export function OnboardingPage() {
           site_facilities: o,
           main_products: withPending(c, f),
           main_waste_types: withPending(mainWastes, wasteInput).map((category) => ({ category })),
+          ...siteConditionsPayload(siteConditions).values,
         });
         rememberSession({ status: 'ready' });
         resetSession();
@@ -105,6 +110,7 @@ export function OnboardingPage() {
         industry: n,
         address: i,
         facilities: o,
+        siteConditions,
       });
       setProblem(found);
       if (found) return;
@@ -219,6 +225,18 @@ export function OnboardingPage() {
                     {e}
                   </button>
                 ))}
+              </div>
+              <div className="step-intro">
+                <h2>폐기물 분류에 쓰는 사업장 정보 <small>선택</small></h2>
+                <p>한 번 입력하면 폐기물마다 다시 묻지 않아요. 모르면 비워 두면 문진에서 물어봐요.</p>
+              </div>
+              <div className="onboarding-optional-grid">
+                <SiteConditionsFields
+                  draft={siteConditions}
+                  onChange={setSiteConditions}
+                  fieldClassName="onboarding-field"
+                  disabled={submitting}
+                />
               </div>
             </section>
           )}

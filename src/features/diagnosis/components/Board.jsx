@@ -10,12 +10,25 @@ function FactRow({ f, locked, onReply }) {
   // 소재 고치기도 처리업체 연결까지 검증된 재질로만 바꿀 수 있게 한다
   const e = f.edit?.options ? { ...f.edit, options: limitOptions(f.key, f.edit.options) } : f.edit || {};
   const badge = f.status === 'EVIDENCED' ? '서류로 확인' : f.source_type === 'UTTERANCE' ? '직접 답변' : f.source_label;
+  // 고치기 하나로 값 변경과 '모름'을 함께 처리한다(되돌리기 버튼은 2026-11-21 합침)
+  const UNKNOWN = '__unknown__';
+  const optionValue = (o) => (o.kind === 'unknown' ? UNKNOWN : String(o.value));
   const save = () => {
+    if (val === UNKNOWN) {
+      onReply({ key: f.key, kind: 'unknown' }, `${f.label}: 모름`);
+      setEditing(false);
+      return;
+    }
     let v = val;
+    let label = val;
     if (e.input === 'number' || e.value_type === 'number') v = Number(val);
-    else if (e.options) v = e.options.find((o) => String(o.value) === val)?.value;
+    else if (e.options) {
+      const picked = e.options.find((o) => optionValue(o) === val);
+      v = picked?.value;
+      label = picked?.label ?? val;
+    }
     if (v === undefined || v === '' || Number.isNaN(v)) return;
-    onReply({ key: f.key, kind: 'value', value: v }, `${f.label}: ${v}`);
+    onReply({ key: f.key, kind: 'value', value: v }, `${f.label}: ${label}`);
     setEditing(false);
   };
   return (
@@ -26,7 +39,6 @@ function FactRow({ f, locked, onReply }) {
         {f.editable && !locked && !editing && (
           <span className="board-actions">
             <button type="button" className="button button-link" onClick={() => setEditing(true)}>고치기</button>
-            <button type="button" className="button button-link" onClick={() => onReply({ key: f.key, kind: 'retract' }, `${f.label}: 모름으로 되돌리기`)}>되돌리기</button>
           </span>
         )}
       </div>
@@ -35,10 +47,13 @@ function FactRow({ f, locked, onReply }) {
           {e.options ? (
             <select className="wd-input" aria-label={`${f.label} 값`} value={val} onChange={(ev) => setVal(ev.target.value)}>
               <option value="">선택</option>
-              {e.options.map((o) => <option key={String(o.value)} value={String(o.value)}>{o.label}</option>)}
+              {e.options.map((o) => <option key={optionValue(o)} value={optionValue(o)}>{o.label}</option>)}
             </select>
           ) : (
-            <input className="wd-input" type="number" aria-label={`${f.label} 값`} value={val} onChange={(ev) => setVal(ev.target.value)} />
+            <>
+              <input className="wd-input" type="number" aria-label={`${f.label} 값`} value={val === UNKNOWN ? '' : val} onChange={(ev) => setVal(ev.target.value)} />
+              <button type="button" className="button button-small button-quiet" onClick={() => { onReply({ key: f.key, kind: 'unknown' }, `${f.label}: 모름`); setEditing(false); }}>모름</button>
+            </>
           )}
           <button type="button" className="button button-small button-primary" onClick={save}>저장</button>
           <button type="button" className="button button-small button-quiet" onClick={() => setEditing(false)}>취소</button>
@@ -77,7 +92,7 @@ function mergeRows(board) {
   ].sort((a, b) => rank(a.key) - rank(b.key));
 }
 
-/** 판정 보드(ui.board). 고치기·되돌리기는 onReply(quick_reply, 라벨)로 보낸다 */
+/** 판정 보드(ui.board). 고치기(값·모름)는 onReply(quick_reply, 라벨)로 보낸다 */
 export default function Board({ board, locked, onReply }) {
   const p = board.progress;
   const rows = mergeRows(board);
