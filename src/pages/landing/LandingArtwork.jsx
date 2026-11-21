@@ -72,7 +72,7 @@ export function LandingArtwork() {
         }}
         style={{ transform: `perspective(900px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)` }}
       >
-        <img src="/images/scrap-compass-3d.png" alt="" draggable="false" />
+        <img src="/images/scrap-compass-3d.webp" alt="" draggable="false" />
       </div>
     </div>
   );
