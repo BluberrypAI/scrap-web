@@ -320,21 +320,6 @@ function PhotoSection({ lot, photos, busy, onAdd }) {
     <section className="wf-card wf-photo-section">
       <div className="wf-photo-head">
         <h3>현재 물량 사진 ({photos.length}/4)</h3>
-        {photos.length < 4 && (
-          <label className="button button-quiet button-small wf-file">
-            {busy === 'photo' ? '올리는 중…' : '사진 추가'}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              disabled={!!busy}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = '';
-                if (file) onAdd(file);
-              }}
-            />
-          </label>
-        )}
       </div>
       <p className="wf-muted">사진과 상태 설명은 업체 검토를 위해 AI(Azure)로 전달돼요. JPEG·PNG·WebP, 3MB 이하.</p>
       <div className="wf-photos wf-photo-list">
@@ -347,6 +332,21 @@ function PhotoSection({ lot, photos, busy, onAdd }) {
             </label>
           </div>
         ))}
+        {photos.length < 4 && (
+          <label className="button button-quiet button-small wf-file wf-photo-add">
+            <span aria-hidden="true">＋</span>{busy === 'photo' ? '올리는 중…' : '사진 추가'}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={!!busy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (file) onAdd(file);
+              }}
+            />
+          </label>
+        )}
       </div>
       {lot.review && <p className="wf-muted">사진을 바꾸면 업체 검토를 다시 해야 해요.</p>}
     </section>
