@@ -649,22 +649,30 @@ function OutputForm({ material, current, outputStates, terminalStates, busy, onS
 
 function History({ lot, name }) {
   const events = [...(lot.data.events || [])].reverse();
+  const isFinished = lot.status === 'completed';
   return (
     <section className="wf-history" aria-labelledby="wf-history-title">
       <header className="wf-history-heading">
-        <div><span>HANDOFF STATUS</span><h3 id="wf-history-title">인계 기록</h3><p>처리 건의 진행 상황과 기업별 확인 내역을 시간순으로 확인하세요.</p></div>
+        <div><h3 id="wf-history-title">인계 기록</h3><p>최근 기록부터 표시해요</p></div>
         <strong>{events.length}건 기록</strong>
       </header>
       {events.length ? (
         <ol className="wf-history-timeline">
+          {!isFinished && <li className="is-current">
+            <span className="wf-history-marker" aria-hidden="true" />
+            <div className="wf-history-entry">
+              <div className="wf-history-entry-top"><strong>{lotStatusLabel(lot)}</strong><span>진행 중</span></div>
+              <p>{name(lot.current_company_id)}</p>
+            </div>
+          </li>}
           {events.map((e, i) => (
-            <li key={`${e.at}-${e.action}-${i}`} className={i === 0 ? 'is-done is-current' : 'is-done'}>
-              <span className="wf-history-marker" aria-hidden="true">✓</span>
+            <li key={`${e.at}-${e.action}-${i}`} className="is-done">
+              <span className="wf-history-marker" aria-hidden="true" />
               <div className="wf-history-entry">
-                <div className="wf-history-entry-top"><strong>{e.action}</strong>{i === 0 && <span>최근 단계</span>}</div>
+                <div className="wf-history-entry-top"><strong>{e.action}</strong><span>완료</span></div>
                 <p>{name(e.company_id)}{e.facility && ` · ${e.facility}`}</p>
-                {e.note && <p>{e.note}</p>}
-                <time>{formatDateTime(e.at)}</time>
+                <time dateTime={e.at}>{formatDateTime(e.at)}</time>
+                {e.note && <p className="wf-history-note">{e.note}</p>}
               </div>
             </li>
           ))}
