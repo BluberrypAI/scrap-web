@@ -66,7 +66,7 @@ export function FacilityDetail({ option, index = 0, facility, review, action = n
         <dl className="facility-detail-facts">
           <div><dt>처리 형태</dt><dd>{option.input_state?.label || '현재 물량'} → {option.output_state?.label || '다음 형태'}</dd></div>
           <div><dt>거리</dt><dd>{distanceLabel(facility)}</dd></div>
-          <div><dt>수신 계정</dt><dd>{facility.recipient ? `${facility.recipient.name}${facility.recipient.synthetic ? ' (시연용 계정)' : ''}` : '연결된 계정 없음'}</dd></div>
+          <div><dt>수신 계정</dt><dd>{facility.recipient ? facility.recipient.name : '연결된 계정 없음'}</dd></div>
         </dl>
       </header>
 

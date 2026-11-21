@@ -183,7 +183,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
       {pendingOffer && (
         <OfferCard lot={lot} offer={pendingOffer} name={name}>
           <SupplierPolicySummary value={pendingOffer.data.facility?.supplier_policy} />
-          <InquiryConversation lot={lot} offer={pendingOffer} busy={!!busy}
+          <InquiryConversation lot={lot} offer={pendingOffer} me={me} busy={!!busy}
             readOnly={![pendingOffer.sender_id, pendingOffer.recipient_id].includes(me)}
             onSend={(text) => run('message', () => workflowApi.replyInquiry(lot, pendingOffer.id, text))} />
           {pendingOffer.status === 'conditional' && <ConditionalResponse lot={lot} offer={pendingOffer} busy={!!busy}
@@ -203,7 +203,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
 
       {acceptedOffer && (
         <OfferCard lot={lot} offer={acceptedOffer} name={name}>
-          <InquiryConversation lot={lot} offer={acceptedOffer} readOnly />
+          {!!acceptedOffer.data.messages?.length && <InquiryConversation lot={lot} offer={acceptedOffer} me={me} readOnly />}
           {acceptedOffer.can_dispatch && <div className="wf-qr"><p className="wf-muted">물량을 실제로 출발시킬 때 눌러 주세요. 인수 수락만으로 운송이 시작되지는 않아요.</p><button type="button" className="button button-primary wf-qr-issue-button" disabled={!!busy} onClick={() => run('dispatch', () => workflowApi.dispatch(lot, acceptedOffer.id))}>운송 시작</button></div>}
           {acceptedOffer.data.dispatch && <p className="wf-muted">운송 중 · 도착 후 수신 기업이 QR로 입고를 확인해요.</p>}
           {acceptedOffer.can_issue_qr && <QrIssue lot={lot} offer={acceptedOffer} busy={busy} run={run} />}
@@ -457,7 +457,6 @@ function OfferCard({ lot, offer, name, children }) {
       </h3>
       <p className="wf-muted">
         {name(offer.sender_id)} → {name(offer.recipient_id)} · {data.option?.label}
-        {data.synthetic && ' · 시연용 계정'}
       </p>
       <p>
         보낸 물량: {stateLabel(lot, data.current?.state_key)} {formatKg(data.current?.mass_kg)} · {data.current?.condition}
@@ -475,6 +474,7 @@ function OfferCard({ lot, offer, name, children }) {
 }
 
 function DecisionForm({ busy, onDecide, onConditions, offer }) {
+  const [choice, setChoice] = useState(null);
   const [note, setNote] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const requiredChecks = offer?.data.facility?.supplier_policy?.policy?.required_checks || [];
@@ -484,26 +484,33 @@ function DecisionForm({ busy, onDecide, onConditions, offer }) {
   const conditionsReady = (!requiredChecks.length || conditions.length > 0) && conditions.every(c => resolved.includes(c.id) && offer.data.condition_responses?.[c.id]?.text);
   const ok = note.trim().length >= 3;
   return (
-    <div className="wf-form">
-      <label>
-        메모 (수락·거절 이유)
-        <textarea rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
-      </label>
-      <p className="wf-muted">사진·물량과 대화를 확인하고, 필요한 조건은 메시지로 협의해 주세요.</p>
-      <label className="wf-check"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> 우리 사업장의 처리 범위와 이번 물량의 반입조건을 확인했어요</label>
-      {conditions.map(c => <label className="wf-check" key={c.id}><input type="checkbox" checked={resolved.includes(c.id)} disabled={!offer.data.condition_responses?.[c.id]?.text}
-        onChange={e => setResolved(e.target.checked ? [...resolved, c.id] : resolved.filter(id => id !== c.id))} />제출 자료로 확인했어요: {c.text}</label>)}
-      {offer?.status === 'pending' && <label>추가 반입조건 (한 줄에 하나씩, 최대 12개)
-        <textarea rows={3} maxLength={4000} placeholder="예: 오염물 제거 후 사진과 샘플 검사번호를 제출해 주세요." value={conditionsText} onChange={e => setConditionsText(e.target.value)} />
-      </label>}
-      <div className="wf-actions">
-        <button className="button button-primary" type="button" disabled={!!busy || !ok || !confirmed || !conditionsReady}
-          onClick={() => onDecide({ accept: true, note: note.trim(), scopeChecked: confirmed, intakeChecked: confirmed, resolvedConditionIds: resolved })}>{conditions.length ? '조건 확인 후 최종 수락' : '수락'}</button>
-        {offer?.status === 'pending' && <button className="button button-quiet" disabled={!!busy || !ok || conditionsText.trim().length < 3}
-          onClick={() => onConditions(conditionsText.split('\n').map(s => s.trim()).filter(Boolean), note.trim())}>조건부 수락</button>}
-        <button className="button button-quiet" type="button" disabled={!!busy || !ok}
-          onClick={() => onDecide({ accept: false, note: note.trim(), scopeChecked: confirmed, intakeChecked: confirmed })}>거절</button>
+    <div className="wf-decision" aria-label="인수 결정">
+      <div className="wf-decision-head"><h4>인수 결정</h4><p>물량과 반입 조건을 확인한 뒤 선택해 주세요.</p></div>
+      <div className="wf-decision-choices" role="group" aria-label="인수 결정 선택">
+        <button type="button" aria-pressed={choice === 'accept'} onClick={() => setChoice('accept')}>수락</button>
+        {offer?.status === 'pending' && <button type="button" aria-pressed={choice === 'conditional'} onClick={() => setChoice('conditional')}>조건부 수락</button>}
+        <button type="button" aria-pressed={choice === 'reject'} onClick={() => setChoice('reject')}>거절</button>
       </div>
+      {choice && <div className="wf-decision-fields wf-form">
+        {choice === 'conditional' && <label>추가 반입조건 <span>한 줄에 하나씩 입력해 주세요.</span>
+          <textarea rows={2} maxLength={4000} placeholder="예: 오염물 제거 후 사진을 보내 주세요." value={conditionsText} onChange={e => setConditionsText(e.target.value)} />
+        </label>}
+        {choice === 'accept' && <>
+          <label className="wf-check"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} /> 우리 사업장의 처리 범위와 이번 물량의 반입조건을 확인했어요</label>
+          {conditions.map(c => <label className="wf-check" key={c.id}><input type="checkbox" checked={resolved.includes(c.id)} disabled={!offer.data.condition_responses?.[c.id]?.text}
+            onChange={e => setResolved(e.target.checked ? [...resolved, c.id] : resolved.filter(id => id !== c.id))} />제출 자료로 확인했어요: {c.text}</label>)}
+          {!!requiredChecks.length && !conditions.length && <p className="wf-muted">업체 필수 확인 조건이 있어요. 조건부 수락으로 요청한 뒤 확인해 주세요.</p>}
+        </>}
+        <label>{choice === 'reject' ? '거절 이유' : choice === 'conditional' ? '조건 안내 메모' : '수락 메모'}
+          <input type="text" maxLength={1000} placeholder={choice === 'reject' ? '예: 현재 해당 물량을 받을 수 없어요.' : '결정 이유를 간단히 적어 주세요.'} value={note} onChange={e => setNote(e.target.value)} />
+        </label>
+        <button className="button button-primary" type="button" disabled={!!busy || !ok || (choice === 'accept' && (!confirmed || !conditionsReady)) || (choice === 'conditional' && conditionsText.trim().length < 3)}
+          onClick={() => choice === 'conditional'
+            ? onConditions(conditionsText.split('\n').map(s => s.trim()).filter(Boolean), note.trim())
+            : onDecide({ accept: choice === 'accept', note: note.trim(), scopeChecked: confirmed, intakeChecked: confirmed, resolvedConditionIds: resolved })}>
+          {choice === 'accept' ? conditions.length ? '조건 확인 후 수락' : '인수 수락' : choice === 'conditional' ? '조건 보내기' : '인수 거절'}
+        </button>
+      </div>}
     </div>
   );
 }
@@ -676,7 +683,7 @@ function LotChecks({ lot, name, warnings }) {
       <details className="wf-evidence-accordion" key={`inquiry-${offer.id}`}>
         <summary>{name(offer.recipient_id)} · 문의 당시 반입조건과 대화</summary>
         <SupplierPolicySummary value={offer.data.facility?.supplier_policy} />
-        <InquiryConversation lot={lot} offer={offer} readOnly />
+        {!!offer.data.messages?.length && <InquiryConversation lot={lot} offer={offer} readOnly />}
       </details>
     )}
     {lot.offers.filter(offer => offer.data.photo_conflict_resolution).map(offer => <PhotoConflictReceipt key={offer.id} value={offer.data.photo_conflict_resolution} />)}
