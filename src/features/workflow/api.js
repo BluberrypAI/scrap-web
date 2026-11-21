@@ -109,6 +109,11 @@ export const workflowApi = {
       method: 'POST',
       body: { revision: lot.revision, ...output },
     }),
+  correctOutput: (lot, output) =>
+    apiFetch(`/workflow/lots/${enc(lot.id)}/output-correction`, {
+      method: 'POST',
+      body: { revision: lot.revision, ...output },
+    }),
   outputAction: (lot, decision) => apiFetch(`/workflow/lots/${enc(lot.id)}/output-action`, {
     method: 'POST', body: { revision: lot.revision, ...decision },
   }),

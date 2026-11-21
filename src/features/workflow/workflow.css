@@ -336,6 +336,10 @@
 .wf-evidence-source a { color: #67458d; font-weight: 700; }
 .wf-evidence-source span { color: #7d7683; }
 .wf-evidence-alert { margin: 0; padding: 11px 13px; border: 1px solid #f1d7b7; border-radius: 8px; background: #fff8ed; color: #80552b; font-size: 12px; line-height: 1.6; }
+.wf-correction-notice { padding: 14px 16px; border: 1px solid #f0d9bd; border-radius: 10px; background: #fff9f1; color: #67472e; }
+.wf-summary-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.wf-correction-notice strong { display: block; margin-bottom: 6px; }
+.wf-correction-notice p { margin: 4px 0 0; font-size: 13px; line-height: 1.5; }
 .wf-evidence-alert > strong { display: block; margin-bottom: 4px; }
 .wf-evidence-alert ul { display: grid; gap: 4px; margin: 0; padding-left: 17px; }
 .wf-current-condition { display: grid; gap: 4px; }

@@ -226,6 +226,27 @@ test('중간 처리 업체의 인계 현황과 다음 업체 검토 결과는 �
   } finally { await vite.close(); }
 });
 
+test('산출물 불일치 상태에서 현재 업체가 기존 결과를 정정할 수 있다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { LotPanel } = await vite.ssrLoadModule('/src/features/workflow/LotPanel.jsx');
+    const current = { state_key: 'pe-shredded', mass_kg: 200, purity_percent: 100,
+      condition: '기록된 상태', evidence: 'TEST-OUTPUT', next_action: 'hold' };
+    const lot = { id: 'correction', revision: 5, status: 'review_required', can_manage: true,
+      current_company_id: 'c', owner_company_id: 'a', companies: { a: '배출 업체', c: '처리 업체' },
+      photos: [], offers: [{ id: 'offer-c', status: 'processed', recipient_id: 'c',
+        data: { current: { state_key: 'pe-shredded', mass_kg: 200 } } }],
+      output_states: [{ key: 'pe-shredded', label: 'PE 파쇄품' }, { key: 'pe-washed', label: 'PE 세척 플레이크' }],
+      data: { current, initial: { material: 'pe' }, handoff: { waste_code: '51-03-01' },
+        completed: [{ offer_id: 'offer-c', expected_state: 'pe-washed', company_id: 'c', output: current }], events: [] } };
+    const html = renderToStaticMarkup(React.createElement(LotPanel, { lotId: lot.id, initialLot: lot }));
+    assert.match(html, /처리 결과 정정/);
+    assert.match(html, /처리 건 현황[\s\S]*?처리 결과 정정[\s\S]*?새로고침/);
+    assert.match(html, /aria-expanded="false"/);
+    assert.doesNotMatch(html, /정정 사유|정정 내용 저장/);
+  } finally { await vite.close(); }
+});
+
 test('PP·PE·PET·알루미늄 결과는 진행을 한 폼에서 선택하고 별도 종료 버튼은 없다', async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
   try {

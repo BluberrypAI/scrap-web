@@ -38,6 +38,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   const [failure, setFailure] = useState(null);
   const error = failure?.message || '';
   const [action, setBusy] = useState('');
+  const [showCorrection, setShowCorrection] = useState(false);
   const reviewRunning = reviewIsRunning(lot);
   const busy = action || (reviewRunning ? 'review' : '');
   const actionVersion = useRef(0);
@@ -126,15 +127,25 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   const canReviewNext = manage && (lot.status === 'ready' || (lot.status === 'processed' && current.next_action === 'forward'));
   const hasRecommendations = canReviewNext && !!lot.review;
   const splitRecommendations = hasRecommendations && !!onShowRecommendations;
+  const lastStep = lot.data.completed.at(-1);
+  const correctionInput = lot.offers.find((offer) => offer.id === lastStep?.offer_id)?.data?.current || current;
 
   const progress = lotProgress(lot, me);
   const summary = (
       <section className="wf-card wf-summary" aria-label="현재 처리 건 상태와 물량">
         <div className="wf-summary-head">
           <div><span className="wf-summary-eyebrow">처리 건 현황</span><h2><span className="wf-status" data-status={lot.status}>{lotStatusLabel(lot)}</span></h2></div>
-          <button className="button button-quiet button-small" type="button" onClick={reload} disabled={!!busy}>
-            새로고침
-          </button>
+          <div className="wf-summary-actions">
+            {view === 'progress' && manage && lot.status === 'review_required' && lastStep &&
+              <button className="button button-quiet button-small" type="button"
+                aria-expanded={showCorrection} aria-controls="wf-output-correction"
+                onClick={() => setShowCorrection((open) => !open)}>
+                {showCorrection ? '정정 닫기' : '처리 결과 정정'}
+              </button>}
+            <button className="button button-quiet button-small" type="button" onClick={reload} disabled={!!busy}>
+              새로고침
+            </button>
+          </div>
         </div>
         <dl className="wf-facts">
           <div><dt>현재 물량</dt><dd>{stateLabel(lot, current.state_key)} · {formatKg(current.mass_kg)}</dd></div>
@@ -154,10 +165,6 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   );
   const steps = (
     <>
-      {lot.status === 'review_required' && (
-        <p className="wf-alert">기록한 산출물이 예상한 형태와 달라 다음 단계를 보류했어요. 담당자 확인이 필요해요.</p>
-      )}
-
       {manage && ['processed', 'stored'].includes(lot.status) && <ResultActionForm
         key={`${stage}:${current.state_key}:${current.next_action || ''}`} current={current}
         terminalStates={terminalStates} busy={busy}
@@ -202,6 +209,14 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
 
     </>
   );
+
+  const correctionPanel = manage && lot.status === 'review_required' && lastStep && showCorrection &&
+    <div id="wf-output-correction">
+      <OutputForm key={`correction-${stage}-${lot.revision}`} material={material} current={correctionInput}
+        outputStates={lot.output_states} terminalStates={terminalStates} busy={busy}
+        initialOutput={current} expectedState={stateLabel(lot, lastStep.expected_state)}
+        onSubmit={(values) => run('correct-output', () => workflowApi.correctOutput(lot, values))} />
+    </div>;
 
   const candidateContent = canReviewNext && <>
     <PhotoSection lot={lot} photos={stagePhotos} busy={busy} error={failure?.action === 'photo' || failure?.action === 'photo-delete' ? error : ''}
@@ -260,6 +275,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
         <>
           <ProgressStatus lot={lot} name={name} />
           {summary}
+          {correctionPanel}
           {splitRecommendations ? recommendationLink : candidateContent}
           <div className="wf-tracking-layout"><History lot={lot} name={name} /><HandoffMap lot={lot} /></div>
           {steps}
@@ -604,14 +620,16 @@ function ResultActionForm({ current, terminalStates, busy, onSubmit }) {
   </form>;
 }
 
-function OutputForm({ material, current, outputStates, terminalStates, busy, onSubmit }) {
-  const [state, setState] = useState('');
-  const [mass, setMass] = useState('');
-  const [purity, setPurity] = useState('');
+function OutputForm({ material, current, outputStates, terminalStates, busy, onSubmit, initialOutput = null, expectedState = '' }) {
+  const correction = !!initialOutput;
+  const [state, setState] = useState(initialOutput?.state_key || '');
+  const [mass, setMass] = useState(initialOutput?.mass_kg ?? '');
+  const [purity, setPurity] = useState(initialOutput?.purity_percent ?? '');
   const [purityBadInput, setPurityBadInput] = useState(false);
-  const [condition, setCondition] = useState('');
-  const [evidence, setEvidence] = useState('');
-  const [action, setAction] = useState('');
+  const [condition, setCondition] = useState(initialOutput?.condition || '');
+  const [evidence, setEvidence] = useState(initialOutput?.evidence || '');
+  const [action, setAction] = useState(initialOutput?.next_action || '');
+  const [reason, setReason] = useState('');
   const [use, setUse] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [attempted, setAttempted] = useState(false);
@@ -625,6 +643,7 @@ function OutputForm({ material, current, outputStates, terminalStates, busy, onS
     !action && '완료·추가 가공·보관 중에서 다음 진행을 선택해 주세요.',
     action === 'complete' && !terminalStates.includes(state) && '현재 산출물은 완료 가능한 형태가 아닙니다.',
     action === 'complete' && (use.trim().length < 3 || !confirmed) && '산출물 용도와 완료 확인이 필요해요.',
+    correction && reason.trim().length < 3 && '정정 사유를 3자 이상 적어 주세요.',
   ].filter(Boolean);
   return (
     <form className="wf-card wf-form" noValidate onSubmit={(e) => {
@@ -638,10 +657,16 @@ function OutputForm({ material, current, outputStates, terminalStates, busy, onS
         condition: condition.trim(),
         evidence: evidence.trim(),
         next_action: action,
+        ...(correction ? { reason: reason.trim() } : {}),
         ...(action === 'complete' ? { completion_reference: evidence.trim(), intended_use: use.trim(), completion_confirmed: confirmed } : {}),
       });
     }}>
-      <h3>처리 결과(실제 산출물) 기록</h3>
+      <h3>{correction ? '처리 결과 정정' : '처리 결과(실제 산출물) 기록'}</h3>
+      {correction && <div className="wf-correction-notice" role="status"><strong>기록한 산출물과 예정 산출물이 달라 인계가 보류됐어요.</strong>
+        <p>예정: {expectedState} · 기록: {STATE_LABEL[initialOutput.state_key] || initialOutput.state_key}</p>
+        <p>실제로 나온 산출물을 확인하고 아래 내용을 고쳐 주세요. 이전 기록과 정정 사유는 이력에 남아요.</p>
+        <p>실제 산출물이 예정과 계속 다르면 이 정정만으로 보류가 풀리지 않아요.</p>
+      </div>}
       <p className="wf-muted">입고 물량 {formatKg(current.mass_kg)}을 넘을 수 없어요.</p>
       <p className="wf-muted">상태 설명과 근거는 각각 3자 이상 적어 주세요. 순도를 모르면 비워 두면 됩니다.</p>
       {attempted && issues.length > 0 && <div ref={errorRef} className="wf-form-errors" role="alert" tabIndex={-1}><strong>기록하기 전에 확인해 주세요</strong><ul>{issues.map((issue) => <li key={issue}>{issue}</li>)}</ul></div>}
@@ -658,10 +683,11 @@ function OutputForm({ material, current, outputStates, terminalStates, busy, onS
       <label>순도(%, 모르면 비움)<input type="number" min="0" max="100" step="any" value={purity} onChange={(e) => { setPurity(e.target.value); setPurityBadInput(e.target.validity.badInput); }} /></label>
       <label>상태 설명<textarea rows={2} maxLength={1500} value={condition} onChange={(e) => setCondition(e.target.value)} /></label>
       <label>근거(계량표·작업일지 번호 등)<input maxLength={300} value={evidence} onChange={(e) => setEvidence(e.target.value)} /></label>
+      {correction && <label>정정 사유<textarea rows={2} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="예: 산출물 형태를 잘못 선택해 실제 작업 기록과 일치하도록 정정합니다." /></label>}
       <ProcessingDecision stateKey={state} terminalStates={terminalStates} action={action} setAction={setAction}
         use={use} setUse={setUse} confirmed={confirmed} setConfirmed={setConfirmed} />
       <button className="button button-primary" type="submit" disabled={!!busy}>
-        {busy === 'output' ? '기록하는 중…' : '처리 결과 기록'}
+        {busy === 'output' || busy === 'correct-output' ? '저장하는 중…' : correction ? '정정 내용 저장' : '처리 결과 기록'}
       </button>
     </form>
   );
