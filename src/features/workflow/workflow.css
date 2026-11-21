@@ -382,3 +382,10 @@
 .wf-inquiry-actions button { padding: 9px 12px; font-size: 14px; border: 1px solid #d7cbe9; border-radius: 8px; background: #f1ecfa; color: #422b6c; cursor: pointer; }
 
 .wf-photos > div { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.wf-photo-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.wf-photo-head h3 { margin: 0; }
+.wf-photo-head .wf-file { flex: 0 0 auto; }
+.wf-photo-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.wf-photo-list > div { flex-direction: row; align-items: center; gap: 12px; min-width: 0; }
+.wf-photo-list > div .wf-file { flex: 0 0 auto; }
+@media (max-width: 700px) { .wf-photo-list { grid-template-columns: minmax(0, 1fr); } }
