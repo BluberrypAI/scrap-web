@@ -1,6 +1,6 @@
 // 분류번호의 법령표 조회와 실제 업체의 허가·수락을 구분한다.
 export function RecyclingTypes({ assessment, followUp = false, compact = false }) {
-  if (followUp) return <p className="wf-evidence-alert" data-testid="recycling-follow-up">현재 산출물은 처음 배출한 폐기물과 달라요. 최초 분류의 R유형을 자동 적용하지 않으며, 다음 인계 전 분류·재활용 조건을 다시 확인해야 해요.</p>;
+  if (followUp) return <div className="wf-evidence-alert wf-followup-notice" data-testid="recycling-follow-up"><strong>다음 인계 전 확인</strong><p>지금 물량은 이전 업체가 새로 만든 산출물이에요. 최초 분류의 R유형을 자동 적용하지 않으며, 다음 인계에 필요한 분류·재활용 조건을 다시 확인해야 해요.</p></div>;
   if (!assessment) return null;
   if (assessment.status !== 'table_listed') return <p className="wf-evidence-alert" data-testid="recycling-unavailable">이 분류·기준일의 재활용 유형표는 아직 확인되지 않았어요.</p>;
   const groups = [['free', '사전 분석 해당 없음'], ['analysis', '사전 분석·확인 필요'], ['unmarked', '분석 조건 확인 필요']];

@@ -216,9 +216,12 @@ test('중간 처리 업체의 인계 현황과 다음 업체 검토 결과는 �
     const progress = render(reviewed);
     assert.match(progress, /인계 기록/);
     assert.match(progress, /추천 업체 보기/);
-    assert.doesNotMatch(progress, /공정·업체 검토 결과/);
+    assert.doesNotMatch(progress, /추천 업체 검토 결과/);
     const recommendations = render(reviewed, 'recommendations');
-    assert.match(recommendations, /공정·업체 검토 결과/);
+    assert.match(recommendations, /추천 업체 검토 결과/);
+    assert.match(recommendations, /추천 업체.*0곳/);
+    assert.match(recommendations, /추천 목록 검토.*0\/0건 완료/);
+    assert.match(recommendations, /반입 결정.*업체 확인 필요/);
     assert.doesNotMatch(recommendations, /인계 기록|인계 경로/);
   } finally { await vite.close(); }
 });

@@ -141,7 +141,7 @@ export function CandidateBrowser({ options = [], reviews, origin, originLabel, r
 
   return (
     <section className="candidate-browser" aria-label="처리 업체 후보">
-      <div className="candidate-heading"><div><span className="candidate-eyebrow">처리 경로 · 업체 후보</span><h2>선택 가능한 다음 공정 {groups.length}개 · 후보 업체 <span>{count}곳</span></h2><p>표시된 공정을 모두 순서대로 거치는 것은 아니에요. 업체를 누르면 검토 내용과 지금 할 일을 확인할 수 있어요. 실제 반입 가능 여부는 업체가 결정해요.</p></div></div>
+      <div className="candidate-heading"><div><span className="candidate-eyebrow">업체 후보</span><h2>{groups.length ? '업체를 비교하고 선택하세요' : '표시할 추천 업체가 없어요'}</h2><p>{groups.length ? `다음 공정 ${groups.length}가지 중 하나를 고를 수 있어요. 업체를 누르면 검토 근거와 인수 요청 가능 여부를 볼 수 있어요.` : '추가 후보를 확인하거나 현재 물량을 다시 검토해 주세요.'}</p></div></div>
       {options.some(option => option.facilities?.length) && <div className="candidate-browser-toolbar"><div className="candidate-controls">
         <label className="candidate-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg><input aria-label="업체명 또는 지역 검색" placeholder="업체명 또는 지역으로 검색" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
         <select aria-label="업체 정렬" value={sort} onChange={(e) => setSort(e.target.value)}><option value="default">기본 순</option><option value="distance">공정별 가까운 순 · {basis === 'road' ? '도로거리' : '직선거리'}</option><option value="name">공정별 이름 순</option></select>

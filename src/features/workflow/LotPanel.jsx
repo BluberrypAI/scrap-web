@@ -356,6 +356,7 @@ function CandidateSection({ lot, busy, error, offerFailed, onReview, onOffer, on
   if (invalidReviewPhotos(review).length || lot.photo_conflict_gate?.invalid_photos?.length) return null;
   const next = review?.next_step;
   const candidateKeys = [...new Set((next?.options || []).flatMap(o => (o.facilities || []).map(f => f.capability_key)))];
+  const companyCount = new Set((next?.options || []).flatMap(o => (o.facilities || []).map(f => f.facility_key))).size;
   const reviewedCount = candidateKeys.filter(key => {
     const r = review?.results?.[key];
     return ['reviewed', 'needs_evidence'].includes(r?.status) && r?.lot_review?.status === 'reviewed'
@@ -370,7 +371,7 @@ function CandidateSection({ lot, busy, error, offerFailed, onReview, onOffer, on
     if (lot.photo_conflict_gate?.blocked) return { badge: { tone: 'hold', label: '사진·설명 확인 필요' }, title: '사진과 설명이 맞는지 먼저 확인해 주세요',
       text: '후보 목록 위의 불일치 확인 영역에서 설명을 고치거나 확인 사유를 남겨 주세요.' };
     if (result?.status === 'model_unavailable' || result?.lot_review?.status === 'model_unavailable') return { badge: { tone: 'hold', label: 'AI 검토 미완료' }, title: 'AI 검토가 끝나지 않았어요',
-      text: '후보 목록 위의 [다시 검토]를 누르면 미완료 업체만 다시 확인해요. 미완료는 부적합 판정이 아니에요.' };
+      text: '후보 목록 위의 [현재 물량 다시 검토]를 누르면 미완료 업체만 다시 확인해요. 미완료는 부적합 판정이 아니에요.' };
     if (['mismatch', 'unverified'].includes(result?.process_match)) return { badge: { tone: 'off', label: '요청 불가' },
       title: result.process_match === 'mismatch' ? '현재 물량의 재질·공정과 맞지 않는 업체예요' : '이 업체의 공정 연결 근거가 아직 확인되지 않았어요',
       text: '다시 검토해도 같은 결과일 수 있어요. 다른 후보 업체를 확인해 주세요.' };
@@ -381,50 +382,41 @@ function CandidateSection({ lot, busy, error, offerFailed, onReview, onOffer, on
     if (result?.finding === 'restriction_mentioned') return { badge: { tone: 'off', label: '요청 불가' }, title: '공개 자료에서 반입 제한이 확인됐어요',
       text: '아래 검토 근거를 확인하고 다른 후보 업체를 살펴봐 주세요.' };
     return { badge: { tone: 'hold', label: '검토 필요' }, title: '공정·물량 검토를 마쳐야 요청할 수 있어요',
-      text: '후보 목록 위의 [다시 검토]로 현재 물량 기준 검토를 완료해 주세요.' };
+      text: '후보 목록 위의 [현재 물량 다시 검토]로 현재 물량 기준 검토를 완료해 주세요.' };
   }
   return (
     <section className="wf-card wf-candidate-section">
-      <h3>{review ? '공정·업체 검토 결과' : '사진·상태로 공정·업체 검토'}</h3>
+      <div className="wf-candidate-head">
+        <div><span className="wf-candidate-eyebrow">다음 업체 찾기</span><h3>{review ? '추천 업체 검토 결과' : '현재 물량으로 업체 검토'}</h3>
+          <p>{review ? '검토 내용을 확인하고 다음 인계 요청을 보낼 업체를 선택하세요.' : '사진과 현재 상태를 바탕으로 다음 공정에 맞는 업체를 찾아요.'}</p></div>
+        {review && <button className="button button-quiet button-small" type="button" onClick={onReview} disabled={!!busy}>
+          {busy === 'review' ? '검토 중…' : '현재 물량 다시 검토'}
+        </button>}
+      </div>
       {showRecycling && <RecyclingTypes assessment={lot.data.recycling} followUp={lot.data.completed.length > 0} />}
-      {!review && <p className="wf-muted">분류번호·재질·현재 형태로 찾은 후보를 사진·상태 설명 및 업체 공개 근거와 대조해요. 검토가 끝난 뒤 보낼 업체를 선택하세요. 사진이 없으면 상태 설명만 검토하며 사진으로 확인한 것처럼 판단하지 않아요.</p>}
-      <button className="button button-primary" type="button" onClick={onReview} disabled={!!busy}>
-        {busy === 'review' ? '업체를 검토하는 중…' : review ? '다시 검토' : 'AI 검토하고 후보 보기'}
-      </button>
+      {!review && <><p className="wf-muted">사진이 없어도 상태 설명으로 검토할 수 있어요. 사진으로 확인한 것처럼 판단하지는 않아요.</p>
+        <button className="button button-primary" type="button" onClick={onReview} disabled={!!busy}>
+          {busy === 'review' ? '업체를 검토하는 중…' : 'AI 검토하고 후보 보기'}
+        </button></>}
       {busy === 'review' && <ReviewOrb key={reviewIsRunning(lot) ? lot.review_progress.id : 'starting'}
         progress={reviewIsRunning(lot) ? lot.review_progress : null} />}
       {['failed', 'interrupted'].includes(lot.review_progress?.status) && busy !== 'review'
         && <p className="wf-alert" role="alert">{lot.review_progress.message || '검토가 중단됐어요. 완료된 결과를 유지하고 다시 시도할 수 있어요.'}</p>}
       {error && busy !== 'review' && <p className="wf-alert" role="alert">{offerFailed ? '인수 요청을 보내지 못했어요.' : '검토 결과를 받지 못했어요.'} {error}</p>}
       {review && (review.analysis_version !== 'isolated-vision-v2' || !review.recycling_checksum) && <p role="status">이전 방식의 검토예요. 인수 요청 전에 다시 검토해 주세요.</p>}
-      {review && <p className="wf-muted">검토 {formatDateTime(review.at)} · {next?.message}</p>}
-      {review?.selection && <p className="wf-muted" role="status">
-        취급 소재가 맞는 업체를 도로거리순으로 최대 5곳 보여드려요. 현재 {review.selection.selected_keys.length}곳이에요.
-        {' '}사진·물량을 보내면 업체가 대화에서 세부 조건을 확인하고 수락해요.
-      </p>}
-      {review?.selection?.unavailable_keys?.length > 0 && <p className="wf-muted">
-        일부 업체의 공정 검토가 미완료예요. 미완료 업체를 부적합으로 판단하지 않아요.
-      </p>}
-      {review && candidateKeys.length > 0 && <p className={reviewedCount < candidateKeys.length ? 'wf-alert' : 'wf-muted'} role="status">
-        공정·업체 조합 {candidateKeys.length}건 중 {reviewedCount}건 검토 완료.
-        {reviewedCount < candidateKeys.length ? ` ${candidateKeys.length - reviewedCount}건은 미완료예요. 다시 검토하면 같은 조건에서 완료된 결과를 유지하고 미완료 후보만 재시도해요.` : ' 실제 반입은 수신 기업이 확인해요.'}
-      </p>}
+      {review && <><dl className="wf-review-overview" aria-label="추천 업체 검토 요약">
+        <div><dt>추천 업체</dt><dd><strong>{companyCount}곳</strong><span>공개 공정 자료와 도로거리로 추린 후보예요.</span></dd></div>
+        <div><dt>추천 목록 검토</dt><dd><strong>{reviewedCount}/{candidateKeys.length}건 완료</strong><span>화면에 표시한 업체·공정 연결을 현재 물량과 대조한 건수예요.</span></dd></div>
+        <div><dt>반입 결정</dt><dd><strong>업체 확인 필요</strong><span>AI 검토는 추천 근거예요. 실제 반입은 요청받은 업체가 결정해요.</span></dd></div>
+      </dl>
+        {reviewedCount < candidateKeys.length && <p className="wf-evidence-alert" role="status">{candidateKeys.length - reviewedCount}건의 검토가 미완료예요. 부적합 판정은 아니며, ‘현재 물량 다시 검토’를 누르면 재시도할 수 있어요.</p>}
+        <details className="wf-review-method"><summary>후보를 찾은 기준과 검토 기록</summary>
+          <dl><div><dt>검토 시각</dt><dd>{formatDateTime(review.at)}</dd></div>
+            <div><dt>후보 선정</dt><dd>취급 소재가 맞는 업체를 도로거리순으로 최대 5곳 표시해요.</dd></div>
+            <div><dt>검토 단위</dt><dd>한 업체가 여러 공정을 맡으면 공정마다 따로 검토해요.</dd></div>
+            {next?.message && <div><dt>현재 물량 안내</dt><dd>{next.message}</dd></div>}</dl>
+        </details></>}
       {review && <RouteOutcome next={next} currentLabel={stateLabel(lot, lot.data?.current?.state_key)} code={lot.data?.handoff?.waste_code} />}
-      {review?.selection?.other_options?.length > 0 && <details className="wf-more">
-        <summary>추가 확인·미검토 업체 보기</summary>
-        <p className="wf-muted">뒤 후보는 보존돼요. 미검토·거리 미확인은 부적합 판정이 아니에요.</p>
-        <ul>{review.selection.other_options.flatMap(option => option.facilities.map(facility => {
-          const key = facility.capability_key;
-          const s = review.selection;
-          const label = s.distance_unknown_keys.includes(key) ? '도로거리 미확인'
-            : s.restricted_keys.includes(key) ? '공개 자료에서 반입 제한 확인'
-            : s.mismatch_keys?.includes(key) ? '재질·공정 불일치'
-            : s.needs_evidence_keys.includes(key) ? '공정 연결 자료 추가 조사 대상'
-            : s.unavailable_keys.includes(key) ? 'AI 검토 미완료' : '이번 조회에서 미검토';
-          return <li key={key}><strong>{facility.label}</strong> · {label}
-            {facility.road_distance_status === 'available' && ` · 도로 ${facility.road_distance_km.toFixed(1)}km`}</li>;
-        }))}</ul>
-      </details>}
       {next?.options && (
         <CandidateBrowser
           key={lot.data.current.state_key}
@@ -453,6 +445,21 @@ function CandidateSection({ lot, busy, error, offerFailed, onReview, onOffer, on
           renderExtra={(option) => <DirectoryCandidates lot={lot} transitionKey={option.transition_key} onSave={(listing, cursor, answers) => onDirectorySave(option.transition_key, listing, cursor, answers)} />}
         />
       )}
+      {review?.selection?.other_options?.length > 0 && <details className="wf-more wf-other-candidates">
+        <summary>추천 목록 밖의 업체 확인</summary>
+        <p className="wf-muted">여기에는 거리 미확인, 추가 검토가 필요한 업체 등이 있어요. 미검토는 부적합 판정이 아니에요.</p>
+        <ul>{review.selection.other_options.flatMap(option => option.facilities.map(facility => {
+          const key = facility.capability_key;
+          const s = review.selection;
+          const label = s.distance_unknown_keys.includes(key) ? '도로거리 미확인'
+            : s.restricted_keys.includes(key) ? '공개 자료에서 반입 제한 확인'
+            : s.mismatch_keys?.includes(key) ? '재질·공정 불일치'
+            : s.needs_evidence_keys.includes(key) ? '공정 연결 자료 추가 조사 대상'
+            : s.unavailable_keys.includes(key) ? 'AI 검토 미완료' : '이번 조회에서 미검토';
+          return <li key={key}><strong>{facility.label}</strong> · {label}
+            {facility.road_distance_status === 'available' && ` · 도로 ${facility.road_distance_km.toFixed(1)}km`}</li>;
+        }))}</ul>
+      </details>}
     </section>
   );
 }
