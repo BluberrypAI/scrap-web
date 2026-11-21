@@ -180,6 +180,42 @@ function SubmitGroup({ kind, submit, onField, onMark, mark, markType, onMarkType
   );
 }
 
+function FilingGuide({ kind }) {
+  if (kind === 'form5') {
+    return (
+      <details className="lf-filing-guide">
+        <summary>수탁확인서는 어떻게 제출하나요?</summary>
+        <div className="lf-filing-guide-body">
+          <p>위탁할 처리업체에 작성본을 전달하세요. 업체가 수탁자 항목을 확인하고 서명 또는 날인한 확인서를 받으면, 해당하는 배출자 신고나 처리계획 확인 신청에 첨부하세요.</p>
+        </div>
+      </details>
+    );
+  }
+
+  const designated = kind === 'form12';
+
+  return (
+    <details className="lf-filing-guide">
+      <summary>올바로 제출 안내</summary>
+      <div className="lf-filing-guide-body">
+        <p>올바로에 로그인한 뒤 <strong>기초정보관리 → 인허가 신청·등록</strong>에서 {designated ? '폐기물 처리계획(변경)서(제12호)' : '사업장폐기물배출자 신고서·변경신고서(제6호)'}를 선택하세요.</p>
+        <p>{designated ? '폐기물 발생지를 관할하는 시·도 또는 유역·지방환경청에 제출하세요.' : '폐기물 발생지를 관할하는 시·군·구 또는 특별자치시·도에 신고하세요.'}</p>
+        <ol>
+          <li>상호·사업자등록번호·대표자 정보, 사업장 주소·연락처, 업종과 제조공정을 확인하세요. 주 원료의 사용량과 주 생산품의 생산량은 연간 기준으로 적으세요.</li>
+          <li>{designated
+            ? '폐기물 종류·분류번호·성질, 배출량(kg/월·톤/년), 배출주기를 입력하세요.'
+            : '배출시설계 구분, 폐기물 종류·분류번호·성질, 배출량(톤/월·톤/년)을 입력하세요.'} 운반자·운반량, 자가 또는 위탁 처리 여부, 처리업체·처리방법 번호·연간 처리량을 확인하세요.</li>
+          <li>위탁 처리 시 처리업체가 확인한 제5호 서류를 첨부하세요. {designated
+            ? '최초 확인 신청 시 분석결과서(제13호)의 제출 대상인지 확인하세요. 변경 신청에는 변경 증빙을 첨부하고, 기존 확인증명서 제출은 접수기관 안내를 확인하세요.'
+            : '지정폐기물 여부를 미리 확인해야 하는 경우 분석결과서도 첨부하세요. 변경신고라면 변경 전·후와 변경 사유를 적고, 변경 증빙과 기존 배출자 신고증명서를 첨부하세요.'}</li>
+        </ol>
+        <a href="https://www.allbaro.or.kr/01_wsf/wsf_emis_intro.vm" target="_blank" rel="noopener noreferrer">올바로 공식 신청 안내 (새 탭)</a>
+        <a href={designated ? 'https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=14800000273' : 'https://www.gov.kr/mw/AA020InfoCappView.do?CappBizCD=14800000193'} target="_blank" rel="noopener noreferrer">정부24 접수기관·제출서류 안내 (새 탭)</a>
+      </div>
+    </details>
+  );
+}
+
 export function LegalFormPanel({ caseId, handoff }) {
   const kinds = availableForms(handoff);
   const kindsKey = kinds.join(',');
@@ -320,6 +356,8 @@ export function LegalFormPanel({ caseId, handoff }) {
           <button key={k} type="button" aria-pressed={k === kind} onClick={() => pick(k)}>{FORMS[k].title}</button>
         ))}
       </div>
+
+      <FilingGuide key={kind} kind={kind} />
 
       <div className="lf-split">
         <form className="lf-inputs" onSubmit={(e) => e.preventDefault()} noValidate>
