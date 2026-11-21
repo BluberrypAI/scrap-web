@@ -446,6 +446,14 @@
   font-size: 20px;
 }
 
+.home-content .card-content .waste-card-emitter {
+  margin-top: 7px;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .waste-card-state {
   display: grid;
   gap: 9px;

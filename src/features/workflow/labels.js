@@ -106,6 +106,7 @@ export const FINISH_STATES = {
 export const LOT_INPUT_FORMS = [
   ['pp', 'scrap', 'pp-scrap', 'PP 사출 잔재·스크랩'],
   ['pp', 'shredded', 'pp-shredded', 'PP 파쇄품'],
+  ['pe', 'scrap', 'pe-scrap', 'PE 스크랩'],
   ['pe', 'film', 'pe-scrap', 'PE 필름'],
   ['pe', 'film-bale', 'pe-film-bale', 'PE 폐비닐 압축 베일'],
   ['eps', 'buoy', 'eps-buoy', 'EPS 스티로폼 폐부표'],
@@ -186,7 +187,8 @@ export function lotToWaste(lot, myCompanyId) {
     lotId: lot.id,
     lot,
     caseId: null,
-    name: `${lotTitle(lot)} · ${lot.companies[lot.owner_company_id] || '다른 기업'}`,
+    name: lotTitle(lot),
+    emitter: lot.companies[lot.owner_company_id] || '다른 기업',
     code: lot.data?.handoff?.waste_code,
     status: lot.status === 'completed' ? '완료' : '처리 진행',
     ...lotCardText(lot, myCompanyId),
@@ -217,14 +219,20 @@ export function lotProgress(lot, me) {
 /** 자원 경로 목록 카드의 상태 문구 (내 몫이 끝났는지 먼저 보여 줌) */
 export function lotCardText(lot, me) {
   const progress = lotProgress(lot, me);
+  const currentName = lot.companies?.[lot.current_company_id] || '현재 업체';
   if (progress.kind === 'completed') return { displayStatus: '재활용 완료', message: '처리 과정 보기' };
-  if (lot.status === 'stored') return { displayStatus: '보관 중', message: `${lot.companies[lot.current_company_id] || '현재 기업'}에서 산출물을 보관 중이에요` };
-  if (progress.kind === 'handed_off') return { displayStatus: '전달 완료', message: '처리 추적 중' };
+  if (lot.status === 'stored') return { displayStatus: '보관 중', message: `${currentName}에서 산출물을 보관 중이에요` };
   const offer = (lot.offers || []).find((o) => ['pending', 'conditional', 'accepted'].includes(o.status));
   const displayStatus = LOT_STATUS[lot.status] || lot.status;
   if (offer?.status === 'accepted' && offer.data?.dispatch) {
-    return { displayStatus: '운송 중', message: offer.recipient_id === me
-      ? '물량이 도착하면 QR로 입고를 확인해 주세요' : '수신 기업의 QR 입고 확인을 기다리고 있어요' };
+    const recipientName = lot.companies?.[offer.recipient_id] || '수신 업체';
+    return { displayStatus: '운송 중', message: `${currentName} → ${recipientName} 이동 중이에요` };
+  }
+  if (progress.kind === 'handed_off') {
+    if (lot.status === 'processing') return { displayStatus: '처리 중', message: `${currentName}에서 처리 중이에요` };
+    if (lot.status === 'review_required') return { displayStatus, message: `${currentName}에서 처리 결과를 확인 중이에요` };
+    if (offer) return { displayStatus, message: `${currentName}에서 다음 업체로 인계 준비 중이에요` };
+    return { displayStatus, message: `${currentName}에서 다음 진행을 확인 중이에요` };
   }
   if (offer?.recipient_id === me) {
     return { displayStatus, message: offer.status === 'accepted'
@@ -240,6 +248,8 @@ export function lotCardText(lot, me) {
     return { displayStatus: '처리 건 등록됨', message: '사진을 첨부하고 업체를 검토한 뒤 인수를 요청해 주세요' };
   }
   if (lot.current_company_id === me) {
+    if (lot.status === 'processing') return { displayStatus: '처리 중', message: `${currentName}에서 처리 중이에요` };
+    if (lot.status === 'review_required') return { displayStatus, message: `${currentName}에서 처리 결과를 확인해 주세요` };
     return { displayStatus: LOT_STATUS[lot.status] || lot.status, message: '우리 기업이 처리할 차례예요' };
   }
   return { displayStatus: LOT_STATUS[lot.status] || lot.status, message: '상대 기업 응답 대기' };
