@@ -198,6 +198,31 @@ test('AI 검토 전에는 사진 입력과 한 번의 검토 진입만 있고 �
   } finally { await vite.close(); }
 });
 
+test('중간 처리 업체의 인계 현황과 다음 업체 검토 결과는 서로 다른 화면에 표시한다', async () => {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { LotPanel } = await vite.ssrLoadModule('/src/features/workflow/LotPanel.jsx');
+    const current = { state_key: 'pe-shredded', mass_kg: 200, condition: '파쇄 완료', next_action: 'forward' };
+    const lot = { id: 'follow-up', revision: 4, status: 'processed', can_manage: true,
+      current_company_id: 'b', owner_company_id: 'a', companies: { a: '배출 업체', b: '중간 처리 업체' },
+      photos: [], offers: [], data: { current, initial: { material: 'pe' }, handoff: { waste_code: '51-03-01' },
+        completed: [{ facility: '중간 처리 업체' }], events: [] } };
+    const render = (value, view = 'progress') => renderToStaticMarkup(React.createElement(LotPanel,
+      { lotId: value.id, initialLot: value, view, onShowRecommendations: () => {} }));
+    const before = render(lot);
+    assert.match(before, /AI 검토하고 후보 보기/);
+    assert.ok(before.indexOf('AI 검토하고 후보 보기') < before.indexOf('인계 기록'));
+    const reviewed = { ...lot, review: { at: '2026-11-21T09:00:00Z', results: {}, next_step: { options: [] } } };
+    const progress = render(reviewed);
+    assert.match(progress, /인계 기록/);
+    assert.match(progress, /추천 업체 보기/);
+    assert.doesNotMatch(progress, /공정·업체 검토 결과/);
+    const recommendations = render(reviewed, 'recommendations');
+    assert.match(recommendations, /공정·업체 검토 결과/);
+    assert.doesNotMatch(recommendations, /인계 기록|인계 경로/);
+  } finally { await vite.close(); }
+});
+
 test('PP·PE·PET·알루미늄 결과는 진행을 한 폼에서 선택하고 별도 종료 버튼은 없다', async () => {
   const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
   try {

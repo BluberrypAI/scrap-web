@@ -185,6 +185,11 @@
 .wf-history { padding: 26px 30px; border: 1px solid #e8e1ef; border-radius: 24px; background: #fff; box-shadow: 0 14px 38px #3828520a; }
 .wf-tracking-layout { display: grid; grid-template-columns: minmax(300px, .8fr) minmax(0, 1.2fr); gap: 18px; align-items: stretch; min-width: 0; }
 .wf-tracking-layout > * { min-width: 0; }
+.wf-recommendation-entry { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 20px; border: 1px solid #e5d9f0; border-radius: 16px; background: #faf7fd; }
+.wf-recommendation-entry strong { color: #49315e; font-size: 16px; }
+.wf-recommendation-entry p { margin: 5px 0 0; color: #6e6576; font-size: 13px; }
+.wf-recommendation-entry .button { flex-shrink: 0; }
+@media (max-width: 640px) { .wf-recommendation-entry { align-items: stretch; flex-direction: column; } }
 .wf-handoff-map { display: grid; gap: 12px; padding: 22px; border: 1px solid #e8e1ef; border-radius: 24px; background: #fff; }
 .wf-handoff-map header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: baseline; }
 .wf-handoff-map header strong { font-size: 18px; color: #30283b; }

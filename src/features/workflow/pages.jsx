@@ -2,7 +2,7 @@
 //  - /wastes/case-<문진 건 ID>                            : 문진 건 상세 (처리 경로를 보고 업체를 고르는 화면)
 //  - /lots/<처리 건 ID>                                    : 처리 건 (요청받은 업체도 여기서 봄)
 //  - /lots/<처리 건 ID>/receive/<요청 ID>?t=<QR 토큰>       : 입고 QR을 스캔하면 열리는 입고 확인
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { diagnosisApi } from '../diagnosis/index.jsx';
 import { currentRoute, navigate } from '../../lib/router.js';
 import { workflowApi } from './api.js';
@@ -14,12 +14,41 @@ import { LegalFormLink } from '../documents/LegalFormPage.jsx';
 import { BerryRouteStatus } from './BerryRouteStatus.jsx';
 import './workflow.css';
 
+function hasNextCompanyReview(lot) {
+  return !!(lot?.can_manage && lot?.review && lot.data?.completed?.length > 0
+    && lot.status === 'processed' && lot.data.current?.next_action === 'forward');
+}
+
+function useReviewTab(lot, activeTab, setActiveTab, defaultTab) {
+  const previous = useRef(null);
+  const tabs = useRef(null);
+  useEffect(() => {
+    if (!lot) return;
+    const reviewAt = lot.review?.at || null;
+    if (previous.current?.id !== lot.id) {
+      previous.current = { id: lot.id, reviewAt };
+      return;
+    }
+    const completedNow = reviewAt && reviewAt !== previous.current.reviewAt && hasNextCompanyReview(lot);
+    previous.current = { id: lot.id, reviewAt };
+    if (completedNow) {
+      setActiveTab('recommendations');
+      requestAnimationFrame(() => tabs.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+  }, [lot, setActiveTab]);
+  useEffect(() => {
+    if (activeTab === 'recommendations' && lot && !hasNextCompanyReview(lot)) setActiveTab(defaultTab);
+  }, [lot, activeTab, setActiveTab, defaultTab]);
+  return tabs;
+}
+
 export function CaseDetailPage({ caseId, onStageChange }) {
   const [detail, setDetail] = useState(null);
   const [lot, setLot] = useState(undefined); // undefined: 불러오는 중, null: 처리 건 없음
   const [error, setError] = useState('');
   const [registered, setRegistered] = useState(false);
   const [activeTab, setActiveTab] = useState('route');
+  const tabsRef = useReviewTab(lot, activeTab, setActiveTab, 'route');
 
   useEffect(() => {
     let live = true;
@@ -73,8 +102,9 @@ export function CaseDetailPage({ caseId, onStageChange }) {
           </div>
         </div>
       </header>
-      <div className="route-detail-tabs" role="group" aria-label="자원 경로 상세 보기">
+      <div className="route-detail-tabs" role="group" aria-label="자원 경로 상세 보기" ref={tabsRef}>
         <button type="button" aria-pressed={activeTab === 'route'} onClick={() => setActiveTab('route')}>{tracking ? '인계 현황' : !lot || !lot.review ? '물량·사진 입력' : '공정·업체 검토'}</button>
+        {tracking && hasNextCompanyReview(lot) && <button type="button" className="route-recommendation-tab" aria-pressed={activeTab === 'recommendations'} onClick={() => setActiveTab('recommendations')}>다음 업체 추천</button>}
         <button type="button" aria-pressed={activeTab === 'info'} onClick={() => setActiveTab('info')}>{tracking ? '물량·확인 사항' : '분류·확인 사항'}</button>
       </div>
       {!confirmed && activeTab === 'info' && <section className="route-info-surface" aria-label="분류·확인 사항">
@@ -84,7 +114,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
           <div className="route-info-links"><a href={`/wastes/case-${caseId}/survey`}>문진 이어서 하기</a><a href={`/wastes/case-${caseId}/history`}>판정 기록</a></div>
         </div></div>
       </section>}
-      <div hidden={activeTab !== 'route'}>
+      {!tracking && <div hidden={activeTab !== 'route'}>
       {!confirmed ? (
         <section className="route-status-notice">
           <p>분류를 확정하면 처리 경로를 볼 수 있어요.</p>
@@ -95,8 +125,9 @@ export function CaseDetailPage({ caseId, onStageChange }) {
       ) : lot ? (
         <>{registered && lot.status === 'ready' && !lot.review && <div className="registration-success" role="status" tabIndex={-1} ref={(node) => { if (node) node.focus(); }}><Icon name="check" size={20} /><div><strong>처리 건이 등록됐어요</strong><p>필요하면 사진을 첨부하고 AI 검토를 시작하세요. 검토 결과에서 공정과 업체를 선택할 수 있어요.</p></div></div>}<LotPanel lotId={lot.id} initialLot={lot} showRecycling={false} view="progress" onLotChange={setLot} /></>
       ) : null}
-      </div>
-      {tracking && lot && activeTab === 'info' && <LotPanel lotId={lot.id} initialLot={lot} showRecycling={false} view="info" />}
+      </div>}
+      {tracking && lot === undefined && <BerryRouteStatus text="처리 건과 업체 연결 상태를 확인하고 있어요" />}
+      {tracking && lot && <LotPanel lotId={lot.id} initialLot={lot} showRecycling={false} view={activeTab === 'route' ? 'progress' : activeTab} onLotChange={setLot} onShowRecommendations={() => setActiveTab('recommendations')} />}
       {confirmed && lot !== undefined && !tracking && <CaseRoutePanel key={caseId} caseId={caseId} caseTitle={kase.summary?.title} wasteCode={code} classification={kase.summary?.result_label || kase.summary?.status_label} lotRecycling={lot?.data.recycling} recyclingFollowUp={lot?.data.completed?.length > 0} view={activeTab} hasLot={!!lot} onLotCreated={(created) => { setRegistered(true); setLot(created); setActiveTab('route'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />}
       {confirmed && acceptedOffer && <div className="route-legal-form-link"><LegalFormLink caseId={caseId} handoff={detail.handoff} facilityName={acceptedOffer.data?.facility?.label || '처리업체'} /></div>}
     </main>
@@ -106,6 +137,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
 export function LotPage({ lotId, onStageChange }) {
   const [activeTab, setActiveTab] = useState('progress');
   const [lot, setLot] = useState(null);
+  const tabsRef = useReviewTab(lot, activeTab, setActiveTab, 'progress');
   useEffect(() => {
     if (lot) onStageChange(lot.status === 'ready' ? 'route' : 'treatment');
   }, [lot, onStageChange]);
@@ -118,11 +150,12 @@ export function LotPage({ lotId, onStageChange }) {
           <h1>처리 건</h1>
         </div>
       </header>
-      <div className="route-detail-tabs" role="group" aria-label="처리 건 상세 보기">
+      <div className="route-detail-tabs" role="group" aria-label="처리 건 상세 보기" ref={tabsRef}>
         <button type="button" aria-pressed={activeTab === 'progress'} onClick={() => setActiveTab('progress')}>인계 현황</button>
+        {hasNextCompanyReview(lot) && <button type="button" className="route-recommendation-tab" aria-pressed={activeTab === 'recommendations'} onClick={() => setActiveTab('recommendations')}>다음 업체 추천</button>}
         <button type="button" aria-pressed={activeTab === 'info'} onClick={() => setActiveTab('info')}>물량·확인 사항</button>
       </div>
-      <LotPanel lotId={lotId} view={activeTab} onLotChange={setLot} />
+      <LotPanel lotId={lotId} view={activeTab} onLotChange={setLot} onShowRecommendations={() => setActiveTab('recommendations')} />
     </main>
   );
 }

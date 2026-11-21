@@ -33,7 +33,7 @@ const ResourceMapbox = lazy(() => import('../../pages/map/ResourceMapbox.jsx').t
 
 // 처리 건(로트) 하나. 지금 물량을 가진 기업(can_manage)과 요청받은 기업이 각자 할 일을 본다.
 // 모든 변경은 revision을 함께 보내고, 다른 화면에서 바뀌었으면(409) 새로 불러온다.
-export function LotPanel({ lotId, initialLot = null, showRecycling = true, view = 'progress', onLotChange }) {
+export function LotPanel({ lotId, initialLot = null, showRecycling = true, view = 'progress', onLotChange, onShowRecommendations }) {
   const [lot, setLot] = useState(initialLot);
   const [failure, setFailure] = useState(null);
   const error = failure?.message || '';
@@ -123,6 +123,9 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   const diagnosisId = lot.diagnosis_id || lot.data.handoff?.case_id;
   const terminalStates = lot.terminal_states || FINISH_STATES[material] || [];
   const warnings = currentLotWarnings(lot.data.warnings, lot.review?.origin);
+  const canReviewNext = manage && (lot.status === 'ready' || (lot.status === 'processed' && current.next_action === 'forward'));
+  const hasRecommendations = canReviewNext && !!lot.review;
+  const splitRecommendations = hasRecommendations && !!onShowRecommendations;
 
   const progress = lotProgress(lot, me);
   const summary = (
@@ -159,26 +162,6 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
         key={`${stage}:${current.state_key}:${current.next_action || ''}`} current={current}
         terminalStates={terminalStates} busy={busy}
         onSubmit={(decision) => run('output-action', () => workflowApi.outputAction(lot, decision))} />}
-
-      {/* 완료 가능한 형태도 보유 기업이 후속 인계를 선택할 수 있다. */}
-      {manage && (lot.status === 'ready' || (lot.status === 'processed' && current.next_action === 'forward')) && (
-        <>
-          <PhotoSection lot={lot} photos={stagePhotos} busy={busy} onAdd={(file, photoId = null) => run('photo', () => workflowApi.addPhoto(lot.id, file, photoId ? { photoId, revision: lot.revision } : null))} />
-          <PhotoConflict key={`conflict-${lot.revision}-${lot.review?.at}`} lot={lot} busy={busy} onResolve={body => run('conflict', () => workflowApi.resolvePhotoConflict(lot, body))} />
-          <CandidateSection
-            key={`${stage}:${current.state_key}`}
-            lot={lot}
-            error={error}
-            offerFailed={failure?.action === 'offer'}
-            showRecycling={showRecycling}
-            busy={busy}
-            onReview={() => run('review', () => workflowApi.startCandidateReview(lot))}
-            onOffer={(key) => run('offer', () => workflowApi.sendOffer(lot, key))}
-            onAnswers={(key, answers) => run('answers', () => workflowApi.saveIntakeAnswers(lot, key, answers))}
-            onDirectorySave={(transition, listing, cursor, answers) => run('directory', () => workflowApi.saveDirectoryInquiry(lot, transition, listing, cursor, answers))}
-          />
-        </>
-      )}
 
       {pendingOffer && (
         <OfferCard lot={lot} offer={pendingOffer} name={name}>
@@ -220,6 +203,27 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
     </>
   );
 
+  const candidateContent = canReviewNext && <>
+    <PhotoSection lot={lot} photos={stagePhotos} busy={busy} onAdd={(file, photoId = null) => run('photo', () => workflowApi.addPhoto(lot.id, file, photoId ? { photoId, revision: lot.revision } : null))} />
+    <PhotoConflict key={`conflict-${lot.revision}-${lot.review?.at}`} lot={lot} busy={busy} onResolve={body => run('conflict', () => workflowApi.resolvePhotoConflict(lot, body))} />
+    <CandidateSection
+      key={`${stage}:${current.state_key}`}
+      lot={lot}
+      error={error}
+      offerFailed={failure?.action === 'offer'}
+      showRecycling={showRecycling}
+      busy={busy}
+      onReview={() => run('review', () => workflowApi.startCandidateReview(lot))}
+      onOffer={(key) => run('offer', () => workflowApi.sendOffer(lot, key))}
+      onAnswers={(key, answers) => run('answers', () => workflowApi.saveIntakeAnswers(lot, key, answers))}
+      onDirectorySave={(transition, listing, cursor, answers) => run('directory', () => workflowApi.saveDirectoryInquiry(lot, transition, listing, cursor, answers))}
+    />
+  </>;
+  const recommendationLink = hasRecommendations && onShowRecommendations && <section className="wf-recommendation-entry" aria-label="다음 업체 추천">
+    <div><strong>다음 업체 추천</strong><p>현재 산출물에 맞는 공정과 업체 검토 결과를 확인하세요.</p></div>
+    <button className="button button-primary button-small" type="button" onClick={onShowRecommendations}>추천 업체 보기</button>
+  </section>;
+
   if (view === 'info') return (
     <div className="wf-panel">
       {error && <p className="wf-alert" role="alert">{error}</p>}
@@ -236,9 +240,14 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
     </div>
   );
 
+  if (view === 'recommendations') return <div className="wf-panel wf-recommendations-panel">
+    {canReviewNext ? candidateContent : <p className="wf-muted">현재 선택할 다음 업체가 없어요. 인계 현황을 확인해 주세요.</p>}
+  </div>;
+
   if (lot.status === 'ready') return <div className="wf-panel">
     {error && <p className="wf-alert" role="alert">{error}</p>}
     {summary}
+    {splitRecommendations ? recommendationLink : candidateContent}
     {steps}
   </div>;
 
@@ -249,6 +258,7 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
         <>
           <ProgressStatus lot={lot} name={name} />
           {summary}
+          {splitRecommendations ? recommendationLink : candidateContent}
           <div className="wf-tracking-layout"><History lot={lot} name={name} /><HandoffMap lot={lot} /></div>
           {steps}
         </>

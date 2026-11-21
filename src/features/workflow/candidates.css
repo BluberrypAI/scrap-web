@@ -239,10 +239,13 @@
   .candidate-browser .wf-facility { padding: 16px; }
   .candidate-browser .facility-summary-row { grid-template-columns: 92px minmax(0, 1fr); gap: 8px; padding-inline: 8px; }
 }
-.route-detail-tabs { display: flex; flex-wrap: wrap; gap: 12px 30px; margin: 0 0 20px; border-bottom: 1px solid #e6e0eb; background: transparent; }
-.route-detail-tabs button { padding: 8px 0; border: 0; background: transparent; color: #55545a; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.route-detail-tabs { display: flex; flex-wrap: wrap; gap: 12px 30px; margin: 0 0 20px; border-bottom: 1px solid #e6e0eb; background: transparent; scroll-margin-top: 120px; }
+.route-detail-tabs button { position: relative; padding: 8px 0 11px; border: 0; background: transparent; color: #55545a; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
 .route-detail-tabs button:hover { color: #76529a; }
 .route-detail-tabs button[aria-pressed='true'] { color: #76529a; font-weight: 700; }
+.route-detail-tabs button[aria-pressed='true']::after { content: ''; position: absolute; right: 0; bottom: -1px; left: 0; height: 3px; border-radius: 3px 3px 0 0; background: #76529a; }
+.route-detail-tabs .route-recommendation-tab { color: #674293; font-weight: 650; }
+.route-detail-tabs .route-recommendation-tab::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #8d66b8; vertical-align: 2px; }
 .route-detail-tabs button:focus-visible { outline: 2px solid #9471af; outline-offset: 2px; }
 .route-recommendations-main { display: grid; gap: 24px; }
 .route-recommendations-main[hidden] { display: none; }
