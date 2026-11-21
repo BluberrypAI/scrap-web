@@ -552,10 +552,10 @@ function ProcessingDecision({ stateKey, terminalStates, action, setAction, use, 
     <label>다음 진행<select required value={action} onChange={(e) => setAction(e.target.value)}>
       <option value="">선택</option>
       <option value="complete" disabled={!canComplete}>완료</option>
-      <option value="forward">추가 가공</option>
+      <option value="forward">다음 업체로 인계 (추가 가공)</option>
       <option value="hold">보관 중</option>
     </select></label>
-    {!canComplete && stateKey && <p className="wf-muted">이 산출물은 추가 가공 또는 보관 중으로 기록할 수 있어요.</p>}
+    {!canComplete && stateKey && <p className="wf-muted">이 산출물은 다음 업체에 인계하거나 보관할 수 있어요.</p>}
     {action === 'complete' && <>
       <label>산출물 용도<input maxLength={500} value={use} onChange={(e) => setUse(e.target.value)} /></label>
       <label className="wf-check"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> 처리 결과와 이번 처리 건의 완료를 확인했어요</label>
