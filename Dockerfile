@@ -14,7 +14,7 @@ ENV VITE_MAPBOX_ACCESS_TOKEN=$VITE_MAPBOX_ACCESS_TOKEN     VITE_ENABLE_DEV_LOGIN
 RUN npm run build
 
 # 2단계: nginx로 정적 파일 서빙 + /api 요청을 서버로 전달
-FROM nginx:1.27-alpine
+FROM nginx:1.30-alpine
 # 컨테이너 실행 시 -e SCRAP_SERVER_URL=... 로 바꿀 수 있음
 ENV SCRAP_SERVER_URL=http://host.docker.internal:8000
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
