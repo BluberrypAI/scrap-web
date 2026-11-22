@@ -11,6 +11,7 @@ export function WasteCard({ waste, step, isNew = false }) {
   const [flipped, setFlipped] = useState(false);
   // 엔진 건이면 엔진이 준 상태 문구·다음 할 일·이동 경로를 씀
   const displayStatus = waste.displayStatus ?? wasteDisplayStatus(waste);
+  const statusCaption = displayStatus === '처리 완료' ? '우리 기업 단계' : '현재 상태';
   const message = waste.message ?? wasteStatusMessage(waste);
   return (
     <article className={`waste-flip-card${flipped ? ' is-flipped' : ''}`}
@@ -25,7 +26,7 @@ export function WasteCard({ waste, step, isNew = false }) {
           data-step={step}
           inert={flipped}
           aria-hidden={flipped}
-          aria-label={`${waste.name}, 현재 상태 ${displayStatus}`}
+          aria-label={`${waste.name}, ${statusCaption} ${displayStatus}`}
         >
           <div className="card-topline">
             <span className="waste-card-step">STEP {step}</span>
@@ -45,7 +46,7 @@ export function WasteCard({ waste, step, isNew = false }) {
           </div>
           <div className="waste-card-state">
             <div>
-              <span>현재 상태</span>
+              <span>{statusCaption}</span>
               <StatusBadge status={displayStatus} />
             </div>
             <p>{message}</p>

@@ -1,14 +1,14 @@
 import { Icon } from './Icon.jsx';
 
 export function StatusBadge({ status }) {
-  let t = status === '분석 대기',
-    n = status === '완료';
+  const isAnalysis = status === '분석 대기';
+  const isComplete = ['완료', '처리 완료', '재활용 완료'].includes(status);
   return (
     <span
-      className={`status-badge${t ? ' is-analysis' : ''}${n ? ' is-complete' : ''}`}
+      className={`status-badge${isAnalysis ? ' is-analysis' : ''}${isComplete ? ' is-complete' : ''}`}
       data-variant={status}
     >
-      {n && <Icon name="check" size={14} />}
+      {isComplete && <Icon name="check" size={14} />}
       {status}
     </span>
   );
