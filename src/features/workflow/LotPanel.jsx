@@ -258,22 +258,16 @@ export function LotPanel({ lotId, initialLot = null, showRecycling = true, view 
   return (
     <div className="wf-panel">
       {error && <p className="wf-alert" role="alert">{error}</p>}
-      {progress.kind === 'active' ? (
+      <ProgressStatus lot={lot} name={name} handedOff={progress.kind === 'handed_off'} />
+      {summary}
+      {progress.kind === 'active' && (
         <>
-          <ProgressStatus lot={lot} name={name} />
-          {summary}
           {correctionPanel}
           {splitRecommendations ? recommendationLink : candidateContent}
-          <div className="wf-tracking-layout"><History lot={lot} name={name} /><HandoffMap lot={lot} /></div>
-          {steps}
-        </>
-      ) : (
-        <>
-          <ProgressStatus lot={lot} name={name} />
-          {summary}
-          <div className="wf-tracking-layout"><History lot={lot} name={name} /><HandoffMap lot={lot} /></div>
         </>
       )}
+      <div className="wf-tracking-layout"><History lot={lot} name={name} /><HandoffMap lot={lot} /></div>
+      {progress.kind === 'active' && steps}
     </div>
   );
 }
@@ -715,8 +709,8 @@ function History({ lot, name }) {
   );
 }
 
-function ProgressStatus({ lot, name }) {
-  const stages = ['처리 건 등록', '업체 인수 요청', '입고 확인', '처리 진행', '처리 완료'];
+function ProgressStatus({ lot, name, handedOff }) {
+  const stages = ['처리 건 등록', '업체 인수 요청', '입고 확인', '처리 진행', '재활용 완료'];
   const current = lot.status === 'completed' ? 4
     : ['processing', 'processed', 'stored', 'review_required'].includes(lot.status) ? 3
       : lot.status === 'accepted' ? 2
@@ -735,9 +729,11 @@ function ProgressStatus({ lot, name }) {
           : lot.status === 'offered' || lot.status === 'conditional' ? '업체의 인수 확인을 기다리고 있어요'
             : `${company}에서 다음 인계를 준비하고 있어요`;
   return <section className="wf-progress-status" aria-label="현재 인계 현황">
-    <span>현재 진행 상황</span><h2>{message}</h2>
+    <span>{handedOff ? '우리 기업 단계' : '현재 진행 상황'}</span>
+    <h2>{handedOff ? '처리 완료' : message}</h2>
+    {handedOff && <p>{message}</p>}
     <p>현재 담당 · {company}{site !== company && ` · ${site}`}</p>
-    <ol>{stages.map((stage, index) => <li key={stage} className={index === current ? (lot.status === 'completed' ? 'is-done is-current' : 'is-current') : index < current ? 'is-done' : ''}>
+    <ol aria-label="전체 처리 경로">{stages.map((stage, index) => <li key={stage} className={index === current ? (lot.status === 'completed' ? 'is-done is-current' : 'is-current') : index < current ? 'is-done' : ''}>
       <span aria-hidden="true">{index < current || lot.status === 'completed' ? '✓' : String(index + 1).padStart(2, '0')}</span>{stage}
     </li>)}</ol>
   </section>;

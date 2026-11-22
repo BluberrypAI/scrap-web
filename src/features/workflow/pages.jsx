@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { diagnosisApi } from '../diagnosis/index.jsx';
 import { currentRoute, navigate } from '../../lib/router.js';
+import { useSession } from '../../hooks/useSession.js';
 import { workflowApi } from './api.js';
 import { CaseRoutePanel } from './CaseRoutePanel.jsx';
 import { LotPanel } from './LotPanel.jsx';
@@ -43,6 +44,7 @@ function useReviewTab(lot, activeTab, setActiveTab, defaultTab) {
 }
 
 export function CaseDetailPage({ caseId, onStageChange }) {
+  const myCompanyId = useSession().company?.id;
   const [detail, setDetail] = useState(null);
   const [lot, setLot] = useState(undefined); // undefined: 불러오는 중, null: 처리 건 없음
   const [error, setError] = useState('');
@@ -81,7 +83,7 @@ export function CaseDetailPage({ caseId, onStageChange }) {
     : kase.status === 'IN_TRANSIT' || (lot && lotCardStatus(lot.status) === '처리 진행') ? '03' : '02';
   const stageLabel = stage === '01' ? 'STEP 01 · 분류 확인'
     : stage === '02' ? `STEP 02 · ${lot?.status === 'ready' ? '업체 검토' : lot ? LOT_STATUS[lot.status] || '경로 준비' : '경로 준비'}`
-      : stage === '03' ? `STEP 03 · ${lot ? lotStatusLabel(lot) : '처리 진행'}` : '처리 완료';
+      : stage === '03' ? `STEP 03 · ${lot ? lotStatusLabel(lot, myCompanyId) : '처리 진행'}` : '재활용 완료';
   const tracking = stage === '03' || stage === 'done';
   const acceptedOffer = lot?.offers?.find((offer) => ['accepted', 'received', 'processed'].includes(offer.status));
 

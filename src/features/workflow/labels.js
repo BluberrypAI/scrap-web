@@ -13,7 +13,8 @@ export const LOT_STATUS = {
   completed: '완료',
 };
 
-export function lotStatusLabel(lot) {
+export function lotStatusLabel(lot, me) {
+  if (lot && lotProgress(lot, me).kind === 'handed_off') return '처리 완료';
   if (lot?.status === 'accepted' && lot.offers?.some((offer) => offer.status === 'accepted' && offer.data?.dispatch)) return '운송 중';
   return LOT_STATUS[lot?.status] || lot?.status || '처리 진행';
 }
@@ -221,15 +222,16 @@ export function lotCardText(lot, me) {
   const progress = lotProgress(lot, me);
   const currentName = lot.companies?.[lot.current_company_id] || '현재 업체';
   if (progress.kind === 'completed') return { displayStatus: '재활용 완료', message: '처리 과정 보기' };
-  if (lot.status === 'stored') return { displayStatus: '보관 중', message: `${currentName}에서 산출물을 보관 중이에요` };
+  const handedOff = progress.kind === 'handed_off';
+  const displayStatus = handedOff ? '처리 완료' : lotStatusLabel(lot);
+  if (lot.status === 'stored') return { displayStatus, message: `${currentName}에서 산출물을 보관 중이에요` };
   const offer = (lot.offers || []).find((o) => ['pending', 'conditional', 'accepted'].includes(o.status));
-  const displayStatus = LOT_STATUS[lot.status] || lot.status;
   if (offer?.status === 'accepted' && offer.data?.dispatch) {
     const recipientName = lot.companies?.[offer.recipient_id] || '수신 업체';
-    return { displayStatus: '운송 중', message: `${currentName} → ${recipientName} 이동 중이에요` };
+    return { displayStatus: handedOff ? displayStatus : '운송 중', message: `${currentName} → ${recipientName} 이동 중이에요` };
   }
-  if (progress.kind === 'handed_off') {
-    if (lot.status === 'processing') return { displayStatus: '처리 중', message: `${currentName}에서 처리 중이에요` };
+  if (handedOff) {
+    if (lot.status === 'processing') return { displayStatus, message: `${currentName}에서 처리 중이에요` };
     if (lot.status === 'review_required') return { displayStatus, message: `${currentName}에서 처리 결과를 확인 중이에요` };
     if (offer) return { displayStatus, message: `${currentName}에서 다음 업체로 인계 준비 중이에요` };
     return { displayStatus, message: `${currentName}에서 다음 진행을 확인 중이에요` };

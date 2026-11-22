@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canRegisterLot, stateLabel, formatKg, lotCardStatus, lotCardText, lotProgress, lotTitle, lotToWaste } from './labels.js';
+import { canRegisterLot, stateLabel, formatKg, lotCardStatus, lotCardText, lotProgress, lotStatusLabel, lotTitle, lotToWaste } from './labels.js';
 
 const lot = {
   id: '0819348d-95ec-4946-9dd8-7a5cc0893ff3',
@@ -50,23 +50,39 @@ test('인수 요청·조건부 수락·QR 안내를 발송자와 수신자에 �
   assert.equal(lotCardText(current('accepted'), 'B').message, '도착한 물량의 QR로 입고를 확인해 주세요');
 });
 
-test('우리 몫이 끝났는지: 받는 쪽 입고 확인 뒤에만 전달 완료', () => {
+test('QR 입고 확인 뒤 발송자 단계가 완료되고 전체 처리는 계속 추적한다', () => {
   const base = { ...lot, status: 'accepted', current_company_id: 'A', offers: [{ sender_id: 'A', recipient_id: 'B', status: 'accepted' }] };
   assert.equal(lotProgress(base, 'A').kind, 'active');
+  assert.equal(lotCardText(base, 'A').displayStatus, '인수 수락 · 입고 대기');
+  assert.equal(lotStatusLabel(base, 'A'), '인수 수락 · 입고 대기');
   const received = { ...base, status: 'processing', current_company_id: 'B', offers: [{ sender_id: 'A', recipient_id: 'B', status: 'received' }] };
   assert.equal(lotProgress(received, 'A').kind, 'handed_off');
   assert.equal(lotProgress(received, 'B').kind, 'active');
-  assert.deepEqual(lotCardText(received, 'A'), { displayStatus: '처리 중', message: '선별에서 처리 중이에요' });
-  assert.equal(lotCardText(received, 'B').message, '선별에서 처리 중이에요');
+  assert.deepEqual(lotCardText(received, 'A'), { displayStatus: '처리 완료', message: '선별에서 처리 중이에요' });
+  assert.deepEqual(lotCardText(received, 'B'), { displayStatus: '처리 중', message: '선별에서 처리 중이에요' });
+  assert.equal(lotStatusLabel(received, 'A'), '처리 완료');
+  assert.equal(lotStatusLabel(received, 'B'), '처리 중');
+  assert.equal(lotCardStatus(received.status), '처리 진행');
   const awaitingReview = { ...received, status: 'review_required' };
-  assert.equal(lotCardText(awaitingReview, 'A').message, '선별에서 처리 결과를 확인 중이에요');
+  assert.deepEqual(lotCardText(awaitingReview, 'A'), { displayStatus: '처리 완료', message: '선별에서 처리 결과를 확인 중이에요' });
   assert.equal(lotCardText(awaitingReview, 'B').message, '선별에서 처리 결과를 확인해 주세요');
+  const stored = { ...received, status: 'stored' };
+  assert.deepEqual(lotCardText(stored, 'A'), { displayStatus: '처리 완료', message: '선별에서 산출물을 보관 중이에요' });
+  assert.equal(lotCardText(stored, 'B').displayStatus, '보관 중');
   const inTransit = { ...received, status: 'accepted', offers: [
     { sender_id: 'A', recipient_id: 'B', status: 'received' },
     { sender_id: 'B', recipient_id: 'C', status: 'accepted', data: { dispatch: { at: '2026-11-21T00:00:00Z' } } },
   ], companies: { ...received.companies, C: '재생' } };
-  assert.deepEqual(lotCardText(inTransit, 'A'), { displayStatus: '운송 중', message: '선별 → 재생 이동 중이에요' });
-  assert.equal(lotProgress({ ...received, status: 'completed' }, 'A').kind, 'completed');
+  assert.deepEqual(lotCardText(inTransit, 'A'), { displayStatus: '처리 완료', message: '선별 → 재생 이동 중이에요' });
+  assert.equal(lotCardText(inTransit, 'B').displayStatus, '운송 중');
+  const nextReceipt = { ...inTransit, status: 'processing', current_company_id: 'C', offers: [
+    { ...inTransit.offers[0], status: 'processed' },
+    { ...inTransit.offers[1], status: 'received' },
+  ] };
+  assert.equal(lotCardText(nextReceipt, 'A').displayStatus, '처리 완료');
+  assert.equal(lotCardText(nextReceipt, 'B').displayStatus, '처리 완료');
+  assert.equal(lotCardText(nextReceipt, 'C').displayStatus, '처리 중');
+  assert.equal(lotCardText({ ...received, status: 'completed' }, 'A').displayStatus, '재활용 완료');
 });
 
 test('서버가 확인한 소재·번호·형태를 등록하며 로컬 PP 메뉴로 제한하지 않는다', () => {
